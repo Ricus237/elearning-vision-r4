@@ -1,0 +1,198 @@
+"use client";
+import { useState } from "react";
+import Button from "@/components/ui/button";
+import Link from "next/link";
+import { CheckCircle } from "lucide-react";
+
+const examQuestions = [
+  {
+    id: 1,
+    question: "Which of the following describes the primary goal of UX Design?",
+    options: [
+      "To make the application look visually appealing",
+      "To ensure the product is easy and enjoyable to use",
+      "To write the backend logic of the application",
+      "To market the product to users",
+    ],
+    answer: 1,
+  },
+  {
+    id: 2,
+    question: "What is a 'wireframe' in the context of design?",
+    options: [
+      "A high-fidelity prototype with all colors",
+      "A coded functioning version of the app",
+      "A simplified structural outline of a webpage",
+      "A database schema diagram",
+    ],
+    answer: 2,
+  },
+  {
+    id: 3,
+    question: "Which tool is considered industry standard for UI prototyping?",
+    options: [
+      "Microsoft Excel",
+      "Figma",
+      "Notepad",
+      "Visual Studio Code",
+    ],
+    answer: 1,
+  },
+  {
+    id: 4,
+    question: "What does 'responsive design' mean?",
+    options: [
+      "The app responds quickly to server requests",
+      "The layout adapts to different screen sizes and devices",
+      "The user support team responds quickly",
+      "The application uses React.js",
+    ],
+    answer: 1,
+  },
+  {
+    id: 5,
+    question: "Which of these is NOT a stage in Design Thinking?",
+    options: [
+      "Empathize",
+      "Compile",
+      "Ideate",
+      "Prototype",
+    ],
+    answer: 1,
+  }
+];
+
+const ExamPage = () => {
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  const handleSelect = (optionIndex: number) => {
+    setSelectedAnswers((prev) => ({
+      ...prev,
+      [currentQuestion]: optionIndex,
+    }));
+  };
+
+  const handleNext = () => {
+    if (currentQuestion < examQuestions.length - 1) {
+      setCurrentQuestion((prev) => prev + 1);
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentQuestion > 0) {
+      setCurrentQuestion((prev) => prev - 1);
+    }
+  };
+
+  const handleSubmit = () => {
+    setIsSubmitted(true);
+  };
+
+  const calculateScore = () => {
+    let score = 0;
+    examQuestions.forEach((q, idx) => {
+      if (selectedAnswers[idx] === q.answer) {
+        score++;
+      }
+    });
+    return score;
+  };
+
+  if (isSubmitted) {
+    const score = calculateScore();
+    const passed = score >= 3;
+    
+    return (
+      <div className="fixed inset-0 z-[1000] bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-3xl shadow-card max-w-lg w-full text-center">
+          <div className="flex justify-center mb-6">
+            <CheckCircle className={`w-20 h-20 ${passed ? 'text-green-500' : 'text-red-500'}`} />
+          </div>
+          <h2 className="text-3xl font-bold mb-4">{passed ? "Congratulations!" : "Exam Completed"}</h2>
+          <p className="text-gray-600 mb-8 text-lg">
+            You scored <span className="font-bold text-gray-900">{score}</span> out of <span className="font-bold text-gray-900">{examQuestions.length}</span>.
+            {passed ? " You have successfully passed the final exam." : " Unfortunately, you did not pass this time. Better luck next time!"}
+          </p>
+          <Button asChild size="lg" className="w-full py-4 text-lg">
+            <Link href="/courses">
+              Return to Courses
+            </Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const question = examQuestions[currentQuestion];
+
+  return (
+    <div className="fixed inset-0 z-[1000] bg-gray-50 flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-3xl">
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-gray-900">Final Exam</h1>
+          <span className="text-sm font-medium bg-purple-100 text-purple-800 px-4 py-1.5 rounded-full">
+            Question {currentQuestion + 1} of {examQuestions.length}
+          </span>
+        </div>
+
+        <div className="bg-white rounded-3xl shadow-card p-8 md:p-12">
+          <h2 className="text-xl md:text-2xl font-semibold mb-8 text-gray-900">
+            {question.question}
+          </h2>
+
+          <div className="space-y-4">
+            {question.options.map((option, idx) => {
+              const isSelected = selectedAnswers[currentQuestion] === idx;
+              return (
+                <button
+                  key={idx}
+                  onClick={() => handleSelect(idx)}
+                  className={`w-full text-left p-5 rounded-2xl border-2 transition-all ${
+                    isSelected
+                      ? "border-purple-600 bg-purple-50"
+                      : "border-gray-100 bg-white hover:border-purple-200"
+                  }`}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                      isSelected ? "border-purple-600" : "border-gray-300"
+                    }`}>
+                      {isSelected && <div className="w-3 h-3 rounded-full bg-purple-600" />}
+                    </div>
+                    <span className={`text-lg ${isSelected ? "text-purple-900 font-medium" : "text-gray-700"}`}>
+                      {option}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-12 flex items-center justify-between pt-6 border-t border-gray-100">
+            <Button
+              variant="outline"
+              onClick={handlePrev}
+              disabled={currentQuestion === 0}
+            >
+              Previous
+            </Button>
+
+            {currentQuestion === examQuestions.length - 1 ? (
+              <Button onClick={handleSubmit} disabled={selectedAnswers[currentQuestion] === undefined} className="px-8">
+                Submit Exam
+              </Button>
+            ) : (
+              <Button onClick={handleNext} disabled={selectedAnswers[currentQuestion] === undefined} className="px-8">
+                Next <span className="ml-2">→</span>
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ExamPage;
