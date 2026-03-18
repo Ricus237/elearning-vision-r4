@@ -3,63 +3,34 @@ import { useState } from "react";
 import Button from "@/components/ui/button";
 import Link from "next/link";
 import { CheckCircle } from "lucide-react";
+import { examQuestions } from "@/data/curriculum";
 
-const examQuestions = [
+// Use the first course's exam questions
+const courseExamQuestions = examQuestions[0]?.questions || [
   {
     id: 1,
-    question: "Which of the following describes the primary goal of UX Design?",
+    question: "According to Christian doctrine, what are the three persons of the Trinity?",
     options: [
-      "To make the application look visually appealing",
-      "To ensure the product is easy and enjoyable to use",
-      "To write the backend logic of the application",
-      "To market the product to users",
+      "The Father, the Son, and the Holy Ghost",
+      "The Creator, the Judge, and the Redeemer",
+      "The Almighty, the Savior, and the Comforter",
+      "All of the above are theological descriptions",
     ],
-    answer: 1,
+    correct: 0,
+    difficulty: "easy",
   },
   {
     id: 2,
-    question: "What is a 'wireframe' in the context of design?",
+    question: "What is the primary means of salvation in Christian theology?",
     options: [
-      "A high-fidelity prototype with all colors",
-      "A coded functioning version of the app",
-      "A simplified structural outline of a webpage",
-      "A database schema diagram",
+      "Good works and moral behavior",
+      "Faith in Jesus Christ and his redemptive work",
+      "Adherence to religious laws",
+      "Personal spiritual enlightenment",
     ],
-    answer: 2,
+    correct: 1,
+    difficulty: "easy",
   },
-  {
-    id: 3,
-    question: "Which tool is considered industry standard for UI prototyping?",
-    options: [
-      "Microsoft Excel",
-      "Figma",
-      "Notepad",
-      "Visual Studio Code",
-    ],
-    answer: 1,
-  },
-  {
-    id: 4,
-    question: "What does 'responsive design' mean?",
-    options: [
-      "The app responds quickly to server requests",
-      "The layout adapts to different screen sizes and devices",
-      "The user support team responds quickly",
-      "The application uses React.js",
-    ],
-    answer: 1,
-  },
-  {
-    id: 5,
-    question: "Which of these is NOT a stage in Design Thinking?",
-    options: [
-      "Empathize",
-      "Compile",
-      "Ideate",
-      "Prototype",
-    ],
-    answer: 1,
-  }
 ];
 
 const ExamPage = () => {
@@ -75,7 +46,7 @@ const ExamPage = () => {
   };
 
   const handleNext = () => {
-    if (currentQuestion < examQuestions.length - 1) {
+    if (currentQuestion < courseExamQuestions.length - 1) {
       setCurrentQuestion((prev) => prev + 1);
     }
   };
@@ -92,8 +63,8 @@ const ExamPage = () => {
 
   const calculateScore = () => {
     let score = 0;
-    examQuestions.forEach((q, idx) => {
-      if (selectedAnswers[idx] === q.answer) {
+    courseExamQuestions.forEach((q, idx) => {
+      if (selectedAnswers[idx] === q.correct) {
         score++;
       }
     });
@@ -102,7 +73,8 @@ const ExamPage = () => {
 
   if (isSubmitted) {
     const score = calculateScore();
-    const passed = score >= 3;
+    const passingScore = Math.ceil(courseExamQuestions.length * 0.7);
+    const passed = score >= passingScore;
     
     return (
       <div className="fixed inset-0 z-[1000] bg-gray-50 flex items-center justify-center p-4">
@@ -112,8 +84,8 @@ const ExamPage = () => {
           </div>
           <h2 className="text-3xl font-bold mb-4">{passed ? "Congratulations!" : "Exam Completed"}</h2>
           <p className="text-gray-600 mb-8 text-lg">
-            You scored <span className="font-bold text-gray-900">{score}</span> out of <span className="font-bold text-gray-900">{examQuestions.length}</span>.
-            {passed ? " You have successfully passed the final exam." : " Unfortunately, you did not pass this time. Better luck next time!"}
+            You scored <span className="font-bold text-gray-900">{score}</span> out of <span className="font-bold text-gray-900">{courseExamQuestions.length}</span>.
+            {passed ? " You have successfully completed this course examination." : " Unfortunately, you did not achieve the passing score. Please review and try again!"}
           </p>
           <Button asChild size="lg" className="w-full py-4 text-lg">
             <Link href="/courses">
@@ -125,15 +97,15 @@ const ExamPage = () => {
     );
   }
 
-  const question = examQuestions[currentQuestion];
+  const question = courseExamQuestions[currentQuestion];
 
   return (
     <div className="fixed inset-0 z-[1000] bg-gray-50 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-3xl">
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Final Exam</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Course Final Examination</h1>
           <span className="text-sm font-medium bg-purple-100 text-purple-800 px-4 py-1.5 rounded-full">
-            Question {currentQuestion + 1} of {examQuestions.length}
+            Question {currentQuestion + 1} of {courseExamQuestions.length}
           </span>
         </div>
 
@@ -179,7 +151,7 @@ const ExamPage = () => {
               Previous
             </Button>
 
-            {currentQuestion === examQuestions.length - 1 ? (
+            {currentQuestion === courseExamQuestions.length - 1 ? (
               <Button onClick={handleSubmit} disabled={selectedAnswers[currentQuestion] === undefined} className="px-8">
                 Submit Exam
               </Button>

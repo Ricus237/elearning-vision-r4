@@ -13,11 +13,10 @@ const Cta = ({ className }: { className?: string }) => {
         >
           <div className="flex flex-col items-center text-center">
             <h2 className="text-[clamp(2rem,1.6087rem+1.7391vw,3rem)] leading-[1.25] font-semibold tracking-[-0.96px]">
-              Start Your Learning Journey Today
+              Begin Your Christian Education Today
             </h2>
             <p className="mt-3 max-w-[426px] tracking-sm text-secondary sm:text-lg sm:leading-7">
-              Gain new skills, explore creative fields, and achieve your career
-              goals — all in one platform.
+              Deepen your faith, understand Scripture, and grow spiritually through our comprehensive 7-course Christian education program.
             </p>
             <div className="mt-12 flex flex-col items-center gap-4 max-sm:w-full sm:flex-row">
               <Button
@@ -26,7 +25,7 @@ const Cta = ({ className }: { className?: string }) => {
                 className="py-1.5 pr-1.5 pl-6 max-lg:w-full"
               >
                 <Link href={"/courses"}>
-                  <span className="w-full"> Browse Course</span>
+                  <span className="w-full">View All Courses</span>
                   <ButtonArrow />
                 </Link>
               </Button>
@@ -36,8 +35,8 @@ const Cta = ({ className }: { className?: string }) => {
                 size="lg"
                 className="w-full bg-primary sm:max-w-[133px]"
               >
-                <Link href={"/sign-up"}>
-                  <span>Get Started</span>
+                <Link href={"/register"}>
+                  <span>Enroll Now</span>
                 </Link>
               </Button>
             </div>

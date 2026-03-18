@@ -15,19 +15,19 @@ export const testimonialData: testimonialType[] = [
   {
     id: 1,
     user: {
-      name: "James Liu",
-      position: "Frontend developer",
+      name: "Marie Dubois",
+      position: "Student, Paris",
       image: "/images/testimonial/user-1.png",
     },
     isVideoReview: false,
     review:
-      "This platform's courses on advanced React and modern CSS are fantastic. The content is current, practical, and taught by real experts. It's my go-to for staying ahead and sharpening my skills",
+      "This Christian education platform has transformed my understanding of Scripture. The courses are thorough, well-organized, and have deepened my faith tremendously. I especially appreciated the 'Foundations of Christian Faith' course.",
   },
   {
     id: 2,
     user: {
-      name: "Jeroome bell",
-      position: "Digital Marketer",
+      name: "Jean Claude Martin",
+      position: "Believer, Lyon",
       image: "/images/testimonial/user-2.png",
     },
     isVideoReview: true,
@@ -37,19 +37,19 @@ export const testimonialData: testimonialType[] = [
   {
     id: 3,
     user: {
-      name: "Rose harry",
-      position: "UI/UX Designer",
+      name: "Sophie Laurent",
+      position: "Bible Study Leader, Marseille",
       image: "/images/testimonial/user-3.png",
     },
     isVideoReview: false,
     review:
-      "The 'UX/UI Design' certification path was incredibly comprehensive, and the lessons were practical from day one. I went from a total beginner to building a portfolio that got me hired. ",
+      "As a church leader, I found the 'Christian Theology & Doctrine' course invaluable. It provided depth and clarity that I now share with my study group. Highly recommend for anyone serious about theology.",
   },
   {
     id: 4,
     user: {
-      name: "Jeroome bell",
-      position: "Digital Marketer",
+      name: "Pierre Rousseau",
+      position: "New Christian, Toulouse",
       image: "/images/testimonial/user-4.png",
     },
     isVideoReview: true,
@@ -57,14 +57,14 @@ export const testimonialData: testimonialType[] = [
     videoThumb: "/images/testimonial/video-thumb-2.png",
   },
   {
-    id: 4,
+    id: 5,
     user: {
-      name: "Ruben Levin",
-      position: "UI/UX Designer",
+      name: "Elisabeth Blanc",
+      position: "Theology Student, Nice",
       image: "/images/testimonial/user-5.png",
     },
     isVideoReview: false,
     review:
-      "The instructor explains every topic in a simple way. The projects helped me learn by doing, and the pace was perfect for beginners. Highly recommended for anyone starting out.",
+      "The comprehensive curriculum and flexible pace made it possible for me to balance my studies with ministry work. I've completed three courses and earned certificates. The exams are fair and challenging.",
   },
 ];

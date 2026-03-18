@@ -1,99 +1,46 @@
 "use client";
 import Link from "next/link";
-import { 
-  BookOpen, 
-  CheckCircle, 
-  Clock, 
-  GraduationCap, 
-  LayoutDashboard, 
-  Settings, 
-  Trophy, 
-  User 
+import {
+  BookOpen,
+  CheckCircle,
+  Clock,
+  Trophy,
 } from "lucide-react";
 import Image from "next/image";
+import { mockStudents, mockEnrollments } from "@/data/students";
+import { coursesData } from "@/components/courses/courseData";
+import StudentSidebar from "@/components/dashboard/StudentSidebar";
 
-// Dummy data for the dashboard
-const enrolledCourses = [
-  {
-    id: 1,
-    title: "UI/UX Design Fundamentals",
-    progress: 75,
-    totalLessons: 70,
-    completedLessons: 52,
-    thumbnail: "/images/courses/img-4.png",
-    lastAccessed: "2 hours ago"
-  },
-  {
-    id: 2,
-    title: "Complete React Developer Course",
-    progress: 30,
-    totalLessons: 24,
-    completedLessons: 7,
-    thumbnail: "/images/courses/img-1.png",
-    lastAccessed: "1 day ago"
-  }
-];
+// Get mock data - using first student
+const currentStudent = mockStudents[0];
+const studentEnrollments = mockEnrollments.filter(e => e.studentId === currentStudent.id);
+
+// Map enrollments to courses with full details
+const enrolledCourses = studentEnrollments.map(enrollment => {
+  const course = coursesData.find(c => c._id === `course-${enrollment.courseId}`);
+  return {
+    id: enrollment.id,
+    title: course?.title || "Course",
+    progress: enrollment.progress,
+    totalLessons: enrollment.totalLessons,
+    completedLessons: enrollment.lessonsCompleted,
+    thumbnail: course?.thumbnail || "/images/courses/img-1.png",
+    lastAccessed: "Recently",
+    courseSlug: course?.slug.current || "course"
+  };
+});
 
 const DashboardPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row pb-20 pt-24 md:pt-[100px]">
-      {/* Sidebar Navigation */}
-      <aside className="w-full md:w-64 bg-white border-r border-gray-200 px-4 py-6 md:h-[calc(100vh-100px)] md:sticky md:top-[100px]">
-        <div className="flex flex-col h-full">
-          <div className="flex items-center gap-3 px-4 py-4 mb-6 border-b border-gray-100">
-            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-purple-100">
-              <Image 
-                src="/images/hero/avatar-1.png" 
-                alt="User Profile" 
-                width={48} 
-                height={48} 
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div>
-              <h3 className="font-semibold text-gray-900">Student Name</h3>
-              <p className="text-xs text-gray-500">Free Member</p>
-            </div>
-          </div>
-          
-          <nav className="flex-1 space-y-2">
-            <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 bg-purple-50 text-purple-700 rounded-xl font-medium transition-colors">
-              <LayoutDashboard className="w-5 h-5" />
-              Overview
-            </Link>
-            <Link href="#" className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-xl font-medium transition-colors">
-              <BookOpen className="w-5 h-5" />
-              My Courses
-            </Link>
-            <Link href="#" className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-xl font-medium transition-colors">
-              <CheckCircle className="w-5 h-5" />
-              Completed Exams
-            </Link>
-            <Link href="#" className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-xl font-medium transition-colors">
-              <Trophy className="w-5 h-5" />
-              Certificates
-            </Link>
-          </nav>
-
-          <div className="mt-auto pt-6 border-t border-gray-100 space-y-2">
-            <Link href="#" className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-xl font-medium transition-colors">
-              <User className="w-5 h-5" />
-              Profile
-            </Link>
-            <Link href="#" className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-xl font-medium transition-colors">
-              <Settings className="w-5 h-5" />
-              Settings
-            </Link>
-          </div>
-        </div>
-      </aside>
+      <StudentSidebar />
 
       {/* Main Content */}
       <main className="flex-1 p-6 md:p-8 lg:p-10">
         <div className="max-w-6xl mx-auto">
           <header className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-secondary mt-1">Welcome back! Here's an overview of your learning progress.</p>
+            <p className="text-secondary mt-1">Welcome back! Here&apos;s an overview of your learning progress.</p>
           </header>
 
           {/* Stats Grid */}
@@ -113,7 +60,7 @@ const DashboardPage = () => {
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-500">Completed Lessons</p>
-                <h3 className="text-2xl font-bold text-gray-900">59</h3>
+                <h3 className="text-2xl font-bold text-gray-900">{studentEnrollments.reduce((sum, e) => sum + e.lessonsCompleted, 0)}</h3>
               </div>
             </div>
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
@@ -121,8 +68,8 @@ const DashboardPage = () => {
                 <Trophy className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500">Certificates</p>
-                <h3 className="text-2xl font-bold text-gray-900">0</h3>
+                <p className="text-sm font-medium text-gray-500">Courses Completed</p>
+                <h3 className="text-2xl font-bold text-gray-900">{studentEnrollments.filter(e => e.progress === 100).length}</h3>
               </div>
             </div>
           </div>
@@ -163,10 +110,10 @@ const DashboardPage = () => {
                     </div>
                     
                     <Link 
-                      href="/courses/ui-ux-design-fundamentals" 
+                      href={`/courses/${course.courseSlug}`}
                       className="mt-6 inline-flex w-full items-center justify-center gap-2 bg-purple-50 text-purple-700 hover:bg-purple-100 font-semibold py-2.5 px-4 rounded-xl transition-colors"
                     >
-                      Resume Course
+                      {course.progress === 100 ? "View Course" : "Continue Learning"}
                     </Link>
                   </div>
                 </div>

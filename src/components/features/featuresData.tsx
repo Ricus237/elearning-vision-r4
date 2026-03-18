@@ -16,25 +16,25 @@ export const featuresData: featureType[] = [
   {
     id: 1,
     icon: <GraduationHatFill />,
-    title: "Expert Instructors",
+    title: "Comprehensive Biblical Education",
     description:
-      "Earn from experienced professionals who bring real-world expertise to every lesson.",
+      "Learn from our carefully structured 7-course program covering theology, Scripture, Christian living, and church history.",
     thumbnail: "/images/features/img-1.png",
   },
   {
     id: 2,
     icon: <ClockFill />,
-    title: "Interactive Learning Experience",
+    title: "Learn at Your Own Pace",
     description:
-      "Engage with video lessons, assignments, and quizzes learning fun and practical.",
+      "Access 70 lessons per course with flexible scheduling. Study foundational topics or advanced theology whenever suits you best.",
     thumbnail: "/images/features/img-2.png",
   },
   {
     id: 3,
     icon: <CertificateCheckFill />,
-    title: "Recognized Certificates",
+    title: "Verified Completion Certificates",
     description:
-      "Boost your portfolio with verified certificates after completing courses.",
+      "Earn certificates after completing comprehensive exams, validating your Christian education and spiritual growth.",
     thumbnail: "/images/features/img-3.png",
   },
 ];

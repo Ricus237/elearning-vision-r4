@@ -11,10 +11,10 @@ const Features = () => {
           titleClassName="text-primary"
           descriptionClass="text-gray-400"
           subTitleClass="btn-gradient-border-black text-gray-400"
-          subTitle="Why Skillsaint "
-          description="Experience the difference with a platform engineered to help you actually learn, apply, and succeed."
+          subTitle="Our Approach"
+          description="Experience comprehensive Christian education designed to deepen your faith and understanding of Scripture through structured, accessible learning."
         >
-          The Smarter Way to Learn Tech
+          Why Our Platform
         </SectionTitle>
         <div className="grid gap-6 pt-11 sm:grid-cols-2 sm:pt-14 lg:grid-cols-3 lg:pt-16">
           {featuresData.map((feature) => (
