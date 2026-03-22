@@ -83,6 +83,12 @@ const CheckoutForm = () => {
       <div className="w-full md:w-7/12 p-8 md:p-10 bg-white">
         <h2 className="text-2xl font-bold text-gray-900 mb-6">Payment Method</h2>
         
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm">
+            {error}
+          </div>
+        )}
+        
         <form onSubmit={handlePayment} className="space-y-6">
           <div className="bg-purple-50 p-4 rounded-xl border-2 border-purple-600 flex items-center justify-between">
             <div className="flex items-center gap-3 text-purple-900 font-medium">

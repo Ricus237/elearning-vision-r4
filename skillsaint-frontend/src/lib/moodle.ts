@@ -105,13 +105,23 @@ export async function enrolUserInCourse(userId: number, courseId: number) {
   return await fetchMoodle('enrol_manual_enrol_users', params);
 }
 
-/**
- * Vérifier si un utilisateur est inscrit à un cours.
- */
-export async function isUserEnrolled(userId: number, courseId: number) {
+export async function getUserCourses(userId: number) {
   const data = await fetchMoodle('core_enrol_get_users_courses', { userid: userId });
   if (Array.isArray(data)) {
-    return data.some(course => course.id === courseId);
+    return data.map(mapMoodleCourseToCourseType);
+  }
+  return [];
+}
+
+
+
+/**
+ * Vérifie si un utilisateur est inscrit à un cours spécifique.
+ */
+export async function isUserEnrolled(userId: number, courseId: number): Promise<boolean> {
+  const courses = await fetchMoodle('core_enrol_get_users_courses', { userid: userId });
+  if (Array.isArray(courses)) {
+    return courses.some((c: any) => c.id === courseId);
   }
   return false;
 }

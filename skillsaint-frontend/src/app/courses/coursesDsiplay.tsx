@@ -55,7 +55,7 @@ const sorting = [
   },
 ];
 
-const CoursesDsiplay = ({ courses }: { courses: CourseType[] }) => {
+const CoursesDsiplay = ({ courses, isLoggedIn }: { courses: CourseType[], isLoggedIn?: boolean }) => {
   return (
     <div className="bg-gray-50 pt-11 pb-16 sm:pt-14 sm:pb-20 lg:pt-16 lg:pb-28">
       <div className="container">
@@ -121,7 +121,7 @@ const CoursesDsiplay = ({ courses }: { courses: CourseType[] }) => {
         {/* courses  */}
         <div className="grid gap-6 pt-11 pb-11 sm:grid-cols-2 sm:pb-14 lg:grid-cols-3 lg:pb-16">
           {courses.map((course) => (
-            <CourseCard key={course._id} course={course} />
+            <CourseCard key={course._id} course={course} isLoggedIn={isLoggedIn} />
           ))}
         </div>
       </div>

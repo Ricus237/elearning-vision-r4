@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 import {
   BookOpen,
   CheckCircle,
@@ -8,8 +9,10 @@ import {
   Settings,
   Trophy,
   User,
+  LogOut,
 } from "lucide-react";
 import Image from "next/image";
+import { logoutAction } from "@/lib/actions";
 import { mockStudents } from "@/data/students";
 
 const currentStudent = mockStudents[0];
@@ -28,6 +31,24 @@ const bottomNavItems = [
 
 const StudentSidebar = () => {
   const pathname = usePathname();
+  const [userName, setUserName] = useState("Student");
+
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      const cookies = document.cookie.split(";");
+      const userCookie = cookies.find((c) => c.trim().startsWith("moodle_user="));
+      if (userCookie) {
+        let val = decodeURIComponent(userCookie.split("=")[1]);
+        if (val.includes("@")) {
+          // If it's an email, extract the first part
+          val = val.split("@")[0];
+          // Capitalize first letter
+          val = val.charAt(0).toUpperCase() + val.slice(1);
+        }
+        setUserName(val);
+      }
+    }
+  }, []);
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard";
@@ -35,22 +56,16 @@ const StudentSidebar = () => {
   };
 
   return (
-    <aside className="w-full md:w-64 bg-white border-r border-gray-200 px-4 py-6 md:h-[calc(100vh-100px)] md:sticky md:top-[100px] shrink-0">
+    <aside className="w-full md:w-64 bg-white border-r border-gray-200 px-4 py-6 md:h-screen md:sticky md:top-0 shrink-0">
       <div className="flex flex-col h-full">
         <div className="flex items-center gap-3 px-4 py-4 mb-6 border-b border-gray-100">
-          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-purple-100">
-            <Image
-              src={currentStudent.profileImage}
-              alt={currentStudent.name}
-              width={48}
-              height={48}
-              className="w-full h-full object-cover"
-            />
+          <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-xl border-2 border-purple-200">
+             {userName.charAt(0)}
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">{currentStudent.name}</h3>
-            <p className="text-xs text-gray-500">
-              {currentStudent.isBeliever ? "Believer" : "Seeker"}
+            <h3 className="font-semibold text-gray-900 line-clamp-1">{userName}</h3>
+            <p className="text-xs text-purple-600 font-medium">
+              Student
             </p>
           </div>
         </div>
@@ -87,6 +102,15 @@ const StudentSidebar = () => {
               {item.label}
             </Link>
           ))}
+          <form action={logoutAction}>
+            <button
+              type="submit"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-red-600 hover:bg-red-50 hover:text-red-700 w-full text-left transition-colors"
+            >
+              <LogOut className="w-5 h-5" />
+              Logout
+            </button>
+          </form>
         </div>
       </div>
     </aside>

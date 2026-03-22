@@ -99,8 +99,8 @@ export async function enrollAction(courseId: number) {
 
   const result = await enrolUserInCourse(parseInt(userId), courseId);
   
-  if (result === null || (Array.isArray(result) && result.length === 0) || result?.error) {
-    return { error: result?.error || "Erreur lors de l'inscription." };
+  if (result?.error) {
+    return { error: result.error };
   }
 
   return { success: true };
@@ -114,4 +114,85 @@ export async function getCurrentUser() {
   const username = cookieStore.get('moodle_user')?.value;
   const userId = cookieStore.get('moodle_user_id')?.value;
   return username ? { username, id: userId } : null;
+}
+
+/**
+ * Récupère les données complètes du profil de l'utilisateur.
+ */
+export async function getProfileDataAction() {
+  const cookieStore = await cookies();
+  const userId = cookieStore.get('moodle_user_id')?.value;
+  if (!userId) return null;
+
+  // 1. Fetch full user info from Moodle using Admin Token
+  const users = await fetchMoodle('core_user_get_users_by_field', {
+    field: 'id',
+    'values[0]': parseInt(userId)
+  });
+
+  if (!Array.isArray(users) || users.length === 0) return null;
+  const user = users[0];
+
+  // 2. Fetch enrolled courses
+  const courses = await fetchMoodle('core_enrol_get_users_courses', { userid: parseInt(userId) });
+  const enrolledCount = Array.isArray(courses) ? courses.length : 0;
+  
+  // Clean description html tags if any
+  const cleanBio = user.description ? user.description.replace(/<[^>]*>?/gm, '') : "Moodle user enrolled in our eLearning platform.";
+
+  return {
+    id: user.id,
+    fullname: user.fullname,
+    firstname: user.firstname,
+    lastname: user.lastname,
+    username: user.username,
+    email: user.email,
+    address: user.city || "Not specified",
+    bio: cleanBio,
+    userpictureurl: user.profileimageurl || user.profileimageurlsmall,
+    firstaccess: user.firstaccess || user.timecreated, // Timestamp in seconds
+    enrolledCoursesCount: enrolledCount,
+    examsPassed: 0 // Exams logic requires a more complex Moodle gradebook API depending on your setup
+  };
+}
+
+/**
+ * Met à jour le profil utilisateur via Moodle.
+ */
+export async function updateProfileDataAction(data: { name?: string, email?: string, address?: string, bio?: string }) {
+  const cookieStore = await cookies();
+  const userId = cookieStore.get('moodle_user_id')?.value;
+  if (!userId) return { error: "Non connecté" };
+
+  // Split name into firstname and lastname
+  let firstname = data.name;
+  let lastname = " ";
+  if (data.name && data.name.includes(" ")) {
+     const parts = data.name.split(" ");
+     firstname = parts[0];
+     lastname = parts.slice(1).join(" ");
+  }
+
+  const userUpdatePayload: any = {
+    id: parseInt(userId)
+  };
+
+  if (firstname) userUpdatePayload.firstname = firstname;
+  if (lastname) userUpdatePayload.lastname = lastname;
+  if (data.email) userUpdatePayload.email = data.email;
+  if (data.address) userUpdatePayload.city = data.address;
+  if (data.bio) userUpdatePayload.description = data.bio;
+
+  const params = {
+    users: {
+      "0": userUpdatePayload
+    }
+  };
+
+  const result = await fetchMoodle('core_user_update_users', params);
+  
+  if (result && result.error) {
+    return { error: result.error };
+  }
+  return { success: true };
 }

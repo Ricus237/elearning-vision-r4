@@ -1,7 +1,21 @@
 import RegisterForm from "./RegisterForm";
 import { Suspense } from "react";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
-const RegisterPage = () => {
+const RegisterPage = async ({ searchParams }: { searchParams: Promise<{ courseId?: string }> }) => {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("moodle_token")?.value;
+  const { courseId } = await searchParams;
+
+  if (token) {
+    if (courseId) {
+      redirect(`/checkout?courseId=${courseId}`);
+    } else {
+      redirect("/");
+    }
+  }
+
   return (
     <main className="bg-gray-50 min-h-screen pt-20 pb-20">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">

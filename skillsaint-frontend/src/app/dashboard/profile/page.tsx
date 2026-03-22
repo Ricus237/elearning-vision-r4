@@ -1,37 +1,86 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Camera, Mail, MapPin, Calendar, BookOpen, Award } from "lucide-react";
-import Image from "next/image";
-import { mockStudents, mockEnrollments, mockExamScores } from "@/data/students";
 import StudentSidebar from "@/components/dashboard/StudentSidebar";
-
-const currentStudent = mockStudents[0];
-const studentEnrollments = mockEnrollments.filter(e => e.studentId === currentStudent.id);
-const studentExamScores = mockExamScores.filter(e => e.studentId === currentStudent.id);
+import { getProfileDataAction, updateProfileDataAction } from "@/lib/actions";
 
 const ProfilePage = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    name: currentStudent.name,
-    email: currentStudent.email,
-    address: currentStudent.address,
+    name: "Loading...",
+    email: "Loading...",
+    address: "Not specified",
     bio: "Passionate learner seeking to deepen my understanding of Christian theology and biblical studies.",
   });
+  const [stats, setStats] = useState({
+    enrolledCoursesCount: 0,
+    examsPassed: 0,
+    firstaccess: Date.now() / 1000
+  });
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [userProfileUrl, setUserProfileUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const data = await getProfileDataAction();
+        if (data) {
+          setFormData({
+             name: data.fullname || data.username,
+             email: data.email || (data.username.includes("@") ? data.username : `${data.username}@example.com`),
+             address: data.address || "Not specified",
+             bio: data.bio || "Moodle user enrolled in our eLearning platform.",
+          });
+          setStats({
+            enrolledCoursesCount: data.enrolledCoursesCount,
+            examsPassed: data.examsPassed,
+            firstaccess: data.firstaccess
+          });
+          if (data.userpictureurl && data.userpictureurl !== "") {
+             setUserProfileUrl(data.userpictureurl);
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSave = () => {
-    setIsEditing(false);
-    // In production, this would call an API
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const result = await updateProfileDataAction({
+        name: formData.name,
+        email: formData.email,
+        address: formData.address,
+        bio: formData.bio
+      });
+      if (result && result.error) {
+        alert("Erreur lors de la mise à jour : " + result.error);
+      } else {
+        setIsEditing(false);
+      }
+    } catch(err) {
+      console.error(err);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row pb-20 pt-24 md:pt-[100px]">
+    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
       <StudentSidebar />
 
-      <main className="flex-1 p-6 md:p-8 lg:p-10">
+      <main className="flex-1 p-6 md:p-8 lg:p-10 pb-20 md:pb-20 lg:pb-20">
         <div className="max-w-4xl mx-auto">
           <header className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
@@ -44,14 +93,16 @@ const ProfilePage = () => {
             <div className="px-8 pb-8">
               <div className="flex flex-col sm:flex-row items-start sm:items-end gap-6 -mt-12">
                 <div className="relative">
-                  <div className="w-24 h-24 rounded-2xl overflow-hidden border-4 border-white shadow-lg">
-                    <Image
-                      src={currentStudent.profileImage}
-                      alt={currentStudent.name}
-                      width={96}
-                      height={96}
-                      className="w-full h-full object-cover"
-                    />
+                  <div className="w-24 h-24 rounded-2xl overflow-hidden border-4 border-white shadow-lg bg-gray-100 flex items-center justify-center">
+                    {userProfileUrl ? (
+                      <img
+                        src={userProfileUrl}
+                        alt={formData.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-3xl text-gray-400 font-bold">{formData.name.charAt(0)}</span>
+                    )}
                   </div>
                   <button className="absolute -bottom-1 -right-1 w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center hover:bg-purple-700 transition-colors shadow-sm">
                     <Camera className="w-4 h-4" />
@@ -59,20 +110,21 @@ const ProfilePage = () => {
                 </div>
                 <div className="flex-1 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-1">
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900">{currentStudent.name}</h2>
+                    <h2 className="text-2xl font-bold text-gray-900">{formData.name}</h2>
                     <p className="text-gray-500 text-sm mt-0.5">
-                      {currentStudent.isBeliever ? `Believer • ${currentStudent.yearsBeliever}` : "Seeker"}
+                      Student
                     </p>
                   </div>
-                  <button
+                   <button
                     onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
+                    disabled={isSaving}
                     className={`px-5 py-2.5 rounded-xl font-medium text-sm transition-colors ${
                       isEditing
-                        ? "bg-green-600 text-white hover:bg-green-700"
+                        ? "bg-green-600 text-white hover:bg-green-700 disabled:bg-green-400"
                         : "bg-purple-50 text-purple-700 hover:bg-purple-100"
-                    }`}
+                    } flex items-center gap-2`}
                   >
-                    {isEditing ? "Save Changes" : "Edit Profile"}
+                    {isEditing ? (isSaving ? "Saving..." : "Save Changes") : "Edit Profile"}
                   </button>
                 </div>
               </div>
@@ -157,7 +209,7 @@ const ProfilePage = () => {
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Enrolled Courses</p>
-                      <p className="font-bold text-gray-900">{studentEnrollments.length}</p>
+                      <p className="font-bold text-gray-900">{stats.enrolledCoursesCount}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -166,7 +218,7 @@ const ProfilePage = () => {
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Exams Passed</p>
-                      <p className="font-bold text-gray-900">{studentExamScores.filter(e => e.score >= e.maxScore * 0.7).length}</p>
+                      <p className="font-bold text-gray-900">{stats.examsPassed}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -176,7 +228,7 @@ const ProfilePage = () => {
                     <div>
                       <p className="text-sm text-gray-500">Member Since</p>
                       <p className="font-bold text-gray-900">
-                        {new Date(currentStudent.registeredAt).toLocaleDateString("en-US", { year: "numeric", month: "short" })}
+                        {new Date(stats.firstaccess * 1000).toLocaleDateString("en-US", { year: "numeric", month: "short" })}
                       </p>
                     </div>
                   </div>

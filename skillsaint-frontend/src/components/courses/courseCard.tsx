@@ -6,7 +6,11 @@ import Button from "../ui/button";
 import { CourseType } from "@/types/CourseType";
 import { calculateMinutes, formatViews } from "@/lib/utils";
 
-const CourseCard = ({ course }: { course: CourseType }) => {
+const CourseCard = ({ course, isLoggedIn }: { course: CourseType, isLoggedIn?: boolean }) => {
+
+  const enrollLink = isLoggedIn 
+    ? `/checkout?courseId=${course._id.replace('course-', '')}` 
+    : `/register?courseId=${course._id.replace('course-', '')}`;
 
   return (
     <div className="rounded-3xl bg-primary px-2 pt-2 pb-6">
@@ -73,7 +77,7 @@ const CourseCard = ({ course }: { course: CourseType }) => {
             size="lg"
             className="max-w-39.5 pr-4"
           >
-            <Link href={`/register?courseId=${course._id}`}>
+            <Link href={enrollLink}>
               Enroll Now
               <span className="relative flex shrink-0 items-center justify-center overflow-hidden">
                 <span className="relative flex h-full w-full items-center justify-center">

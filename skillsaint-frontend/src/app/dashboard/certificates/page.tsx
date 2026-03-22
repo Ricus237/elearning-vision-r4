@@ -42,10 +42,10 @@ const lockedCertificates = studentEnrollments
 
 const CertificatesPage = () => {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row pb-20 pt-24 md:pt-[100px]">
+    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
       <StudentSidebar />
 
-      <main className="flex-1 p-6 md:p-8 lg:p-10">
+      <main className="flex-1 p-6 md:p-8 lg:p-10 pb-20 md:pb-20 lg:pb-20">
         <div className="max-w-6xl mx-auto">
           <header className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900">Certificates</h1>

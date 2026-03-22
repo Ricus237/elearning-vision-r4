@@ -38,7 +38,7 @@ const TestimonialSlider = () => {
       {testimonialData.map((item) => {
         if (item.isVideoReview) {
           return (
-            <SwiperSlide>
+            <SwiperSlide key={item.id}>
               <div className="relative aspect-[392/362] rounded-2xl">
                 <Image
                   width={392}
@@ -83,7 +83,7 @@ const TestimonialSlider = () => {
           );
         } else {
           return (
-            <SwiperSlide>
+            <SwiperSlide key={item.id}>
               <div className="flex aspect-[392/362] flex-col justify-between rounded-2xl bg-primary px-7 pt-4 pb-7">
                 <div className="flex-1 overflow-y-auto">
                   <span className="text-gray-400">

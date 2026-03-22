@@ -22,6 +22,8 @@ import { getCourseById, isUserEnrolled } from "@/lib/moodle";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+// Trigger TS re-check
+
 const CourseDetails = async ({
   params,
 }: {
@@ -166,9 +168,9 @@ const CourseDetails = async ({
                       const cookiesStore = await cookies();
                       const user = cookiesStore.get("moodle_user")?.value;
                       if (!user) {
-                        redirect('/login');
+                        redirect(`/register?courseId=${courseId}`);
                       }
-                      // Enrollment logic here
+                      redirect(`/checkout?courseId=${courseId}`);
                     }}>
                       <Button
                         type="submit"
@@ -176,7 +178,7 @@ const CourseDetails = async ({
                         className="mt-8 w-full py-1.5 pr-1.5 pl-6"
                       >
                         <span className="w-full text-center">
-                          {username ? "Enroll Now" : "Login to Enroll"}
+                          {username ? "Enroll Now" : "Register to Enroll"}
                         </span>
                         <ButtonArrow />
                       </Button>

@@ -52,14 +52,22 @@ const HeaderExtraInfo = ({ user }: HeaderExtraInfoProps) => {
       </div>
       <div className="flex items-center gap-4">
         {user ? (
-          <div className="flex items-center gap-3 sm:gap-4">
-            <span className="hidden sm:inline-block text-sm font-medium text-secondary truncate max-w-[100px] lg:max-w-none">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <span className="hidden md:inline-block text-sm font-medium text-secondary truncate max-w-[100px] lg:max-w-none">
               {user.username}
             </span>
             <Button
+              asChild
+              className="h-10 lg:h-12 py-1 px-3 lg:px-5 text-sm lg:text-base"
+            >
+              <Link href="/dashboard">
+                Dashboard
+              </Link>
+            </Button>
+            <Button
               onClick={() => logoutAction()}
               variant="outline"
-              className="h-10 lg:h-12 py-1 px-4 lg:px-6 text-sm lg:text-base border-purple-200 hover:bg-purple-50 text-purple-600"
+              className="h-10 lg:h-12 py-1 px-3 lg:px-5 text-sm lg:text-base border-purple-200 hover:bg-purple-50 text-purple-600 hidden sm:inline-flex"
             >
               Logout
             </Button>

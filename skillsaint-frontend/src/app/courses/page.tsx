@@ -9,9 +9,12 @@ export const metadata: Metadata = {
 };
 
 import { getAllCourses } from "@/lib/data";
+import { cookies } from "next/headers";
 
 const Courses = async () => {
   const courses = await getAllCourses();
+  const cookieStore = await cookies();
+  const isLoggedIn = !!cookieStore.get("moodle_user")?.value;
   
   return (
     <main>
@@ -21,7 +24,7 @@ const Courses = async () => {
       >
         Our Popular Courses
       </PageHeader>
-      <CoursesDsiplay courses={courses} />
+      <CoursesDsiplay courses={courses} isLoggedIn={isLoggedIn} />
     </main>
   );
 };

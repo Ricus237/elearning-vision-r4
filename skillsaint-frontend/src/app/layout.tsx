@@ -54,6 +54,8 @@ export const metadata: Metadata = {
   },
 };
 
+import ConditionalWrapper from "@/components/ConditionalWrapper";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -64,9 +66,13 @@ export default function RootLayout({
       <body
         className={`${interTight.variable} ${mulish.variable} ${inter.variable} antialiased`}
       >
-        <Header/>
+        <ConditionalWrapper>
+          <Header/>
+        </ConditionalWrapper>
         {children}
-        <Footer/>
+        <ConditionalWrapper>
+          <Footer/>
+        </ConditionalWrapper>
       </body>
     </html>
   );
