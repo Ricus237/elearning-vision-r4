@@ -28,12 +28,12 @@ const menuList: MenuType[] = [
   {
     id: 3,
     label: "About",
-    href: "#",
+    href: "/about",
   },
   {
     id: 4,
     label: "Instructors",
-    href: "#",
+    href: "/instructors",
   },
   {
     id: 5,

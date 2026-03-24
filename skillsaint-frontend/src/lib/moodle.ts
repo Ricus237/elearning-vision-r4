@@ -163,7 +163,39 @@ export function mapMoodleCourseToCourseType(mCourse: any): CourseType {
     _id: `course-${mCourse.id}`,
     title: mCourse.fullname || "Course",
     shortDescription: mCourse.summary?.replace(/<[^>]*>?/gm, '') || "No description provided",
-    thumbnail: mCourse.courseimage || "/images/courses/img-1.png",
+    thumbnail: (() => {
+      // 1. Chercher dans les customfields (souvent utilisé pour des images spécifiques)
+      if (Array.isArray(mCourse.customfields)) {
+        const imageField = mCourse.customfields.find((f: any) => 
+          (f.shortname.toLowerCase().includes('image') || f.shortname.toLowerCase().includes('thumb')) && f.value
+        );
+        if (imageField) return imageField.value;
+      }
+
+      // 2. Priorité standard: courseimage
+      if (mCourse.courseimage) return mCourse.courseimage;
+      
+      // 3. overviewfiles (Fichiers de résumé du cours)
+      const files = mCourse.overviewfiles || mCourse.summaryfiles || [];
+      if (files.length > 0) {
+        const imageFile = files.find((f: any) => f.mimetype && f.mimetype.startsWith('image/'));
+        if (imageFile) {
+          return `${imageFile.fileurl}${imageFile.fileurl.includes('?') ? '&' : '?'}token=${MOODLE_TOKEN}`;
+        }
+        // Fallback sur le premier fichier si pas de mimetype mais URL existante
+        if (files[0].fileurl) {
+           return `${files[0].fileurl}${files[0].fileurl.includes('?') ? '&' : '?'}token=${MOODLE_TOKEN}`;
+        }
+      }
+      
+      // 4. Extraction depuis le summary HTML si nécessaire (moins fiable)
+      if (mCourse.summary && mCourse.summary.includes('<img')) {
+        const match = mCourse.summary.match(/<img[^>]+src="([^">]+)"/);
+        if (match && match[1]) return match[1];
+      }
+
+      return `https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=800&auto=format&fit=crop`;
+    })(),
     instructor: {
        name: mCourse.contacts?.[0]?.fullname || "Our Instructors",
     },
@@ -179,6 +211,7 @@ export function mapMoodleCourseToCourseType(mCourse: any): CourseType {
     overview: [],
     duration: 0,
     lessonsCount: mCourse.visible === 1 ? 10 : 0,
+    categoryId: mCourse.category,
   };
 }
 
@@ -186,9 +219,25 @@ export function mapMoodleCourseToCourseType(mCourse: any): CourseType {
  * Récupère un cours spécifique par son ID.
  */
 export async function getCourseById(courseId: number): Promise<CourseType | null> {
-  const data = await fetchMoodle('core_course_get_courses', { options: { ids: [courseId] } });
-  if (Array.isArray(data) && data.length > 0) {
-    return mapMoodleCourseToCourseType(data[0]);
+  const [data, contents] = await Promise.all([
+    fetchMoodle('core_course_get_courses_by_field', { field: 'id', value: courseId }),
+    getCourseContents(courseId)
+  ]);
+
+  const courses = data?.courses;
+  if (Array.isArray(courses) && courses.length > 0) {
+    const mapped = mapMoodleCourseToCourseType(courses[0]);
+    
+    // Calculer le nombre réel de leçons
+    let count = 0;
+    contents.forEach((section: any) => {
+      count += (section.modules?.length || 0);
+    });
+    
+    mapped.lessonsCount = count;
+    mapped.duration = count * 15; // Estimation
+    
+    return mapped;
   }
   return null;
 }
@@ -197,11 +246,34 @@ export async function getCourseById(courseId: number): Promise<CourseType | null
  * Récupère tous les cours publics de Moodle et les mappe.
  */
 export async function getPublicCourses(): Promise<CourseType[]> {
-  const data = await fetchMoodle('core_course_get_courses');
-  if (!Array.isArray(data)) return [];
+  const data = await fetchMoodle('core_course_get_courses_by_field');
+  const courses = data?.courses;
   
-  // On ignore le cours d'index 1 (souvent le cours du site Moodle lui-même)
-  return data.filter(c => c.id > 1).map(mapMoodleCourseToCourseType);
+  if (!Array.isArray(courses)) return [];
+  
+  const publicCourses = courses.filter((c: any) => c.id > 1);
+  
+  // Pour avoir le vrai nombre de leçons, on doit charger le contenu de chaque cours
+  // on utilise Promise.all pour paralléliser les appels
+  const coursesWithDetails = await Promise.all(publicCourses.map(async (c: any) => {
+    try {
+      const contents = await getCourseContents(c.id);
+      let count = 0;
+      contents.forEach((section: any) => {
+        count += (section.modules?.length || 0);
+      });
+      
+      const mapped = mapMoodleCourseToCourseType(c);
+      mapped.lessonsCount = count;
+      // Estimation de la durée: on compte environ 15 min par module pour donner un chiffre "réel"
+      mapped.duration = count * 15; 
+      return mapped;
+    } catch (e) {
+      return mapMoodleCourseToCourseType(c);
+    }
+  }));
+
+  return coursesWithDetails;
 }
 
 /**
@@ -229,3 +301,108 @@ export async function getMoodleCategories(): Promise<CategoryType[]> {
   return data.map(mapMoodleCategoryToCategoryType);
 }
 
+/**
+ * Récupère le contenu d'un cours (sections et modules).
+ */
+export async function getCourseContents(courseId: number) {
+  return await fetchMoodle('core_course_get_contents', { courseid: courseId });
+}
+
+/**
+ * Récupère les quiz d'un cours.
+ */
+export async function getCourseQuizzes(courseId: number) {
+  const data = await fetchMoodle('mod_quiz_get_quizzes_by_courses', { courseids: [courseId] });
+  return data?.quizzes || [];
+}
+/**
+ * Commence une tentative de quiz.
+ */
+export async function startQuizAttempt(quizId: number, userToken?: string) {
+  return await fetchMoodle('mod_quiz_start_attempt', { quizid: quizId }, userToken);
+}
+
+/**
+ * Récupère les données d'une tentative (questions).
+ */
+export async function getAttemptData(attemptId: number, page: number = 0, userToken?: string) {
+  return await fetchMoodle('mod_quiz_get_attempt_data', { attemptid: attemptId, page: page }, userToken);
+}
+/**
+ * Récupère les pages d'un cours (avec leur contenu HTML).
+ */
+export async function getCoursePages(courseId: number) {
+  const data = await fetchMoodle('mod_page_get_pages_by_courses', { courseids: [courseId] });
+  return data?.pages || [];
+}
+
+/**
+ * Récupère les leçons d'un cours.
+ */
+export async function getCourseLessons(courseId: number) {
+  const data = await fetchMoodle('mod_lesson_get_lessons_by_courses', { courseids: [courseId] });
+  return data?.lessons || [];
+}
+/**
+ * Récupère les pages d'une leçon spécifique.
+ */
+export async function getLessonPages(lessonId: number) {
+  const data = await fetchMoodle('mod_lesson_get_pages', { lessonid: lessonId });
+  return data?.pages || [];
+}
+
+export async function getInstructors() {
+  const courses = await getPublicCourses();
+  const sortedInstructorsMap = new Map();
+
+  courses.forEach(course => {
+    if (course.instructor && course.instructor.name) {
+      if (!sortedInstructorsMap.has(course.instructor.name)) {
+        sortedInstructorsMap.set(course.instructor.name, {
+          id: course.instructor.name.toLowerCase().replace(/\s+/g, '-'),
+          name: course.instructor.name,
+          title: "Senior Instructor",
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(course.instructor.name)}&background=7d52f4&color=fff&size=256`,
+          coursesCount: 1,
+          rating: 4.8 + Math.random() * 0.2, // Random 4.8-5.0
+        });
+      } else {
+        const instr = sortedInstructorsMap.get(course.instructor.name);
+        instr.coursesCount += 1;
+      }
+    }
+  });
+
+  return Array.from(sortedInstructorsMap.values());
+}
+
+/**
+ * Traite le contenu HTML provenant de Moodle pour corriger les liens d'images et vidéos.
+ * Ajoute le token d'accès aux URLs pluginfile.php pour permettre l'affichage externe.
+ */
+export function processMoodleHtml(html: string): string {
+  if (!html) return "";
+  
+  let processedHtml = html;
+  
+  // 1. Ajouter le token aux URLs de fichiers Moodle (pluginfile.php)
+  const moodleFileRegex = /src="([^"]+pluginfile\.php\/[^"]+)"/g;
+  
+  processedHtml = processedHtml.replace(moodleFileRegex, (match, url) => {
+    const separator = url.includes('?') ? '&' : '?';
+    if (url.includes('token=')) return match;
+    const token = process.env.MOODLE_TOKEN || "";
+    return `src="${url}${separator}token=${token}"`;
+  });
+
+  // 2. S'assurer que les URLs sont absolues si elles commencent par /
+  const moodleUrl = process.env.MOODLE_URL || "";
+  if (moodleUrl) {
+    const baseUrl = moodleUrl.endsWith('/') ? moodleUrl.slice(0, -1) : moodleUrl;
+    // Uniquement pour les liens relatifs internes (pas déjà absolus)
+    processedHtml = processedHtml.replace(/src="(?!\s*https?:\/\/)\/([^"]+)"/g, `src="${baseUrl}/$1"`);
+    processedHtml = processedHtml.replace(/href="(?!\s*https?:\/\/)\/([^"]+)"/g, `href="${baseUrl}/$1"`);
+  }
+
+  return processedHtml;
+}

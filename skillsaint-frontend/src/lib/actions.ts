@@ -1,7 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { loginMoodle, createMoodleUser, enrolUserInCourse, isUserEnrolled, fetchMoodle } from './moodle';
+import { loginMoodle, createMoodleUser, enrolUserInCourse, isUserEnrolled, fetchMoodle, startQuizAttempt, getAttemptData } from './moodle';
 import { redirect } from 'next/navigation';
 
 /**
@@ -53,7 +53,6 @@ export async function registerAction(formData: FormData) {
   const firstName = formData.get('firstName') as string;
   const lastName = formData.get('lastName') as string;
   
-  // NOUVEAU : On utilise directement l'email comme Username
   const username = email; 
 
   const user = {
@@ -195,4 +194,59 @@ export async function updateProfileDataAction(data: { name?: string, email?: str
     return { error: result.error };
   }
   return { success: true };
+}
+
+/**
+ * Récupère les questions d'un quiz via une tentative.
+ */
+export async function getQuizQuestionsAction(quizId: number) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('moodle_token')?.value;
+  
+  if (!token) return { error: "Vous devez être connecté pour passer l'examen." };
+
+  try {
+    // 1. Vérifier s'il y a déjà une tentative en cours
+    // On retire le paramètre status qui peut causer des erreurs selon la version de Moodle
+    const userAttempts = await fetchMoodle('mod_quiz_get_user_attempts', { quizid: quizId }, token);
+    
+    let attempt = null;
+    if (userAttempts && userAttempts.attempts && Array.isArray(userAttempts.attempts)) {
+      // On cherche une tentative en cours
+      attempt = userAttempts.attempts.find((a: any) => a.state === 'inprogress');
+    }
+
+    if (!attempt) {
+      // Sinon, on en commence une nouvelle
+      const startResult = await startQuizAttempt(quizId, token);
+      if (startResult?.exception || startResult?.error) {
+        // Gérer le cas spécifique où Moodle dit qu'une tentative est déjà en cours malgré notre check
+        if (startResult.message?.toLowerCase().includes('inprogress') || startResult.message?.toLowerCase().includes('en cours')) {
+             const retryAttempts = await fetchMoodle('mod_quiz_get_user_attempts', { quizid: quizId }, token);
+             attempt = retryAttempts?.attempts?.find((a: any) => a.state === 'inprogress');
+        }
+        
+        if (!attempt) {
+            return { error: startResult.message || startResult.error };
+        }
+      } else {
+          attempt = startResult.attempt;
+      }
+    }
+    
+    if (!attempt) return { error: "Impossible de récupérer ou créer une tentative. Ce quiz est peut-être fermé." };
+
+    // 2. Récupérer les données de la tentative (les questions)
+    const data = await getAttemptData(attempt.id, 0, token);
+    if (data?.exception) return { error: data.message };
+
+    return { 
+      success: true, 
+      questions: data.questions || [], 
+      attemptId: attempt.id,
+      quizName: data.quizname || "Exam"
+    };
+  } catch (err) {
+    return { error: "Erreur lors de la récupération du quiz." };
+  }
 }

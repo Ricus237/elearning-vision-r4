@@ -8,11 +8,12 @@ export const metadata: Metadata = {
   description: "Skillsaint  Online Learning Platform",
 };
 
-import { getAllCourses } from "@/lib/data";
+import { getPublicCourses, getMoodleCategories } from "@/lib/moodle";
 import { cookies } from "next/headers";
 
 const Courses = async () => {
-  const courses = await getAllCourses();
+  const courses = await getPublicCourses();
+  const categories = await getMoodleCategories();
   const cookieStore = await cookies();
   const isLoggedIn = !!cookieStore.get("moodle_user")?.value;
   
@@ -24,7 +25,7 @@ const Courses = async () => {
       >
         Our Popular Courses
       </PageHeader>
-      <CoursesDsiplay courses={courses} isLoggedIn={isLoggedIn} />
+      <CoursesDsiplay courses={courses} categories={categories} isLoggedIn={isLoggedIn} />
     </main>
   );
 };

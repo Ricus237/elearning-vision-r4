@@ -13,84 +13,75 @@ const CourseCard = ({ course, isLoggedIn }: { course: CourseType, isLoggedIn?: b
     : `/register?courseId=${course._id.replace('course-', '')}`;
 
   return (
-    <div className="rounded-3xl bg-primary px-2 pt-2 pb-6">
-      <div className="relative">
+    <div className="group relative flex flex-col h-full rounded-[2.5rem] bg-white p-3 shadow-md hover:shadow-2xl transition-all duration-500 border border-gray-100 hover:-translate-y-2 active:scale-[0.98]">
+      {/* Image Section */}
+      <div className="relative overflow-hidden rounded-[2rem] aspect-[16/10] z-0">
         <Image
-          width={373}
-          height={218}
-          sizes="100vw"
+          fill
+          sizes="(max-width: 768px) 100vw, 33vw"
           src={course.thumbnail}
           alt={course.title}
-          className="w-full rounded-2xl"
+          className="object-cover transition-transform duration-1000 group-hover:scale-110"
         />
-        <div className="absolute top-3 left-3 flex items-center gap-1 rounded-full bg-primary pt-0.5 pr-2 pb-0.5 pl-1">
-            <div className="flex h-4 w-4 items-center justify-center text-yellow-400">
-              <Star className="size-4" />
-            </div>
-            <small className="text-sm leading-5 tracking-sm">
-              {'5.0'}
-            </small>
+        <div className="absolute inset-0 bg-gradient-to-t from-gray-900/40 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
+        
+        {/* Badges */}
+        <div className="absolute top-4 left-4 flex flex-wrap gap-2 z-10">
+          <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/80 backdrop-blur-md shadow-sm border border-white/20">
+            <Star className="size-3.5 text-yellow-500 fill-yellow-500" />
+            <span className="text-[11px] font-bold text-gray-900 leading-none">5.0</span>
           </div>
+          <div className="px-3 py-1.5 rounded-full bg-purple-600/90 text-white text-[10px] font-bold uppercase tracking-wider backdrop-blur-md shadow-sm border border-purple-400/30">
+            {course.level || "Beginner"}
+          </div>
+        </div>
       </div>
-      <div className="flex h-1/2 flex-col justify-between pt-5 sm:px-4">
-        <ul className="flex flex-wrap items-center gap-2.5 pb-4">
-          <li className="flex max-h-6.5 items-center gap-1 rounded-full pt-1 pb-1 leading-4.5 text-secondary">
-            <BookOpen className="size-4 stroke-[0.75]" />
-            <span className="text-xs leading-4.5">{course.lessonsCount} Lessons</span>
-          </li>
-          <li className="flex max-h-6.5 items-center gap-1 rounded-full pt-1 pb-1 leading-4.5 text-secondary">
-            <Clock className="size-4" />
-            <span className="text-xs leading-4.5">{calculateMinutes(course.duration || 0)}</span>
-          </li>
-          {course.totalLearners ? (
-            <li className="flex max-h-6.5 items-center gap-1 rounded-full pt-1 pb-1 leading-4.5 text-secondary">
-              <GraduationHat className="size-4" />
-              <span className="text-xs leading-4.5">
-                {formatViews(course.totalLearners) > "1"
-                  ? `${formatViews(course.totalLearners)} learners`
-                  : `${formatViews(course.totalLearners)} learner`}
-              </span>
-            </li>
-          ) : null}
-        </ul>
 
+      {/* Content Section */}
+      <div className="flex flex-col flex-1 px-4 pt-6 pb-2">
+        {/* Course Meta */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-50 text-gray-500 border border-gray-100">
+            <BookOpen className="size-3.5" />
+            <span className="text-[11px] font-semibold">{course.lessonsCount} Lessons</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-50 text-gray-500 border border-gray-100">
+            <Clock className="size-3.5" />
+            <span className="text-[11px] font-semibold">{calculateMinutes(course.duration || 0)}</span>
+          </div>
+        </div>
+
+        {/* Title */}
         <Link
           href={`/courses/${course.slug.current}`}
-          className="grow font-medium transition-all duration-500 hover:text-purple-500 md:text-lg md:leading-7"
+          className="block mb-6 grow"
         >
-          {course.title}
+          <h3 className="text-xl font-extrabold text-gray-900 leading-[1.3] group-hover:text-purple-600 transition-colors line-clamp-2 tracking-tight">
+            {course.title}
+          </h3>
         </Link>
-        <small className="mt-2 block text-sm leading-5 tracking-sm text-secondary">
-          By {course.instructor.name}
-        </small>
-
-        <div className="mt-7 flex items-center justify-between">
-          <h6 className="text-lg leading-7 font-medium">
-            <span>${(course.discountPrice || course.price).toFixed(2)} </span>
-            {course.discountPrice && (
-              <del className="text-gray-400">${course.price.toFixed(2)}</del>
-            )}
-          </h6>
-          <Button
-            asChild
-            variant="outline"
-            size="lg"
-            className="max-w-39.5 pr-4"
-          >
-            <Link href={enrollLink}>
-              Enroll Now
-              <span className="relative flex shrink-0 items-center justify-center overflow-hidden">
-                <span className="relative flex h-full w-full items-center justify-center">
-                  <span className="relative transition-transform duration-300 ease-in-out group-hover:translate-x-10">
-                    <ArrowRight className="size-5" />
-                  </span>
-                  <span className="absolute -translate-x-10 transition-transform duration-300 ease-in-out group-hover:translate-x-0">
-                    <ArrowRight className="size-5" />
-                  </span>
-                </span>
+        
+        {/* Pricing & Footer */}
+        <div className="pt-6 border-t border-gray-100/80 flex items-center justify-between mt-auto">
+          <div className="flex flex-col">
+            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-[0.1em] mb-0.5 ml-0.5">Price</span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-black text-gray-900">
+                {course.price === 0 ? "Free" : `$${(course.discountPrice || course.price).toFixed(0)}`}
               </span>
-            </Link>
-          </Button>
+              {course.discountPrice && course.price > 0 && (
+                <del className="text-sm text-gray-300 font-bold tracking-tight">${course.price.toFixed(0)}</del>
+              )}
+            </div>
+          </div>
+          
+          <Link 
+            href={enrollLink} 
+            className="group/btn relative size-14 rounded-2xl bg-gray-900 text-white shadow-lg shadow-gray-200 hover:shadow-purple-300 hover:bg-purple-600 transition-all duration-300 flex items-center justify-center overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-white/10 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300" />
+            <ArrowRight className="size-6 transition-transform duration-500 group-hover/btn:translate-x-1 relative z-10" />
+          </Link>
         </div>
       </div>
     </div>
