@@ -191,3 +191,13 @@ input[type="number"]::-webkit-inner-spin-button {
 input[type="number"] {
   -moz-appearance: textfield;
 }
+@keyframes light-rays {
+  0% { transform: scale(1) translate(0, 0) rotate(0deg); opacity: 0.15; }
+  33% { transform: scale(1.2) translate(10%, -5%) rotate(5deg); opacity: 0.25; }
+  66% { transform: scale(0.9) translate(-5%, 5%) rotate(-5deg); opacity: 0.2; }
+  100% { transform: scale(1) translate(0, 0) rotate(0deg); opacity: 0.15; }
+}
+
+.animate-light-rays {
+  animation: light-rays 20s ease-in-out infinite;
+}

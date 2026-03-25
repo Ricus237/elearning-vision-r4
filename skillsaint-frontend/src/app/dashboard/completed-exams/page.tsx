@@ -10,6 +10,15 @@ const currentStudent = mockStudents[0];
 const studentExamScores = mockExamScores.filter(e => e.studentId === currentStudent.id);
 const studentEnrollments = mockEnrollments.filter(e => e.studentId === currentStudent.id);
 
+const getLetterGrade = (score: number, maxScore: number) => {
+  const percentage = (score / maxScore) * 100;
+  if (percentage >= 90) return 'A';
+  if (percentage >= 80) return 'B';
+  if (percentage >= 70) return 'C';
+  if (percentage >= 60) return 'D';
+  return 'F';
+};
+
 // Build exam history with course info
 const examHistory = studentExamScores.map(score => {
   const course = coursesData.find(c => c._id === `course-${score.courseId}`);
@@ -141,7 +150,7 @@ const CompletedExamsPage = () => {
                   <tr className="bg-gray-50 text-gray-600 text-sm border-b border-gray-200">
                     <th className="p-4 font-medium">Course</th>
                     <th className="p-4 font-medium">Exam Type</th>
-                    <th className="p-4 font-medium">Score</th>
+                    <th className="p-4 font-medium">Grade & Score</th>
                     <th className="p-4 font-medium">Status</th>
                     <th className="p-4 font-medium">Date</th>
                   </tr>
@@ -152,8 +161,9 @@ const CompletedExamsPage = () => {
                       <td className="p-4 font-medium text-gray-900">{exam.courseTitle}</td>
                       <td className="p-4 text-gray-500">{exam.examType}</td>
                       <td className="p-4">
-                        <span className="font-bold text-gray-900">{exam.score}</span>
-                        <span className="text-gray-400">/{exam.maxScore}</span>
+                        <span className="font-black text-purple-700 mr-2">{getLetterGrade(exam.score, exam.maxScore)}</span>
+                        <span className="font-bold text-gray-900 text-sm">({exam.score}</span>
+                        <span className="text-gray-400 text-sm">/{exam.maxScore})</span>
                       </td>
                       <td className="p-4">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${

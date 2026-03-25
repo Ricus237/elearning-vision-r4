@@ -1,169 +1,52 @@
-import {
-  ArrowRight,
-  Facebook,
-  Instagram,
-  LinkedinFill,
-  LogoWhite,
-  Twitter,
-} from "@/lib/icons";
-import Input from "../ui/input";
+import React from "react";
 import Link from "next/link";
-import Copyright from "./copyright";
-import Image from "next/image";
+import { ArrowRight } from "lucide-react";
 
-import { getMoodleCategories } from "@/lib/moodle";
-
-const Footer = async () => {
-  const categories = await getMoodleCategories();
-  
-  // Limiter à 5 catégories pour le footer
-  const categoryLinks = categories.slice(0, 5).map(cat => ({
-    text: cat.title,
-    url: `/courses?category=${cat._id}`
-  }));
-
-  const footerData = [
-    {
-      title: "Quick Link",
-      links: [
-        { text: "Home", url: "/" },
-        { text: "All Courses", url: "/courses" },
-        { text: "Categories", url: "/courses" },
-        { text: "Contact", url: "/contact" },
-        { text: "FAQ's", url: "/faq" },
-      ],
-    },
-    {
-      title: "Categories",
-      links: categoryLinks.length > 0 ? categoryLinks : [
-        { text: "Biblical Studies", url: "#" },
-        { text: "Theology & Doctrine", url: "#" },
-        { text: "Praise & Worship", url: "#" },
-      ],
-    },
-    {
-      title: "Help & Legal",
-      links: [
-        { text: "Help Center", url: "#" },
-        { text: "Terms & Conditions", url: "#" },
-        { text: "Privacy Policy", url: "#" },
-      ],
-    },
-  ];
-
+const Footer = () => {
   return (
-    <footer className="relative z-10 overflow-hidden bg-gray-950">
-      <Image
-        width={1440}
-        height={652}
-        src={"/images/footer/bg-img.svg"}
-        alt="img"
-        sizes="100vw"
-        loading="eager"
-        className="absolute top-[119.438px] -left-[578px] z-[-1] h-full w-full"
-      />
-      <div className="relative overflow-hidden pt-11 pb-9 sm:pt-14 lg:pt-20">
-        <div className="absolute bottom-[-321px] left-1/2 h-[390px] w-[585px] -translate-x-1/2 rounded-[585.5px] bg-purple-400 opacity-50 blur-[102.00930786132812px]"></div>
-        {/* Subscribe */}
-        <div className="container">
-          <div className="relative z-10 flex flex-col justify-between gap-x-10 gap-y-8 md:flex-row md:items-end">
-            <div className="max-w-[442px]">
-              <h4 className="mb-3 text-2xl leading-8 font-medium text-primary">
-                Subscribe to our newsletter
-              </h4>
-              <small className="mt-3 text-sm leading-5 tracking-sm text-[rgba(255,255,255,0.70)]">
-                Stay connected with Skillsaint — receive curated learning
-                resources, platform updates, and career-building tips every
-                week.
-              </small>
-            </div>
-            <div className="w-full max-w-[400px]">
-              <form className="relative flex items-center">
-                <Input
-                  required
-                  placeholder="hello@skillsaint.com"
-                  className="h-11 w-full border-secondary bg-gray-900 pr-15 text-primary placeholder:text-gray-500 sm:h-12"
-                />
-
-                <button className="absolute right-1 flex h-9 w-9 items-center justify-center rounded-full bg-purple-500 text-primary transition-all duration-500 hover:bg-purple-600">
-                  <ArrowRight />
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="container py-11 sm:py-14 lg:py-20">
-        {/* logo and link */}
-        <div className="flex flex-col justify-between gap-x-12 gap-y-10 lg:flex-row">
-          <div className="max-w-[297px] flex-1">
-            <Link href={"/"} className="text-primary">
-              <LogoWhite className="max-sm:w-27" />
+    <footer className="bg-white py-16 border-t border-slate-100">
+      <div className="container px-6 mx-auto">
+        <div className="flex flex-col items-center text-center space-y-10">
+          
+          {/* Main Identity */}
+          <div className="space-y-4">
+            <Link href="/" className="text-3xl font-black font-serif tracking-tight text-slate-900 block">
+              International Bible Institute
             </Link>
-            <p className="mt-4 text-sm leading-5 tracking-sm text-gray-400">
-              Empowering believers worldwide to deepen their faith and knowledge
-              of Scripture through high-quality, accessible Christian online education.
+            <p className="text-slate-400 font-medium italic max-w-lg mx-auto leading-relaxed">
+              A House Where Leaders Are Formed in Scripture, Holiness, and the Power of God
             </p>
-            <ul className="mt-10 flex items-center gap-2">
-              <li>
-                <Link
-                  href={"#"}
-                  className="flex size-9 items-center justify-center rounded-full bg-gray-800 text-gray-500 transition-all duration-500 hover:bg-purple-500 hover:text-primary"
-                >
-                  <Facebook />
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href={"#"}
-                  className="flex size-9 items-center justify-center rounded-full bg-gray-800 text-gray-500 transition-all duration-500 hover:bg-purple-500 hover:text-primary"
-                >
-                  <Twitter />
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href={"#"}
-                  className="flex size-9 items-center justify-center rounded-full bg-gray-800 text-gray-500 transition-all duration-500 hover:bg-purple-500 hover:text-primary"
-                >
-                  <Instagram />
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href={"#"}
-                  className="flex size-9 items-center justify-center rounded-full bg-gray-800 text-gray-500 transition-all duration-500 hover:bg-purple-500 hover:text-primary"
-                >
-                  <LinkedinFill />
-                </Link>
-              </li>
-            </ul>
           </div>
-          <div className="grid max-w-[712px] flex-1 gap-x-20 gap-y-10 sm:grid-cols-3">
-            {footerData.map(({ links, title }, index) => (
-              <div key={index}>
-                <h6 className="leading-7 font-medium tracking-base text-primary">
-                  {title}
-                </h6>
-                <ul className="mt-5 space-y-3">
-                  {links.map(({ text, url }, index) => (
-                    <li key={index} className="leading-5">
-                      <Link
-                        href={url}
-                        className="text-sm leading-5 tracking-sm text-gray-400 transition-all duration-500 hover:text-purple-500"
-                      >
-                        {text}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+
+          {/* Simple Navigation */}
+          <nav className="flex flex-wrap justify-center gap-x-12 gap-y-4">
+             {[
+               { name: "Home", link: "/" },
+               { name: "About", link: "/about" },
+               { name: "Programs", link: "/programs" },
+               { name: "Apply Now", link: "/apply" },
+               { name: "Contact", link: "/contact" },
+             ].map((route) => (
+               <Link 
+                 key={route.name} 
+                 href={route.link}
+                 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500 hover:text-purple-600 transition-colors"
+               >
+                 {route.name}
+               </Link>
+             ))}
+          </nav>
+
+          {/* Minimal Copyright */}
+          <div className="pt-10 border-t border-slate-50 w-full flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-300">
+             <p>© {new Date().getFullYear()} IBI. All rights reserved.</p>
+             <div className="flex gap-8">
+                <Link href="#" className="hover:text-slate-500">Privacy</Link>
+                <Link href="#" className="hover:text-slate-500">Terms</Link>
+             </div>
           </div>
         </div>
       </div>
-
-      <Copyright />
     </footer>
   );
 };

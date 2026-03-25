@@ -22,23 +22,23 @@ const menuList: MenuType[] = [
   },
   {
     id: 2,
-    label: "Courses",
-    href: "/courses",
-  },
-  {
-    id: 3,
     label: "About",
     href: "/about",
   },
   {
+    id: 3,
+    label: "Programs",
+    href: "/programs",
+  },
+  {
     id: 4,
-    label: "Instructors",
-    href: "/instructors",
+    label: "Apply",
+    href: "/apply",
   },
   {
     id: 5,
-    label: "Contact",
-    href: "/contact",
+    label: "Exams",
+    href: "/exams",
   },
 ];
 
@@ -54,13 +54,13 @@ const Header = async () => {
       <div className="container">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-10">
-            <Link href={"/"} className="inline-block shrink-0 py-1.75">
-              <Logo className="text-purple-500 max-sm:w-27" />
+            <Link href={"/"} className="inline-block shrink-0 py-1.75 text-2xl font-bold tracking-tight text-white lg:text-3xl font-serif">
+              International Bible Institute
             </Link>
             <Navigation data={menuList} />
           </div>
           <div className="flex items-center gap-7">
-            <HeaderExtraInfo user={user} />
+            {/* <HeaderExtraInfo user={user} /> */}
             <MobileNavigation data={menuList}  />
           </div>
         </div>

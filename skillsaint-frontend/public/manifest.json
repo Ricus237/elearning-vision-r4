@@ -1,0 +1,27 @@
+{
+  "name": "International Bible Institute",
+  "short_name": "IBI",
+  "description": "A House Where Leaders Are Formed in Scripture, Holiness, and the Power of God!",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#8b5cf6",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "https://ui-avatars.com/api/?name=IBI&background=8b5cf6&color=fff&size=192",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://ui-avatars.com/api/?name=IBI&background=8b5cf6&color=fff&size=512",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

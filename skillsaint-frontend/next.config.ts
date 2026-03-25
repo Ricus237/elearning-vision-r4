@@ -1,6 +1,13 @@
 import type { NextConfig } from "next";
+import withPWA from "@ducanh2912/next-pwa";
 
-const nextConfig: NextConfig = {
+const pwaConfig = withPWA({
+  dest: "public",
+  disable: process.env.NODE_ENV === "development",
+  register: true,
+});
+
+const config: NextConfig = {
   experimental: {
     turbo: {
       root: ".", 
@@ -17,15 +24,19 @@ const nextConfig: NextConfig = {
         hostname: 'ui-avatars.com',
       },
       {
+        protocol: 'https',
+        hostname: 'vps-2266854-x.dataglob.com',
+      },
+      {
         protocol: 'http',
         hostname: 'localhost',
       },
       {
         protocol: 'https',
-        hostname: 'skillsaint-backend.vercel.app', // In case images are there too
+        hostname: 'skillsaint-backend.vercel.app',
       }
     ],
   },
 };
 
-export default nextConfig;
+export default pwaConfig(config);

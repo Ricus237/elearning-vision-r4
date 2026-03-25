@@ -21,9 +21,18 @@ const mulish = Mulish({
 });
 
 export const metadata: Metadata = {
-  title: `${siteName}`,
-  description: `${siteName} Online Learning Platform. Create your own online courses and sell them to the world.`,
-  keywords: ["Skillsaint ", "Skillsaint "],
+  title: "International Bible Institute",
+  description: "A House Where Leaders Are Formed in Scripture, Holiness, and the Power of God!",
+  keywords: ["International Bible Institute", "Bible Study", "Spiritual Growth", "IBI"],
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "IBI",
+  },
+  formatDetection: {
+    telephone: false,
+  },
 
   openGraph: {
     title: `${siteName}`,

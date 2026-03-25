@@ -8,6 +8,14 @@ const currentStudent = mockStudents[0];
 const studentExamScores = mockExamScores.filter(e => e.studentId === currentStudent.id);
 
 // Certificates are earned by passing exams
+const getLetterGrade = (score: number, maxScore: number) => {
+  const percentage = (score / maxScore) * 100;
+  if (percentage >= 90) return 'A';
+  if (percentage >= 80) return 'B';
+  if (percentage >= 70) return 'C';
+  if (percentage >= 60) return 'D';
+  return 'F';
+};
 const certificates = studentExamScores
   .filter(score => score.score >= score.maxScore * 0.7)
   .map(score => {
@@ -94,8 +102,11 @@ const CertificatesPage = () => {
                         </span>
                       </div>
                       <div className="flex items-center justify-between text-sm mb-6">
-                        <span className="text-gray-500">Exam Score</span>
-                        <span className="font-bold text-green-600">{cert.score}/{cert.maxScore}</span>
+                        <span className="text-gray-500">Exam Grade</span>
+                        <div className="flex items-center gap-2">
+                            <span className="font-black text-purple-700 text-lg">{getLetterGrade(cert.score, cert.maxScore)}</span>
+                            <span className="font-medium text-gray-500">({cert.score}/{cert.maxScore})</span>
+                        </div>
                       </div>
                       <div className="flex gap-3">
                         <button className="flex-1 inline-flex items-center justify-center gap-2 bg-purple-50 text-purple-700 font-semibold py-2.5 px-4 rounded-xl hover:bg-purple-100 transition-colors">

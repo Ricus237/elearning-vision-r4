@@ -17,20 +17,20 @@ const Hero = ({ title, description }: HeroProps) => {
     >
       <div className="container">
         <div className="flex flex-col items-center text-center">
-          <h1 className="text-[clamp(2.25rem,1.663rem+2.6087vw,3.75rem)] leading-[1.2] font-bold tracking-[-1.2px]">
-            {title || "Explore Christian Faith."}
+          <h1 className="text-[clamp(2.25rem,1.663rem+2.6087vw,3.75rem)] leading-[1.2] font-bold tracking-[-1.2px] font-serif">
+            {title || "International Bible Institute"}
           </h1>
-          <p className="mx-auto mt-4 max-w-[629px] text-center leading-[1.5] text-secondary sm:text-lg lg:text-xl">
-            {description || "Discover comprehensive Christian education covering Biblical foundations, theology, and spiritual growth."}
+          <p className="mx-auto mt-4 max-w-[800px] text-center leading-[1.5] text-secondary sm:text-lg lg:text-xl">
+            {description || "A House Where Leaders Are Formed in Scripture, Holiness, and the Power of God!"}
           </p>
-          <div className="mt-12 flex flex-col gap-4 max-sm:w-full sm:flex-row">
+          <div className="mt-12 flex flex-col gap-4 max-sm:w-full sm:flex-row items-center justify-center">
             <Button
               asChild
               size="lg"
               className="py-1.5 pr-1.5 pl-6 max-sm:w-full"
             >
-              <Link href={"/courses"}>
-                <span className="w-full">Explore Our Courses</span>
+              <Link href={"/apply"}>
+                <span className="w-full">Enroll Now and Begin Your Journey in the Word of God</span>
                 <ButtonArrow />
               </Link>
             </Button>
@@ -38,10 +38,10 @@ const Hero = ({ title, description }: HeroProps) => {
               asChild
               variant="outline"
               size="lg"
-              className="w-full bg-primary sm:max-w-[133px]"
+              className="w-full bg-primary sm:w-auto px-8"
             >
-              <Link href={"/register"}>
-                <span>Start Learning</span>
+              <Link href={"/programs"}>
+                <span>Curriculum Overview</span>
               </Link>
             </Button>
           </div>

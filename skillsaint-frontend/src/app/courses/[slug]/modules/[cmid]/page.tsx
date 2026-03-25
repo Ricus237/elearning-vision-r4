@@ -124,10 +124,12 @@ const ModuleViewer = async ({ params }: { params: Promise<{ slug: string, cmid: 
                 />
             </div>
             
-            <div className="mt-12 flex justify-between items-center text-sm text-gray-400">
-                <p>© {new Date().getFullYear()} Skillsaint eLearning</p>
-                <div className="flex gap-6">
-                    <Link href="#" className="hover:text-gray-600 transition-colors underline decoration-gray-200">Next Lesson</Link>
+            <div className="mt-12 flex flex-col md:flex-row justify-between items-center text-sm text-gray-400 gap-4">
+                <p>&copy; {new Date().getFullYear()} International Bible Institute</p>
+                <div className="flex items-center gap-6">
+                    <a href="mailto:support@internationalbibleinstitute.org?subject=Question regarding lesson: [insert lesson name]" className="hover:text-gray-800 transition-colors underline decoration-gray-300 font-medium">
+                        Submit a Question via Email
+                    </a>
                 </div>
             </div>
         </div>
