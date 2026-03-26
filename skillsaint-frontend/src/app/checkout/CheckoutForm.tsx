@@ -13,6 +13,8 @@ const CheckoutForm = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const courseId = searchParams?.get("courseId");
+  const isApplication = searchParams?.get("application") === "true";
+  const plan = searchParams?.get("plan");
   const [course, setCourse] = useState<CourseType | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState("");
@@ -31,11 +33,14 @@ const CheckoutForm = () => {
     // Simulation du délai Stripe
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    if (courseId) {
+    if (isApplication) {
+      setIsProcessing(false);
+      router.push("/success");
+    } else if (courseId) {
       const result = await enrollAction(parseInt(courseId));
       if (result.success) {
         setIsProcessing(false);
-        router.push("/dashboard"); // Ou une page de succès
+        router.push("/success"); // Ou une page de succès
         router.refresh();
       } else {
         setError(result.error || "Erreur lors de l'inscription au cours sur Moodle.");
@@ -47,24 +52,63 @@ const CheckoutForm = () => {
     }
   };
 
-  const amount = course ? (course.discountPrice || course.price).toFixed(2) : "0.00";
+  let amount = "0.00";
+  let title = "Selected Course";
+  let originalPrice = "0.00";
+  let discountAmount: string | null = null;
+
+  if (course) {
+    amount = (course.discountPrice || course.price).toFixed(2);
+    title = course.title;
+    originalPrice = course.price.toFixed(2);
+    if (course.discountPrice) {
+      discountAmount = (course.price - course.discountPrice).toFixed(2);
+    }
+  } else if (isApplication) {
+    switch (plan) {
+      case "standard":
+        amount = "299.00";
+        title = "Standard Enrollment Plan";
+        originalPrice = "399.00";
+        discountAmount = "100.00";
+        break;
+      case "premium":
+        amount = "499.00";
+        title = "Premium Enrollment Plan";
+        originalPrice = "599.00";
+        discountAmount = "100.00";
+        break;
+      case "executive":
+        amount = "999.00";
+        title = "Executive Enrollment Plan";
+        originalPrice = "1199.00";
+        discountAmount = "200.00";
+        break;
+      default:
+        amount = "999.00";
+        title = "IBI Enrollment Plan";
+        originalPrice = "1199.00";
+        discountAmount = "200.00";
+        break;
+    }
+  }
 
   return (
     <>
       <div className="w-full md:w-5/12 bg-gray-900 text-white p-8 md:p-10 flex flex-col justify-between">
         <div>
           <h2 className="text-xl text-gray-400 font-medium mb-2">Order Summary</h2>
-          <h3 className="text-2xl font-bold mb-6">{course?.title || "Selected Course"}</h3>
+          <h3 className="text-2xl font-bold mb-6">{title}</h3>
           
           <div className="space-y-4 text-gray-300 text-sm">
             <div className="flex justify-between pb-4 border-b border-gray-800">
               <span>Original Price</span>
-              <span>${course?.price?.toFixed(2) || "0.00"}</span>
+              <span>${originalPrice}</span>
             </div>
-            {course?.discountPrice && (
+            {discountAmount && (
               <div className="flex justify-between pb-4 border-b border-gray-800 text-purple-400">
                 <span>Discount</span>
-                <span>-${(course.price - course.discountPrice).toFixed(2)}</span>
+                <span>-${discountAmount}</span>
               </div>
             )}
             <div className="flex justify-between items-end pt-2 text-xl font-bold text-white">

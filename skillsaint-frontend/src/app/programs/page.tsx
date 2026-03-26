@@ -59,8 +59,8 @@ const ProgramsPage = () => {
 
             <div className="relative z-10 max-w-4xl">
                <div className="flex items-center gap-3 text-purple-600 mb-6">
-                  <Sparkles size={24} />
-                  <span className="font-black uppercase tracking-widest text-sm">Flagship Program</span>
+                  
+                  <span className="font-black uppercase tracking-widest text-sm">Kingdom Foundations</span>
                </div>
                
                <h2 className="text-4xl lg:text-6xl font-black text-slate-900 font-serif mb-8">

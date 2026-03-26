@@ -4,12 +4,11 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import {
   BookOpen,
-  CheckCircle,
-  LayoutDashboard,
   Settings,
   Trophy,
   User,
   LogOut,
+  Lock
 } from "lucide-react";
 import Image from "next/image";
 import { logoutAction } from "@/lib/actions";
@@ -18,9 +17,8 @@ import { mockStudents } from "@/data/students";
 const currentStudent = mockStudents[0];
 
 const navItems = [
-  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
-  { href: "/dashboard/my-courses", label: "My Courses", icon: BookOpen },
-  { href: "/dashboard/completed-exams", label: "Completed Exams", icon: CheckCircle },
+  { href: "/dashboard", label: "Program Courses", icon: BookOpen },
+  { href: "/dashboard/exams", label: "Exams (Locked)", icon: Lock },
   { href: "/dashboard/certificates", label: "Certificates", icon: Trophy },
 ];
 

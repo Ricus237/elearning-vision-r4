@@ -10,14 +10,13 @@ const DashboardPage = async () => {
   const cookieStore = await cookies();
   const userIdStr = cookieStore.get("moodle_user_id")?.value;
 
-  if (!userIdStr) {
-    redirect("/login");
+  let enrolledCourses: any[] = [];
+  if (userIdStr) {
+    const userId = parseInt(userIdStr);
+    enrolledCourses = await getUserCourses(userId);
   }
 
-  const userId = parseInt(userIdStr);
-  const enrolledCourses = await getUserCourses(userId);
-
-  return <DashboardClient enrolledCourses={enrolledCourses} />;
+  return <DashboardClient enrolledCourses={enrolledCourses as any} />;
 };
 
 export default DashboardPage;

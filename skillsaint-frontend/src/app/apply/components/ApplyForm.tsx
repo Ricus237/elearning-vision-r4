@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { 
   User, 
   Heart, 
@@ -10,50 +11,30 @@ import {
   CheckCircle2, 
   Flame, 
   Calendar,
-  Waves
+  Waves,
+  X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const ApplyForm = () => {
-  const [isPending, startTransition] = useTransition();
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isPending, setIsPending] = useState(false);
+  const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    startTransition(async () => {
-      // Simulation submission logic
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setIsSubmitted(true);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
+    setIsPending(true);
+    
+    const formData = new FormData(e.currentTarget as HTMLFormElement);
+    const plan = formData.get("plan") || "executive";
+
+    // Simulation submission logic
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    router.push(`/checkout?application=true&plan=${plan}`);
   };
 
   const inputStyles = "w-full px-6 py-4 rounded-2xl border border-slate-200 focus:outline-none focus:ring-4 focus:ring-purple-100 transition-all font-medium text-slate-900 bg-slate-50/50";
   const labelStyles = "text-sm font-black uppercase tracking-widest text-slate-400 mb-3 px-1 flex items-center gap-2";
 
-  if (isSubmitted) {
-    return (
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="text-center py-20 flex flex-col items-center gap-8"
-      >
-        <div className="size-24 rounded-full bg-green-100 text-green-600 flex items-center justify-center shadow-lg shadow-green-100 mb-4 animate-bounce">
-           <CheckCircle2 size={48} />
-        </div>
-        <h3 className="text-4xl font-black font-serif text-slate-900 leading-tight">Application Received!</h3>
-        <p className="text-xl text-slate-500 max-w-lg leading-relaxed italic">
-          &ldquo;Your application has been successfully submitted. We will review your spiritual journey and notify you via email shortly with access instructions.&rdquo;
-        </p>
-        <button 
-          onClick={() => window.location.href = '/'}
-          className="mt-8 px-10 py-5 bg-slate-900 text-white font-bold rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
-        >
-          Return to Home
-        </button>
-      </motion.div>
-    );
-  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-24">
@@ -184,47 +165,119 @@ const ApplyForm = () => {
            <h3 className="text-3xl font-black font-serif">Tuition & Enrollment Plan</h3>
         </div>
 
-        <div className="grid gap-6">
-            <label className="group relative flex items-start gap-6 p-8 border-2 border-slate-100 rounded-[2.5rem] bg-white cursor-pointer hover:border-purple-200 hover:shadow-xl hover:shadow-purple-50 transition-all duration-300 has-[:checked]:border-purple-600 has-[:checked]:bg-purple-50/30">
-                <div className="size-6 border-2 border-slate-200 rounded-full shrink-0 flex items-center justify-center group-has-[:checked]:border-purple-600 group-has-[:checked]:bg-purple-600 transition-all">
-                   <div className="size-2 bg-white rounded-full opacity-0 group-has-[:checked]:opacity-100 transition-all" />
+        <div className="grid md:grid-cols-3 gap-8">
+            {/* Standard Plan */}
+            <label className="group relative flex flex-col p-8 border-2 border-slate-100 rounded-[2.5rem] bg-white cursor-pointer hover:border-purple-200 hover:shadow-2xl hover:shadow-purple-50 transition-all duration-500 has-[:checked]:border-purple-600 has-[:checked]:bg-purple-50/30">
+                <input type="radio" name="plan" value="standard" required className="hidden peer" />
+                <div className="absolute top-6 right-6 size-6 border-2 border-slate-200 rounded-full flex items-center justify-center peer-checked:border-purple-600 peer-checked:bg-purple-600 transition-all">
+                   <CheckCircle2 size={14} className="text-white opacity-0 peer-checked:opacity-100 transition-all" />
                 </div>
-                <input type="radio" name="plan" value="standard" required className="hidden" />
-                <div>
-                    <h4 className="text-2xl font-black font-serif text-slate-900 mb-2">Standard Plan</h4>
-                    <p className="text-slate-500 font-medium leading-relaxed">
-                       Up to 3 courses (or 30 lessons total) of your choice. Perfect for focused learning.
-                    </p>
+                
+                <div className="mb-8">
+                    <span className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2 block">Entry Level</span>
+                    <h4 className="text-2xl font-black font-serif text-slate-900">Standard Plan</h4>
                 </div>
+
+                <div className="mb-8">
+                    <div className="flex items-baseline gap-1">
+                        <span className="text-4xl font-black text-slate-900">$299</span>
+                        <span className="text-slate-400 font-bold">/one-time</span>
+                    </div>
+                </div>
+
+                <ul className="space-y-4 mb-8 flex-1">
+                    <li className="flex items-center gap-3 text-sm font-bold text-slate-600">
+                        <CheckCircle2 size={16} className="text-green-500" />
+                        Up to 3 Courses
+                    </li>
+                    <li className="flex items-center gap-3 text-sm font-bold text-slate-600">
+                        <CheckCircle2 size={16} className="text-green-500" />
+                        30 Lessons Total
+                    </li>
+                    <li className="flex items-center gap-3 text-sm font-bold text-slate-400">
+                        <X size={16} />
+                        Full Program Access
+                    </li>
+                </ul>
             </label>
 
-            <label className="group relative flex items-start gap-6 p-8 border-2 border-slate-100 rounded-[2.5rem] bg-white cursor-pointer hover:border-purple-200 hover:shadow-xl hover:shadow-purple-50 transition-all duration-300 has-[:checked]:border-purple-600 has-[:checked]:bg-purple-50/30">
-                <div className="size-6 border-2 border-slate-200 rounded-full shrink-0 flex items-center justify-center group-has-[:checked]:border-purple-600 group-has-[:checked]:bg-purple-600 transition-all">
-                   <div className="size-2 bg-white rounded-full opacity-0 group-has-[:checked]:opacity-100 transition-all" />
+            {/* Premium Plan */}
+            <label className="group relative flex flex-col p-8 border-2 border-slate-100 rounded-[2.5rem] bg-white cursor-pointer hover:border-purple-200 hover:shadow-2xl hover:shadow-purple-50 transition-all duration-500 has-[:checked]:border-purple-600 has-[:checked]:bg-purple-50/30">
+                <input type="radio" name="plan" value="premium" required className="hidden peer" />
+                <div className="absolute top-6 right-6 size-6 border-2 border-slate-200 rounded-full flex items-center justify-center peer-checked:border-purple-600 peer-checked:bg-purple-600 transition-all">
+                   <CheckCircle2 size={14} className="text-white opacity-0 peer-checked:opacity-100 transition-all" />
                 </div>
-                <input type="radio" name="plan" value="premium" required className="hidden" />
-                <div>
-                    <h4 className="text-2xl font-black font-serif text-slate-900 mb-2">Premium Plan</h4>
-                    <p className="text-slate-500 font-medium leading-relaxed">
-                       6 courses of your choice. Expanded access to academic and spiritual resources.
-                    </p>
+                
+                <div className="mb-8">
+                    <span className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2 block">Advanced Access</span>
+                    <h4 className="text-2xl font-black font-serif text-slate-900">Premium Plan</h4>
                 </div>
+
+                <div className="mb-8">
+                    <div className="flex items-baseline gap-1">
+                        <span className="text-4xl font-black text-slate-900">$499</span>
+                        <span className="text-slate-400 font-bold">/one-time</span>
+                    </div>
+                </div>
+
+                <ul className="space-y-4 mb-8 flex-1">
+                    <li className="flex items-center gap-3 text-sm font-bold text-slate-600">
+                        <CheckCircle2 size={16} className="text-green-500" />
+                        6 Choice Courses
+                    </li>
+                    <li className="flex items-center gap-3 text-sm font-bold text-slate-600">
+                        <CheckCircle2 size={16} className="text-green-500" />
+                        Academic Resources
+                    </li>
+                    <li className="flex items-center gap-3 text-sm font-bold text-slate-600">
+                        <CheckCircle2 size={16} className="text-green-500" />
+                        Spiritual Mentorship
+                    </li>
+                </ul>
             </label>
 
-            <label className="group relative flex items-start gap-6 p-10 border-2 border-purple-600 rounded-[3rem] bg-purple-600 text-white cursor-pointer shadow-2xl shadow-purple-200 transform hover:-translate-y-1 transition-all duration-500">
-                <div className="absolute -top-4 right-10 px-6 py-2 bg-white text-purple-700 font-black text-xs uppercase tracking-widest rounded-full shadow-lg">
-                   Most Recommended
+            {/* Executive Plan */}
+            <label className="group relative flex flex-col p-8 border-2 border-purple-600 rounded-[2.5rem] bg-purple-600 text-white cursor-pointer shadow-2xl shadow-purple-600/20 transform hover:-translate-y-2 transition-all duration-500">
+                <div className="absolute -top-4 inset-x-0 flex justify-center">
+                    <span className="px-6 py-2 bg-white text-purple-700 font-black text-[10px] uppercase tracking-widest rounded-full shadow-lg border border-purple-100">
+                        Most Recommended
+                    </span>
                 </div>
-                <div className="size-6 border-2 border-white/50 rounded-full shrink-0 flex items-center justify-center group-has-[:checked]:bg-white transition-all mt-1">
-                   <div className="size-3 bg-purple-600 rounded-full opacity-0 group-has-[:checked]:opacity-100 transition-all" />
+                <input type="radio" name="plan" value="executive" required className="hidden peer" defaultChecked />
+                <div className="absolute top-6 right-6 size-6 border-2 border-white/30 rounded-full flex items-center justify-center peer-checked:bg-white transition-all">
+                   <CheckCircle2 size={14} className="text-purple-600 opacity-0 peer-checked:opacity-100 transition-all" />
                 </div>
-                <input type="radio" name="plan" value="executive" required className="hidden" defaultChecked />
-                <div>
-                    <h4 className="text-3xl font-black font-serif mb-3">Executive Plan</h4>
-                    <p className="text-purple-50 text-lg font-medium leading-relaxed">
-                       Full one-year Kingdom Foundations program. The complete experience designed for global leadership formation.
-                    </p>
+                
+                <div className="mb-8">
+                    <span className="text-xs font-black uppercase tracking-widest text-purple-200 mb-2 block">Kingdom Leadership</span>
+                    <h4 className="text-2xl font-black font-serif">Executive Plan</h4>
                 </div>
+
+                <div className="mb-8">
+                    <div className="flex items-baseline gap-1">
+                        <span className="text-4xl font-black">$999</span>
+                        <span className="text-purple-200 font-bold">/one-time</span>
+                    </div>
+                </div>
+
+                <ul className="space-y-4 mb-8 flex-1">
+                    <li className="flex items-center gap-3 text-sm font-bold">
+                        <CheckCircle2 size={16} className="text-purple-200" />
+                        Full 1-Year Program
+                    </li>
+                    <li className="flex items-center gap-3 text-sm font-bold">
+                        <CheckCircle2 size={16} className="text-purple-200" />
+                        Kingdom Foundations
+                    </li>
+                    <li className="flex items-center gap-3 text-sm font-bold">
+                        <CheckCircle2 size={16} className="text-purple-200" />
+                        Global Leader Cert.
+                    </li>
+                    <li className="flex items-center gap-3 text-sm font-bold">
+                        <CheckCircle2 size={16} className="text-purple-200" />
+                        Direct Admin Access
+                    </li>
+                </ul>
             </label>
         </div>
 
