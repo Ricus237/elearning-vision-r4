@@ -198,6 +198,16 @@ input[type="number"] {
   100% { transform: scale(1) translate(0, 0) rotate(0deg); opacity: 0.15; }
 }
 
+@keyframes border-beam {
+  100% {
+    offset-distance: 100%;
+  }
+}
+
+.animate-border-beam {
+  animation: border-beam calc(var(--duration) * 1s) linear infinite;
+}
+
 .animate-light-rays {
   animation: light-rays 20s ease-in-out infinite;
 }

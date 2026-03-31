@@ -1,55 +1,133 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CheckCircle2, Home } from "lucide-react";
+import { CheckCircle2, Home, Loader2, AlertCircle } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 
-export default function SuccessPage() {
-  const [mounted, setMounted] = useState(false);
+function SuccessContent() {
+  const searchParams = useSearchParams();
+  const method = searchParams?.get("method"); // "paypal"
+  const sessionId = searchParams?.get("session_id"); // Stripe
+  const courseId = searchParams?.get("courseId");
+  const isApplication = searchParams?.get("isApplication") === "true";
+
+  const [status, setStatus] = useState<"loading" | "success" | "error">("success");
+  const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    // For Stripe: session_id is enough — webhook already handled enrollment
+    // For PayPal: capture already done in /api/paypal/capture-order from onApprove
+    // Nothing extra to do here — enrolment is handled server-side
+    setStatus("success");
+  }, [sessionId, method]);
+
+  if (status === "loading") {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-center">
+        <Loader2 className="w-16 h-16 text-purple-600 animate-spin mb-6" />
+        <h2 className="text-2xl font-bold text-slate-900 mb-2">Finalizing your enrollment...</h2>
+        <p className="text-slate-600">Please wait while we confirm your payment.</p>
+      </div>
+    );
+  }
+
+  if (status === "error") {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-center">
+        <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-6">
+          <AlertCircle size={40} />
+        </div>
+        <h2 className="text-2xl font-bold text-slate-900 mb-2">Payment Verification Failed</h2>
+        <p className="text-red-600 mb-8">{errorMsg}</p>
+        <Link href={courseId ? `/checkout?courseId=${courseId}` : "/checkout"}>
+          <div className="px-8 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-colors cursor-pointer">
+            Try Again
+          </div>
+        </Link>
+      </div>
+    );
+  }
 
   return (
-    <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4 overflow-hidden relative pt-24 pb-24">
-      {mounted && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9, y: 50 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.8, type: "spring", bounce: 0.5 }}
-          className="max-w-xl w-full text-center relative z-10 bg-white/80 backdrop-blur-xl p-10 sm:p-14 rounded-[3rem] shadow-2xl shadow-purple-900/5 border border-purple-100"
-        >
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9, y: 50 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ duration: 0.8, type: "spring", bounce: 0.5 }}
+      className="max-w-xl w-full text-center relative z-10 bg-white/80 backdrop-blur-xl p-10 sm:p-14 rounded-[3rem] shadow-2xl shadow-purple-900/5 border border-purple-100"
+    >
+      <motion.div
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ delay: 0.2, type: "spring", bounce: 0.6 }}
+        className="size-28 rounded-full bg-green-100/80 text-green-600 flex items-center justify-center shadow-lg shadow-green-100 mb-8 mx-auto"
+      >
+        <CheckCircle2 size={56} />
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-100 text-green-700 text-sm font-semibold mb-6"
+      >
+        {method === "paypal" ? (
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.641.641 0 0 1 .632-.54h7.947c1.513 0 2.754.365 3.72 1.082 1.25.928 1.888 2.344 1.888 4.212 0 2.856-1.542 5.33-4.585 5.33h-1.457c-.45 0-.832.312-.911.753l-.033.187-.532 3.007c-.053.298-.314.516-.617.516h-3.926zm12.39-12.016c0-3.328-2.618-4.792-5.746-4.792H5.576L2.61 20.668h3.844l1.292-7.24a.64.64 0 0 1 .632-.527h2.247c3.964 0 7.291-1.74 7.291-3.58z" />
+          </svg>
+        ) : (
+          <span className="text-xs font-black tracking-wider">STRIPE</span>
+        )}
+        Payment Confirmed
+      </motion.div>
+
+      <h1 className="text-4xl sm:text-5xl font-black font-serif text-slate-900 leading-tight mb-6">
+        {isApplication ? "Application Received!" : "You're enrolled!"}
+      </h1>
+
+      <p className="text-lg sm:text-xl text-slate-600 mb-10 leading-relaxed font-medium">
+        {isApplication 
+          ? "Your program application and payment were successful. You can now access your chosen courses in your dashboard."
+          : "Your payment was successful and your course access is now active. Head to your dashboard to start learning."
+        }
+      </p>
+
+      <div className="flex flex-col sm:flex-row gap-3 justify-center">
+        <Link href="/dashboard/my-courses">
           <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: "spring", bounce: 0.6 }}
-            className="size-28 rounded-full bg-green-100/80 text-green-600 flex items-center justify-center shadow-lg shadow-green-100 mb-8 mx-auto"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="inline-flex items-center gap-3 px-8 py-4 bg-purple-600 text-white font-bold rounded-2xl hover:bg-purple-700 transition-colors shadow-xl shadow-purple-200 cursor-pointer"
           >
-            <CheckCircle2 size={56} />
+            Start Learning →
           </motion.div>
+        </Link>
+        <Link href="/">
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="inline-flex items-center gap-3 px-8 py-4 bg-slate-100 text-slate-700 font-bold rounded-2xl hover:bg-slate-200 transition-colors cursor-pointer"
+          >
+            <Home size={20} />
+            Home
+          </motion.div>
+        </Link>
+      </div>
+    </motion.div>
+  );
+}
 
-          <h1 className="text-4xl sm:text-5xl font-black font-serif text-slate-900 leading-tight mb-6">
-            Payment Successful!
-          </h1>
-          
-          <p className="text-lg sm:text-xl text-slate-600 mb-10 leading-relaxed font-medium">
-            Your information has been successfully received and your payment is confirmed. We will notify you by email shortly with your access instructions to the courses.
-          </p>
-
-          <Link href="/">
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="inline-flex items-center gap-3 px-10 py-5 bg-purple-600 text-white font-bold rounded-2xl hover:bg-purple-700 transition-colors shadow-xl shadow-purple-200"
-            >
-              <Home size={24} />
-              Return to Home
-            </motion.div>
-          </Link>
-        </motion.div>
-      )}
+export default function SuccessPage() {
+  return (
+    <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4 overflow-hidden relative pt-24 pb-24">
+      <Suspense fallback={
+        <div className="flex items-center justify-center">
+          <Loader2 className="w-10 h-10 text-purple-600 animate-spin" />
+        </div>
+      }>
+        <SuccessContent />
+      </Suspense>
     </main>
   );
 }
