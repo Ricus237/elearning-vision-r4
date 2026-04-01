@@ -8,37 +8,13 @@ import {
   ShieldCheck, Lock, AlertCircle, Loader2, ArrowLeft, Mail, Phone, Calendar, MapPin
 } from "lucide-react";
 import { BorderBeam } from "@/components/magicui/border-beam";
-import { coursesData } from "@/components/courses/courseData";
+// import { coursesData } from "@/components/courses/courseData";
+import { CourseType } from "@/types/CourseType";
 import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
+import { saveApplication } from "@/lib/data";
 
 // ─── Plan config ─────────────────────────────────────────────────────────────
-const PLANS = [
-  {
-    id: "standard",
-    label: "Standard Enrollment",
-    price: 299,
-    original: 399,
-    courseQuota: 3,
-    activeColor: "border-purple-600 ring-2 ring-purple-100",
-  },
-  {
-    id: "premium",
-    label: "Premium Enrollment",
-    price: 499,
-    original: 599,
-    courseQuota: 6,
-    activeColor: "border-purple-600 ring-2 ring-purple-100",
-  },
-  {
-    id: "executive",
-    label: "Executive Enrollment",
-    price: 999,
-    original: 1199,
-    courseQuota: Infinity, // all courses
-    activeColor: "border-purple-600 ring-4 ring-purple-50",
-    recommended: true,
-  },
-];
+// PLANS moved to props
 
 const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "";
 
@@ -119,6 +95,8 @@ function CollapsibleSection({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 const ApplyForm = ({
+  plans,
+  courses,
   selectedPlan,
   selectedCourses,
   onPlanChange,
@@ -126,6 +104,8 @@ const ApplyForm = ({
   isReviewing,
   setIsReviewing,
 }: {
+  plans: any[];
+  courses: CourseType[];
   selectedPlan: string;
   selectedCourses: string[];
   onPlanChange: (id: string) => void;
@@ -148,14 +128,14 @@ const ApplyForm = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
-  const currentPlan = PLANS.find((p) => p.id === selectedPlan)!;
+  const currentPlan = plans.find((p) => p.id === selectedPlan)!;
   const quota = currentPlan.courseQuota;
 
   const toggleSection = (i: number) => {
     setOpenSections((prev) => prev.map((v, idx) => (idx === i ? !v : v)));
   };
 
-  const handleReviewStep = (e: React.FormEvent) => {
+  const handleReviewStep = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError("");
 
@@ -193,6 +173,11 @@ const ApplyForm = ({
     }
 
     setSectionErrors([false, false, false]);
+    
+    // Save to Moodle before reviewing
+    localStorage.setItem('pending_application_email', obj.email);
+    await saveApplication(obj, selectedPlan, selectedCourses);
+    
     setIsReviewing(true);
     form.scrollIntoView({ behavior: "smooth", block: "start" });
   };
@@ -339,7 +324,7 @@ const ApplyForm = ({
                    <div className="flex flex-wrap gap-2">
                       {selectedCourses.length > 0 ? (
                         selectedCourses.map(id => {
-                          const course = coursesData.find(c => c._id === id);
+                          const course = courses.find(c => c._id === id);
                           return (
                             <span key={id} className="px-2 py-1 bg-white/10 rounded flex items-center gap-1 text-[10px] font-bold border border-white/10">
                                <CheckCircle2 size={10} /> {course?.title.substring(0, 20)}...
@@ -557,17 +542,21 @@ const ApplyForm = ({
 
 // ─── Course Selector (Right Panel) ───────────────────────────────────────────
 export function CourseSelector({
+  plans,
+  courses,
   selectedPlan,
   selectedCourses,
   onToggleCourse,
   onPlanChange,
 }: {
+  plans: any[];
+  courses: CourseType[];
   selectedPlan: string;
   selectedCourses: string[];
   onToggleCourse: (id: string) => void;
   onPlanChange: (id: string) => void;
 }) {
-  const currentPlan = PLANS.find((p) => p.id === selectedPlan)!;
+  const currentPlan = plans.find((p) => p.id === selectedPlan)!;
   const quota = currentPlan.courseQuota;
   const used = selectedCourses.length;
 
@@ -577,7 +566,7 @@ export function CourseSelector({
       <div className="bg-white rounded-2xl border-2 border-slate-100 p-5 shadow-sm space-y-4">
         <p className="text-xs font-black uppercase tracking-widest text-slate-500">Step 4: Enrollment Plan</p>
         <div className="space-y-3">
-          {PLANS.map((plan) => (
+          {plans.map((plan) => (
             <label
               key={plan.id}
               className={`relative flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all overflow-hidden ${
@@ -616,7 +605,7 @@ export function CourseSelector({
         </div>
 
         <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
-          {coursesData.map((course) => {
+          {courses.map((course) => {
             const isSelected = selectedCourses.includes(course._id);
             const isDisabled = !isSelected && quota !== Infinity && used >= quota;
 
@@ -644,5 +633,5 @@ export function CourseSelector({
   );
 }
 
-export { PLANS };
+// export { PLANS };
 export default ApplyForm;

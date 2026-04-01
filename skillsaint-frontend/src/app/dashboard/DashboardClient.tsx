@@ -3,8 +3,9 @@ import Link from "next/link";
 import { BookOpen, CheckCircle, Trophy, Lock, FileText, PlayCircle, Download, FilePlus, X, Mail } from "lucide-react";
 import StudentSidebar from "@/components/dashboard/StudentSidebar";
 import { CourseType } from "@/types/CourseType";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { checkActivation, activateAccount } from "@/lib/data";
 
 interface DashboardClientProps {
   enrolledCourses: CourseType[];
@@ -74,6 +75,44 @@ const DashboardClient = ({ enrolledCourses }: DashboardClientProps) => {
   const [questionText, setQuestionText] = useState("");
   const [isSendingQuestion, setIsSendingQuestion] = useState(false);
   const [isQuestionSent, setIsQuestionSent] = useState(false);
+  
+  // Activation State
+  const [isAccountActivated, setIsAccountActivated] = useState<boolean | null>(null);
+  const [activationCode, setActivationCode] = useState("");
+  const [isActivating, setIsActivating] = useState(false);
+  const [activationError, setActivationError] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+
+  useEffect(() => {
+    async function initActivation() {
+      const match = document.cookie.match(/user_email=([^;]+)/);
+      const email = match ? decodeURIComponent(match[1]) : "";
+      setUserEmail(email);
+
+      if (email) {
+        const active = await checkActivation(email);
+        setIsAccountActivated(active);
+      } else {
+        // If no email, assume not logged in or not application user
+        setIsAccountActivated(true); 
+      }
+    }
+    initActivation();
+  }, []);
+
+  const handleActivate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setActivationError("");
+    setIsActivating(true);
+
+    const res = await activateAccount(userEmail, activationCode);
+    if (res.status === 'success') {
+      setIsAccountActivated(true);
+    } else {
+      setActivationError(res.message || "Invalid code. Please check with your instructor.");
+    }
+    setIsActivating(false);
+  };
 
   const handleSendQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,8 +141,63 @@ const DashboardClient = ({ enrolledCourses }: DashboardClientProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans">
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans relative">
       <StudentSidebar />
+
+      {/* Activation Overlay / Wall */}
+      <AnimatePresence>
+        {isAccountActivated === false && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-xl"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className="max-w-md w-full bg-white rounded-[2.5rem] shadow-2xl p-10 text-center border border-purple-100"
+            >
+              <div className="size-20 bg-purple-100 text-purple-600 rounded-3xl flex items-center justify-center mx-auto mb-8">
+                <Lock size={40} />
+              </div>
+              <h2 className="text-3xl font-black font-serif text-slate-900 mb-4">Account Locked</h2>
+              <p className="text-slate-500 font-medium leading-relaxed mb-10">
+                Your payment was received, but your account is waiting for final activation. Please enter the secret code sent by your instructor.
+              </p>
+
+              <form onSubmit={handleActivate} className="space-y-4">
+                <div className="relative">
+                  <input 
+                    type="text"
+                    required
+                    value={activationCode}
+                    onChange={(e) => setActivationCode(e.target.value.toUpperCase())}
+                    placeholder="Enter Activation Code"
+                    className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-center font-black tracking-widest text-xl focus:border-purple-600 outline-none transition-colors"
+                  />
+                </div>
+                
+                {activationError && (
+                  <p className="text-red-500 text-sm font-bold">{activationError}</p>
+                )}
+
+                <button 
+                  type="submit"
+                  disabled={isActivating || !activationCode}
+                  className="w-full py-4 bg-slate-900 text-white font-black rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/20 disabled:opacity-50"
+                >
+                  {isActivating ? "Activating..." : "Unlock Dashboard →"}
+                </button>
+              </form>
+              
+              <p className="mt-8 text-xs font-bold text-slate-400 uppercase tracking-widest leading-loose">
+                Problems? Contact your advisor at support@ibi.edu
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Main Content */}
       <main className="flex-1 p-6 md:p-8 lg:p-10 pb-20 md:pb-20 lg:pb-20">

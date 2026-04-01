@@ -4,7 +4,8 @@ import { motion } from "framer-motion";
 import { CheckCircle2, Home, Loader2, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
+import { confirmPayment } from "@/lib/data";
 
 function SuccessContent() {
   const searchParams = useSearchParams();
@@ -13,15 +14,34 @@ function SuccessContent() {
   const courseId = searchParams?.get("courseId");
   const isApplication = searchParams?.get("isApplication") === "true";
 
-  const [status, setStatus] = useState<"loading" | "success" | "error">("success");
+  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [errorMsg, setErrorMsg] = useState("");
+  const router = useRouter();
 
   useEffect(() => {
-    // For Stripe: session_id is enough — webhook already handled enrollment
-    // For PayPal: capture already done in /api/paypal/capture-order from onApprove
-    // Nothing extra to do here — enrolment is handled server-side
-    setStatus("success");
-  }, [sessionId, method]);
+    async function finalize() {
+      // Find user email from local storage or somewhere safe
+      // In a real app, you'd get this from the session or a secure cookie set during /apply
+      const email = localStorage.getItem('pending_application_email');
+      
+      if (email && isApplication) {
+        const res = await confirmPayment(email);
+        if (res.status === 'success') {
+          setStatus("success");
+          // Store email for activation check on dashboard
+          document.cookie = `user_email=${email}; path=/; max-age=3600`;
+          // We don't redirect yet so they see the success message
+        } else {
+          setStatus("error");
+          setErrorMsg("Could not verify your enrollment. Please contact support.");
+        }
+      } else {
+        setStatus("success");
+      }
+    }
+    
+    finalize();
+  }, [sessionId, method, isApplication]);
 
   if (status === "loading") {
     return (
