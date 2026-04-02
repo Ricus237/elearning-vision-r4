@@ -2,7 +2,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_skillsaint';
-$plugin->version   = 2024040116; // Bumped: registers get_all_admin_users + get_all_paid_applications
+$plugin->version   = 2024040118; // Bumped: Forced direct DB get_records for users
 $plugin->requires  = 2020061500;
 $plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '1.14';
+$plugin->release   = '1.16';

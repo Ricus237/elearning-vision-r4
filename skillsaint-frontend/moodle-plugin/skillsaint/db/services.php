@@ -54,7 +54,7 @@ $functions = array(
         'description' => 'Get live admin dashboard statistics from Moodle DB',
         'type'        => 'read',
         'ajax'        => true,
-        'capabilities'=> 'moodle/site:config',
+        'capabilities'=> '',
     ),
     'local_skillsaint_get_all_admin_users' => array(
         'classname'   => 'local_skillsaint_external',
@@ -63,7 +63,7 @@ $functions = array(
         'description' => 'Get all Moodle users for admin management',
         'type'        => 'read',
         'ajax'        => true,
-        'capabilities'=> 'moodle/site:config',
+        'capabilities'=> '',
     ),
     'local_skillsaint_get_all_paid_applications' => array(
         'classname'   => 'local_skillsaint_external',
@@ -72,7 +72,7 @@ $functions = array(
         'description' => 'Get all paid applications for finance page',
         'type'        => 'read',
         'ajax'        => true,
-        'capabilities'=> 'moodle/site:config',
+        'capabilities'=> '',
     ),
 );
 

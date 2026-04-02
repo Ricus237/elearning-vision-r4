@@ -407,34 +407,32 @@ class local_skillsaint_external extends external_api {
 
     public static function get_all_admin_users() {
         global $DB;
-        $sql = "
-            SELECT u.id, u.firstname, u.lastname, u.email, u.suspended, u.timecreated, u.deleted,
-                   COALESCE(apps.selected_plan, 'N/A') as plan,
-                   COALESCE(apps.payment_status, 'N/A') as payment_status,
-                   COALESCE(apps.is_activated, 0) as is_activated,
-                   COALESCE(apps.activation_code, '') as activation_code,
-                   (SELECT COUNT(*) FROM {user_enrolments} ue
-                    JOIN {enrol} e ON e.id = ue.enrolid
-                    WHERE ue.userid = u.id AND e.courseid != 1) as enrolled_count
-            FROM {user} u
-            LEFT JOIN {local_skillsaint_apps} apps ON LOWER(apps.email) = LOWER(u.email)
-            WHERE u.id != 1 AND u.deleted = 0
-            ORDER BY u.timecreated DESC
-        ";
-        $rows = $DB->get_records_sql($sql);
+        $all_users = $DB->get_records('user', array('deleted' => 0), 'timecreated DESC');
+        
         $result = array();
-        foreach ($rows as $r) {
+        foreach ($all_users as $u) {
+            if ($u->id == 1) continue; // Skip guest
+            
+            // Fetch app data separately to avoid JOIN issues across DB drivers
+            $app = $DB->get_record('local_skillsaint_apps', array('email' => $u->email), '*', IGNORE_MULTIPLE);
+            
+            // Count enrollments separately
+            $enrolled_count = $DB->count_records_sql(
+                "SELECT COUNT(*) FROM {user_enrolments} ue JOIN {enrol} e ON e.id = ue.enrolid WHERE ue.userid = ? AND e.courseid != 1",
+                array($u->id)
+            );
+
             $result[] = array(
-                'id'             => (int)$r->id,
-                'name'           => trim($r->firstname . ' ' . $r->lastname),
-                'email'          => $r->email,
-                'suspended'      => (int)$r->suspended,
-                'plan'           => $r->plan,
-                'payment_status' => $r->payment_status,
-                'is_activated'   => (int)$r->is_activated,
-                'activation_code'=> $r->activation_code,
-                'enrolled_count' => (int)$r->enrolled_count,
-                'registered_at'  => (int)$r->timecreated,
+                'id'             => (int)$u->id,
+                'name'           => trim($u->firstname . ' ' . $u->lastname),
+                'email'          => $u->email,
+                'suspended'      => (int)$u->suspended,
+                'plan'           => $app ? ($app->selected_plan ? $app->selected_plan : 'N/A') : 'N/A',
+                'payment_status' => $app ? ($app->payment_status ? $app->payment_status : 'N/A') : 'N/A',
+                'is_activated'   => $app ? (int)$app->is_activated : 0,
+                'activation_code'=> $app ? ($app->activation_code ? $app->activation_code : '') : '',
+                'enrolled_count' => (int)$enrolled_count,
+                'registered_at'  => (int)$u->timecreated,
             );
         }
         return $result;

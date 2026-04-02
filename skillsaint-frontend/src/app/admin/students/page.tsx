@@ -1,6 +1,9 @@
 import { fetchMoodle } from "@/lib/moodle";
 import StudentsClient from "./StudentsClient";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const ManageStudentsPage = async () => {
   let students: any[] = [];
   try {
