@@ -64,13 +64,15 @@ const HeaderExtraInfo = ({ user }: HeaderExtraInfoProps) => {
                 Dashboard
               </Link>
             </Button>
-            <Button
-              onClick={() => logoutAction()}
-              variant="outline"
-              className="h-10 lg:h-12 py-1 px-3 lg:px-5 text-sm lg:text-base border-purple-200 hover:bg-purple-50 text-purple-600 hidden sm:inline-flex"
-            >
-              Logout
-            </Button>
+            <form action={logoutAction}>
+              <Button
+                type="submit"
+                variant="outline"
+                className="h-10 lg:h-12 py-1 px-3 lg:px-5 text-sm lg:text-base border-purple-200 hover:bg-purple-50 text-purple-600 hidden sm:inline-flex"
+              >
+                Logout
+              </Button>
+            </form>
           </div>
         ) : (
           <Button

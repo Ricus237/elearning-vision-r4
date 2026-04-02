@@ -198,22 +198,33 @@ export async function saveApplication(formData: any, planId: string, courseIds: 
     const match = document.cookie.match(/moodle_user_id=([^;]+)/);
     const userId = match ? parseInt(match[1]) : 0;
 
-    // We serialize spiritual info to JSON to store it in a single text field
+    // We serialize all extra info (demographics + spiritual) to JSON to store it in a single text field
     const spiritualInfo = JSON.stringify({
-      relationship: formData.relationship_description,
-      believer_duration: formData.believer_duration,
+      // Missed demographic fields
+      gender: formData.gender || '',
+      dob: formData.dob || '',
+      marital_status: formData.marital_status || '',
+      country: formData.country || '',
+
+      // Church & Spiritual background
+      relationship: formData.relationship_description || '',
+      believer_duration: formData.believer_duration || '',
       baptisms: [
         formData['baptism-water'] ? 'water' : null,
         formData['baptism-spirit'] ? 'spirit' : null
       ].filter(Boolean),
-      ministry: formData.ministry_experience,
-      church: formData.church_name,
+      ministry: formData.ministry_experience || '',
+      church: formData.church_name || '',
+      church_role: formData.church_role || '',
+      pastor_name: formData.pastor_name || '',
+      
+      // Goals & Aspirations
       growth_areas: formData['growth-area'] ? (Array.isArray(formData['growth-area']) ? formData['growth-area'] : [formData['growth-area']]) : [],
-      aspirations: formData.ministry_aspirations,
-      leadership: formData.leadership_goals
+      aspirations: formData.ministry_aspirations || '',
+      leadership: formData.leadership_goals || ''
     });
 
-    const result = await fetchMoodle('local_skillsaint_save_application', {
+    const payload = {
       fullname: formData.name,
       email: formData.email,
       phone: formData.phone || '',
@@ -223,8 +234,20 @@ export async function saveApplication(formData: any, planId: string, courseIds: 
       selected_plan: planId,
       selected_courses: courseIds.join(','),
       userid: userId
-    });
+    };
 
+    // SMART: Envoie la requête via notre serveur sécurisé si on est sur le navigateur
+    if (typeof window !== "undefined") {
+      const response = await fetch("/api/moodle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ function: "local_skillsaint_save_application", params: payload }),
+      });
+      return await response.json();
+    }
+
+    // Exécution directe si on est déjà côté serveur
+    const result = await fetchMoodle('local_skillsaint_save_application', payload);
     return result;
   } catch (e) {
     console.error("Failed to save application to Moodle:", e);
@@ -235,13 +258,31 @@ export async function saveApplication(formData: any, planId: string, courseIds: 
 /**
  * Confirms payment and triggers enrollment in Moodle
  */
+/**
+ * Confirms payment and enrolls user.
+ * SMART: If run in browser, it calls the server-side API bridge to securely access the Moodle Token.
+ */
 export async function confirmPayment(email: string) {
+  if (typeof window !== "undefined") {
+    try {
+      const response = await fetch("/api/moodle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ function: "local_skillsaint_confirm_payment", params: { email } }),
+      });
+      return await response.json();
+    } catch (e) {
+      console.error("Browser-side confirmPayment error:", e);
+      return { status: "error", message: "Network error" };
+    }
+  }
+
   try {
-    const result = await fetchMoodle('local_skillsaint_confirm_payment', { email });
-    return result;
+    const result = await fetchMoodle("local_skillsaint_confirm_payment", { email });
+    return result || { status: "error", message: "Empty response" };
   } catch (e) {
-    console.error("Failed to confirm payment in Moodle:", e);
-    return { error: true };
+    console.error("Server-side confirmPayment error:", e);
+    return { status: "error", message: "Moodle connection error" };
   }
 }
 
@@ -249,11 +290,23 @@ export async function confirmPayment(email: string) {
  * Activates account with code
  */
 export async function activateAccount(email: string, code: string) {
+  if (typeof window !== "undefined") {
+    try {
+      const response = await fetch("/api/moodle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ function: "local_skillsaint_activate_account", params: { email, code } }),
+      });
+      return await response.json();
+    } catch (e) {
+      return { status: 'error', message: 'Connection error' };
+    }
+  }
+
   try {
     const result = await fetchMoodle('local_skillsaint_activate_account', { email, code });
     return result;
   } catch (e) {
-    console.error("Failed to activate account:", e);
     return { status: 'error', message: 'Connection error' };
   }
 }
@@ -262,11 +315,24 @@ export async function activateAccount(email: string, code: string) {
  * Checks if user is activated
  */
 export async function checkActivation(email: string) {
+  if (typeof window !== "undefined") {
+    try {
+      const response = await fetch("/api/moodle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ function: "local_skillsaint_check_activation", params: { email } }),
+      });
+      const result = await response.json();
+      return result.is_activated === 1;
+    } catch (e) {
+      return false;
+    }
+  }
+
   try {
     const result = await fetchMoodle('local_skillsaint_check_activation', { email });
     return result.is_activated === 1;
   } catch (e) {
-    console.error("Failed to check activation:", e);
     return false;
   }
 }

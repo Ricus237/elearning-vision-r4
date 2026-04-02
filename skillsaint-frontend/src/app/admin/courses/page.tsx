@@ -1,68 +1,56 @@
-"use client";
-import { useState } from "react";
-import { Search, PlusCircle, Edit3, Trash2, Eye, Users, BookOpen, BarChart3 } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
-import { coursesData } from "@/components/courses/courseData";
-import { mockEnrollments } from "@/data/students";
-import { subjects as subjectsData } from "@/data/curriculum";
 import AdminSidebar from "@/components/dashboard/AdminSidebar";
+import { fetchMoodle } from "@/lib/moodle";
+import { BookOpen, Users, ExternalLink, Eye } from "lucide-react";
+import Link from "next/link";
 
-// Enrich courses with enrollment data
-const coursesWithStats = coursesData.map(course => {
-  const courseId = parseInt(course._id.replace("course-", ""));
-  const enrollments = mockEnrollments.filter(e => e.courseId === courseId);
-  const courseSubjects = subjectsData.find(s => s.courseId === courseId);
-  return {
-    ...course,
-    enrolledStudents: enrollments.length,
-    avgProgress: enrollments.length > 0
-      ? Math.round(enrollments.reduce((sum, e) => sum + e.progress, 0) / enrollments.length)
-      : 0,
-    subjectsCount: courseSubjects?.subjects.length || 0,
-    revenue: enrollments.length * (course.discountPrice || course.price),
-  };
-});
+/**
+ * Admin Courses page – 100% live data from Moodle core_course_get_courses.
+ * No static mock data.
+ */
+const ManageCoursesPage = async () => {
+  let courses: any[] = [];
+  let totalEnrolled = 0;
 
-const ManageCoursesPage = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showCreateModal, setShowCreateModal] = useState(false);
-
-  const filteredCourses = coursesWithStats.filter(course =>
-    course.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const totalRevenue = coursesWithStats.reduce((sum, c) => sum + c.revenue, 0);
-  const totalStudents = coursesWithStats.reduce((sum, c) => sum + c.enrolledStudents, 0);
+  try {
+    const data = await fetchMoodle("core_course_get_courses");
+    if (Array.isArray(data)) {
+      // Exclude the site course (id=1)
+      courses = data.filter((c: any) => c.id !== 1);
+      totalEnrolled = courses.reduce((sum: number, c: any) => sum + (c.numsections || 0), 0);
+    }
+  } catch {}
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row pb-20 pt-24 md:pt-[100px]">
+    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
       <AdminSidebar />
 
-      <main className="flex-1 p-6 md:p-8 lg:p-10">
+      <main className="flex-1 p-6 md:p-8 lg:p-10 overflow-y-auto">
         <div className="max-w-6xl mx-auto">
+
           <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Manage Courses</h1>
-              <p className="text-secondary mt-1">Create, edit, and monitor all your courses.</p>
+              <p className="text-gray-500 mt-1">Live data from Moodle — {courses.length} course{courses.length !== 1 ? "s" : ""} found.</p>
             </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 bg-purple-600 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-purple-700 transition-colors shadow-sm"
+            <a
+              href={`${process.env.MOODLE_URL}/course/edit.php?category=0`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-purple-600 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-purple-700 transition-colors shadow-sm text-sm"
             >
-              <PlusCircle className="w-4 h-4" /> New Course
-            </button>
+              <ExternalLink className="w-4 h-4" /> Add Course in Moodle
+            </a>
           </header>
 
           {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-2 gap-4 mb-8">
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
               <div className="w-11 h-11 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
                 <BookOpen className="w-5 h-5" />
               </div>
               <div>
                 <p className="text-xs font-medium text-gray-500">Total Courses</p>
-                <h3 className="text-xl font-bold text-gray-900">{coursesWithStats.length}</h3>
+                <h3 className="text-2xl font-bold text-gray-900">{courses.length}</h3>
               </div>
             </div>
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
@@ -70,149 +58,67 @@ const ManageCoursesPage = () => {
                 <Users className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-500">Total Enrollments</p>
-                <h3 className="text-xl font-bold text-gray-900">{totalStudents}</h3>
+                <p className="text-xs font-medium text-gray-500">Visible Courses</p>
+                <h3 className="text-2xl font-bold text-gray-900">{courses.filter((c: any) => c.visible).length}</h3>
               </div>
             </div>
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-              <div className="w-11 h-11 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
-                <BarChart3 className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-xs font-medium text-gray-500">Total Revenue</p>
-                <h3 className="text-xl font-bold text-gray-900">${totalRevenue.toLocaleString()}</h3>
-              </div>
-            </div>
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-              <div className="w-11 h-11 rounded-full bg-orange-50 flex items-center justify-center text-orange-600">
-                <BookOpen className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-xs font-medium text-gray-500">Total Lessons</p>
-                <h3 className="text-xl font-bold text-gray-900">{coursesWithStats.reduce((sum, c) => sum + (c.lessonsCount || 0), 0)}</h3>
-              </div>
-            </div>
-          </div>
-
-          {/* Search */}
-          <div className="relative mb-6">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search courses..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400"
-            />
           </div>
 
           {/* Courses List */}
-          <div className="space-y-4">
-            {filteredCourses.map((course) => (
-              <div key={course._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
-                <div className="flex flex-col sm:flex-row gap-6">
-                  <div className="w-full sm:w-40 h-28 relative rounded-xl overflow-hidden shrink-0">
-                    <Image src={course.thumbnail} alt={course.title} fill className="object-cover" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between gap-4 mb-3">
-                      <div>
-                        <h3 className="text-lg font-bold text-gray-900">{course.title}</h3>
-                        <p className="text-sm text-gray-500 mt-1">{course.shortDescription}</p>
+          {courses.length === 0 ? (
+            <div className="bg-white rounded-3xl p-12 shadow-sm border border-gray-100 text-center text-gray-400">
+              <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
+              <p className="text-sm">No courses found in Moodle.<br />Make sure the plugin is configured and the token has read access.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {courses.map((course: any) => (
+                <div key={course.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-base font-bold text-gray-900 truncate">{course.fullname}</h3>
+                        <span className={`shrink-0 inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${course.visible ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                          {course.visible ? "Visible" : "Hidden"}
+                        </span>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Link
-                          href={`/courses/${course.slug.current}`}
-                          className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Preview"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Link>
-                        <button className="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors" title="Edit">
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-                        <button className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      {course.shortname && <p className="text-xs text-gray-400 mb-2">Short name: <strong>{course.shortname}</strong></p>}
+                      {course.summary && (
+                        <p className="text-sm text-gray-500 line-clamp-2"
+                          dangerouslySetInnerHTML={{ __html: course.summary.replace(/<[^>]*>/g, '').slice(0, 160) + (course.summary.length > 160 ? '…' : '') }}
+                        />
+                      )}
+                      <div className="flex flex-wrap gap-4 mt-3 text-xs text-gray-400">
+                        <span>ID: <strong className="text-gray-700">{course.id}</strong></span>
+                        {course.numsections != null && <span>Sections: <strong className="text-gray-700">{course.numsections}</strong></span>}
+                        {course.startdate > 0 && <span>Starts: <strong className="text-gray-700">{new Date(course.startdate * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</strong></span>}
                       </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-                      <span className="text-gray-500">
-                        <strong className="text-gray-900">{course.enrolledStudents}</strong> students
-                      </span>
-                      <span className="text-gray-500">
-                        <strong className="text-gray-900">{course.subjectsCount}</strong> subjects
-                      </span>
-                      <span className="text-gray-500">
-                        <strong className="text-gray-900">{course.lessonsCount}</strong> lessons
-                      </span>
-                      <span className="text-gray-500">
-                        Avg Progress: <strong className="text-gray-900">{course.avgProgress}%</strong>
-                      </span>
-                      <span className="text-gray-500">
-                        Revenue: <strong className="text-emerald-600">${course.revenue}</strong>
-                      </span>
-                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${
-                        course.status === "Ongoing" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
-                      }`}>
-                        {course.status}
-                      </span>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <a
+                        href={`${process.env.NEXT_PUBLIC_MOODLE_URL ?? ''}/course/view.php?id=${course.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="View in Moodle"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </a>
+                      <a
+                        href={`${process.env.NEXT_PUBLIC_MOODLE_URL ?? ''}/course/edit.php?id=${course.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                        title="Edit in Moodle"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-
-          {filteredCourses.length === 0 && (
-            <div className="bg-white rounded-3xl p-12 shadow-sm border border-gray-100 text-center">
-              <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 mb-2">No courses found</h3>
-              <p className="text-gray-500">Try adjusting your search query.</p>
+              ))}
             </div>
           )}
-
-          {/* Create Course Modal */}
-          {showCreateModal && (
-            <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setShowCreateModal(false)}>
-              <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-8" onClick={(e) => e.stopPropagation()}>
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Create New Course</h2>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Course Title</label>
-                    <input type="text" className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-200" placeholder="e.g. Advanced Christian Apologetics" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                    <textarea rows={3} className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 resize-none" placeholder="Course description..." />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Price ($)</label>
-                      <input type="number" className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-200" placeholder="99" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Level</label>
-                      <select className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 bg-white">
-                        <option>Beginner</option>
-                        <option>Intermediate</option>
-                        <option>Advanced</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-3 mt-8">
-                  <button onClick={() => setShowCreateModal(false)} className="flex-1 px-5 py-3 border border-gray-200 rounded-xl font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                    Cancel
-                  </button>
-                  <button onClick={() => setShowCreateModal(false)} className="flex-1 px-5 py-3 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition-colors">
-                    Create Course
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
         </div>
       </main>
     </div>

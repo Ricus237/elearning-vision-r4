@@ -15,13 +15,46 @@ export async function loginAction(formData: FormData) {
 
   if (result && result.token) {
     const cookieStore = await cookies();
-    cookieStore.set('moodle_token', result.token, { secure: true, httpOnly: true });
-    cookieStore.set('moodle_user', identifier, { secure: true });
+    cookieStore.set('moodle_token', result.token, { httpOnly: true, path: '/' });
+    cookieStore.set('moodle_user', identifier, { path: '/' });
     
-    // Récupérer l'ID réel de l'utilisateur
+    // 2. Récupérer l'ID réel de l'utilisateur et son rôle admin
     const siteInfo = await fetchMoodle('core_webservice_get_site_info', {}, result.token);
+    
     if (siteInfo && siteInfo.userid) {
-      cookieStore.set('moodle_user_id', siteInfo.userid.toString(), { secure: true });
+      cookieStore.set('moodle_user_id', siteInfo.userid.toString(), { path: '/' });
+      
+      // Stocker si l'utilisateur est admin pour protéger les routes /admin
+      // On vérifie le flag natif de Moodle ou si c'est l'utilisateur 'admin' par défaut
+      if (siteInfo.userisadmin || siteInfo.username === 'admin') {
+        cookieStore.set('moodle_is_admin', 'true', { path: '/' });
+      } else {
+        cookieStore.delete('moodle_is_admin');
+      }
+    } else {
+      // Fallback si core_webservice_get_site_info échoue avec le token user
+      // Tenter de retrouver l'utilisateur par email/username via le MASTER TOKEN
+      const users = await fetchMoodle('core_user_get_users_by_field', {
+        field: 'email',
+        'values[0]': identifier
+      });
+      let userData = Array.isArray(users) ? users[0] : null;
+      
+      if (!userData) {
+        const usersByUsername = await fetchMoodle('core_user_get_users_by_field', {
+          field: 'username',
+          'values[0]': identifier
+        });
+        userData = Array.isArray(usersByUsername) ? usersByUsername[0] : null;
+      }
+      
+      if (userData && userData.id) {
+        cookieStore.set('moodle_user_id', userData.id.toString(), { path: '/' });
+        // ID 2 est généralement l'admin principal dans Moodle
+        if (userData.username === 'admin' || userData.id === 2) {
+          cookieStore.set('moodle_is_admin', 'true', { path: '/' });
+        }
+      }
     }
 
     return { success: true };
@@ -41,6 +74,7 @@ export async function logoutAction() {
   cookieStore.delete('moodle_token');
   cookieStore.delete('moodle_user');
   cookieStore.delete('moodle_user_id');
+  cookieStore.delete('user_email'); // On détruit aussi l'email de session
   redirect('/');
 }
 

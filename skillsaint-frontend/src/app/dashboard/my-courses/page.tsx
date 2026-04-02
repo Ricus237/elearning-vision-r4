@@ -5,12 +5,7 @@ import MyCoursesClient from "./MyCoursesClient";
 
 const MyCoursesPage = async () => {
   const cookieStore = await cookies();
-  const userIdStr = cookieStore.get("moodle_user_id")?.value;
-
-  if (!userIdStr) {
-    redirect("/login");
-  }
-
+  const userIdStr = (await cookies()).get("moodle_user_id")!.value;
   const userId = parseInt(userIdStr);
   const enrolledCourses = await getUserCourses(userId);
 

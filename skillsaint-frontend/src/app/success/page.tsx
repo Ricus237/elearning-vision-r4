@@ -20,20 +20,22 @@ function SuccessContent() {
 
   useEffect(() => {
     async function finalize() {
-      // Find user email from local storage or somewhere safe
-      // In a real app, you'd get this from the session or a secure cookie set during /apply
-      const email = localStorage.getItem('pending_application_email');
+      const rawEmail = localStorage.getItem('pending_application_email');
+      const email = rawEmail ? rawEmail.trim().toLowerCase() : "";
       
       if (email && isApplication) {
         const res = await confirmPayment(email);
-        if (res.status === 'success') {
+        if (res && res.status === 'success') {
           setStatus("success");
-          // Store email for activation check on dashboard
+          // Store email for activation check
           document.cookie = `user_email=${email}; path=/; max-age=3600`;
-          // We don't redirect yet so they see the success message
+          // L'utilisateur vient d'être créé/certifié dans Moodle, on sauvegarde son ID pour le Dashboard
+          if (res.user_id) {
+            document.cookie = `moodle_user_id=${res.user_id}; path=/; max-age=2592000`; // 30 jours
+          }
         } else {
           setStatus("error");
-          setErrorMsg("Could not verify your enrollment. Please contact support.");
+          setErrorMsg(`Moodle Error: ${res?.message || "Verify your plugin installation"}`);
         }
       } else {
         setStatus("success");

@@ -175,8 +175,9 @@ const ApplyForm = ({
     setSectionErrors([false, false, false]);
     
     // Save to Moodle before reviewing
-    localStorage.setItem('pending_application_email', obj.email);
-    await saveApplication(obj, selectedPlan, selectedCourses);
+    const normalizedEmail = obj.email.trim().toLowerCase();
+    localStorage.setItem('pending_application_email', normalizedEmail);
+    await saveApplication({ ...obj, email: normalizedEmail }, selectedPlan, selectedCourses);
     
     setIsReviewing(true);
     form.scrollIntoView({ behavior: "smooth", block: "start" });
