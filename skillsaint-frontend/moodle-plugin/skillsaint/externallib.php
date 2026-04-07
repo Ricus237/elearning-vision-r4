@@ -407,32 +407,35 @@ class local_skillsaint_external extends external_api {
 
     public static function get_all_admin_users() {
         global $DB;
-        $all_users = $DB->get_records('user', array('deleted' => 0), 'timecreated DESC');
+        $sql = "
+            SELECT u.id, u.firstname, u.lastname, u.email, u.suspended, u.timecreated, u.deleted,
+                   COALESCE(apps.selected_plan, 'N/A') as plan,
+                   COALESCE(apps.payment_status, 'N/A') as payment_status,
+                   COALESCE(apps.is_activated, 0) as is_activated,
+                   COALESCE(apps.activation_code, '') as activation_code,
+                   (SELECT COUNT(*) FROM {user_enrolments} ue
+                    JOIN {enrol} e ON e.id = ue.enrolid
+                    WHERE ue.userid = u.id AND e.courseid != 1) as enrolled_count
+            FROM {user} u
+            LEFT JOIN {local_skillsaint_apps} apps ON apps.email = u.email
+            WHERE u.id != 1 AND u.deleted = 0
+            ORDER BY u.timecreated DESC
+        ";
+        $rows = $DB->get_records_sql($sql);
         
         $result = array();
-        foreach ($all_users as $u) {
-            if ($u->id == 1) continue; // Skip guest
-            
-            // Fetch app data separately to avoid JOIN issues across DB drivers
-            $app = $DB->get_record('local_skillsaint_apps', array('email' => $u->email), '*', IGNORE_MULTIPLE);
-            
-            // Count enrollments separately
-            $enrolled_count = $DB->count_records_sql(
-                "SELECT COUNT(*) FROM {user_enrolments} ue JOIN {enrol} e ON e.id = ue.enrolid WHERE ue.userid = ? AND e.courseid != 1",
-                array($u->id)
-            );
-
+        foreach ($rows as $r) {
             $result[] = array(
-                'id'             => (int)$u->id,
-                'name'           => trim($u->firstname . ' ' . $u->lastname),
-                'email'          => $u->email,
-                'suspended'      => (int)$u->suspended,
-                'plan'           => $app ? ($app->selected_plan ? $app->selected_plan : 'N/A') : 'N/A',
-                'payment_status' => $app ? ($app->payment_status ? $app->payment_status : 'N/A') : 'N/A',
-                'is_activated'   => $app ? (int)$app->is_activated : 0,
-                'activation_code'=> $app ? ($app->activation_code ? $app->activation_code : '') : '',
-                'enrolled_count' => (int)$enrolled_count,
-                'registered_at'  => (int)$u->timecreated,
+                'id'             => (int)$r->id,
+                'name'           => trim($r->firstname . ' ' . $r->lastname),
+                'email'          => $r->email,
+                'suspended'      => (int)$r->suspended,
+                'plan'           => $r->plan,
+                'payment_status' => $r->payment_status,
+                'is_activated'   => (int)$r->is_activated,
+                'activation_code'=> $r->activation_code,
+                'enrolled_count' => (int)$r->enrolled_count,
+                'registered_at'  => (int)$r->timecreated,
             );
         }
         return $result;
@@ -496,5 +499,152 @@ class local_skillsaint_external extends external_api {
                 'timecreated'   => new external_value(PARAM_INT,  'Unix timestamp'),
             ))
         );
+    }
+    // ==========================================
+    // NATIVE COURSE OPERATIONS
+    // ==========================================
+
+    public static function create_course_parameters() {
+        return new external_function_parameters(array(
+            'courses' => new external_multiple_structure(
+                new external_single_structure(array(
+                    'fullname'  => new external_value(PARAM_TEXT, 'Course full name'),
+                    'shortname' => new external_value(PARAM_TEXT, 'Course short name'),
+                    'summary'   => new external_value(PARAM_RAW,  'Course summary', VALUE_DEFAULT, ''),
+                    'visible'   => new external_value(PARAM_INT,  '1 if visible, 0 hidden', VALUE_DEFAULT, 1),
+                    'numsections' => new external_value(PARAM_INT, 'Number of sections', VALUE_DEFAULT, 4),
+                    'format'    => new external_value(PARAM_TEXT, 'Course format (topics, weeks, social, etc.)', VALUE_DEFAULT, 'topics'),
+                    'startdate' => new external_value(PARAM_INT, 'Course start date', VALUE_DEFAULT, 0),
+                    'enddate'   => new external_value(PARAM_INT, 'Course end date', VALUE_DEFAULT, 0),
+                    'categoryid'=> new external_value(PARAM_INT, 'Category ID', VALUE_DEFAULT, 1),
+                ))
+            )
+        ));
+    }
+
+    public static function create_course($courses) {
+        global $CFG, $DB;
+        require_once($CFG->dirroot . '/course/lib.php');
+        
+        $params = self::validate_parameters(self::create_course_parameters(), array('courses' => $courses));
+        $created_courses = array();
+
+        // Get the first available category ID dynamically to avoid ID mismatch (e.g. if ID 1 was deleted)
+        $category = $DB->get_records_sql('SELECT id FROM {course_categories} ORDER BY sortorder ASC', null, 0, 1);
+        $category_id = $category ? reset($category)->id : 1;
+
+        foreach ($params['courses'] as $cdata) {
+            $course = new stdClass();
+            $course->fullname  = $cdata['fullname'];
+            $course->shortname = $cdata['shortname'];
+            $course->summary   = $cdata['summary'];
+            $course->visible   = $cdata['visible'];
+            $course->category  = !empty($cdata['categoryid']) ? $cdata['categoryid'] : $category_id;
+            $course->startdate = $cdata['startdate'] ? $cdata['startdate'] : time();
+            if (!empty($cdata['enddate'])) {
+                $course->enddate = $cdata['enddate'];
+            }
+            $course->format = $cdata['format'];
+            $course->numsections = $cdata['numsections'];
+            
+            $newcourse = create_course($course);
+            $newcourse->numsections = $cdata['numsections']; // Mock for Next.js UI compatibility
+            $created_courses[] = (array)$newcourse;
+        }
+
+        return $created_courses;
+    }
+
+    public static function create_course_returns() {
+        return new external_multiple_structure(
+            new external_single_structure(array(
+                'id'          => new external_value(PARAM_INT, 'Course ID'),
+                'shortname'   => new external_value(PARAM_TEXT, 'Course short name'),
+            ))
+        );
+    }
+
+    public static function update_course_parameters() {
+        return new external_function_parameters(array(
+            'courses' => new external_multiple_structure(
+                new external_single_structure(array(
+                    'id'        => new external_value(PARAM_INT, 'Course ID'),
+                    'fullname'  => new external_value(PARAM_TEXT, 'Course full name'),
+                    'shortname' => new external_value(PARAM_TEXT, 'Course short name'),
+                    'summary'   => new external_value(PARAM_RAW,  'Course summary', VALUE_DEFAULT, ''),
+                    'visible'   => new external_value(PARAM_INT,  '1 if visible, 0 hidden', VALUE_DEFAULT, 1),
+                    'numsections' => new external_value(PARAM_INT, 'Number of sections', VALUE_DEFAULT, 4),
+                    'format'    => new external_value(PARAM_TEXT, 'Course format', VALUE_DEFAULT, 'topics'),
+                    'startdate' => new external_value(PARAM_INT, 'Course start date', VALUE_DEFAULT, 0),
+                    'enddate'   => new external_value(PARAM_INT, 'Course end date', VALUE_DEFAULT, 0),
+                    'categoryid'=> new external_value(PARAM_INT, 'Category ID', VALUE_DEFAULT, 1),
+                ))
+            )
+        ));
+    }
+
+    public static function update_course($courses) {
+        global $CFG;
+        require_once($CFG->dirroot . '/course/lib.php');
+        
+        $params = self::validate_parameters(self::update_course_parameters(), array('courses' => $courses));
+
+        foreach ($params['courses'] as $cdata) {
+            $course = new stdClass();
+            $course->id        = $cdata['id'];
+            $course->fullname  = $cdata['fullname'];
+            $course->shortname = $cdata['shortname'];
+            $course->summary   = $cdata['summary'];
+            $course->visible   = $cdata['visible'];
+            if (!empty($cdata['categoryid'])) $course->category = $cdata['categoryid'];
+            if (!empty($cdata['startdate'])) $course->startdate = $cdata['startdate'];
+            if (!empty($cdata['enddate'])) $course->enddate = $cdata['enddate'];
+            if (!empty($cdata['format'])) $course->format = $cdata['format'];
+            if (!empty($cdata['numsections'])) $course->numsections = $cdata['numsections'];
+            
+            update_course($course);
+        }
+
+        return array('status' => 'success');
+    }
+
+    public static function update_course_returns() {
+        return new external_single_structure(array(
+            'status' => new external_value(PARAM_ALPHA, 'Status')
+        ));
+    }
+
+    public static function delete_course_parameters() {
+        return new external_function_parameters(array(
+            'courseids' => new external_multiple_structure(
+                new external_value(PARAM_INT, 'Course ID')
+            )
+        ));
+    }
+
+    public static function delete_course($courseids) {
+        global $CFG;
+        require_once($CFG->dirroot . '/course/lib.php');
+        
+        $params = self::validate_parameters(self::delete_course_parameters(), array('courseids' => $courseids));
+
+        foreach ($params['courseids'] as $cid) {
+            delete_course($cid, false);
+        }
+
+        return array('warnings' => array());
+    }
+
+    public static function delete_course_returns() {
+        return new external_single_structure(array(
+            'warnings' => new external_multiple_structure(
+                new external_single_structure(array(
+                    'item' => new external_value(PARAM_TEXT, '', VALUE_OPTIONAL),
+                    'itemid' => new external_value(PARAM_INT, '', VALUE_OPTIONAL),
+                    'warningcode' => new external_value(PARAM_ALPHANUM, '', VALUE_OPTIONAL),
+                    'message' => new external_value(PARAM_TEXT, '', VALUE_OPTIONAL)
+                )), 'List of warnings', VALUE_OPTIONAL
+            )
+        ));
     }
 }

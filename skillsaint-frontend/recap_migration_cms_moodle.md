@@ -120,6 +120,14 @@ Durant l'intégration, nous avons fait face à des mécanismes de protection str
 **Problème :** Les actions d'administration (suppression, suspension) échouaient avec une erreur `SyntaxError: Unexpected token 'w'` car les données étaient envoyées au format `form-urlencoded` au lieu de `JSON`.
 **Solution :** Standardisation de la fonction `callMoodleAdmin` pour utiliser `application/json`. Le proxy API Next.js traite désormais correctement toutes les requêtes complexes vers les Web Services Moodle.
 
+### N. Visualisation Transparente du Contenu (Immersive Dashboard)
+**Problème :** L'admin voyait la structure (sections) mais pas le contenu réel (descriptions, fichiers) sans retourner dans Moodle, ce qui cassait le flux de travail.
+**Solution :** Le modal de visualisation a été totalement repensé pour devenir un véritable "viewer" interne. Il affiche désormais :
+- Les **sommaires riches** des sections Moodle.
+- Les **descriptions exhaustives** des leçons et exercices (HTML rendu).
+- Les **fichiers et ressources** (PDF, Quiz, etc.) avec téléchargement direct.
+- Plus besoin de redirection vers Moodle pour vérifier le contenu de son travail.
+
 ---
 
 ## 6. État Actuel du Projet (Statut : Opérationnel)
@@ -127,4 +135,5 @@ Durant l'intégration, nous avons fait face à des mécanismes de protection str
 - [x] **Système de contenu Moodle** : Dynamique et synchronisé.
 - [x] **Sécurité** : Authentification par cookies, protection des routes admin, et proxy API sécurisé.
 - [x] **Dashboard Admin** : Liste complète des utilisateurs et statistiques temps réel.
+- [x] **Gestion des Cours** : Inspection immersive du contenu (Viewer interne) sans quitter le dashboard.
 - [x] **Zéro Placeholder** : Plus de données fictives (Mock data), tout provient de la base Moodle.
