@@ -6,7 +6,7 @@ export type BlogType = {
   };
   featureImage: string;
   shortDescription: string;
-  content: any[];
+  content: unknown[];
   author: {
     name: string;
     photo: string;

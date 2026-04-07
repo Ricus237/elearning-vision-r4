@@ -1,20 +1,22 @@
-import React, { ReactElement, ReactNode, Ref } from "react";
+import React, { ReactElement, ReactNode, Ref, cloneElement, isValidElement } from "react";
 
 type SlotProps = {
   children: ReactNode;
-  ref?: Ref<any>;
 };
 
-export function Slot({ children, ref, ...props }: SlotProps) {
-  if (!React.isValidElement(children)) {
+/**
+ * A simple Slot implementation that merges its props with its child.
+ * Similar to Radix UI's Slot but minimal.
+ */
+export const Slot = React.forwardRef<HTMLElement, SlotProps>(({ children, ...props }, ref) => {
+  if (!isValidElement(children)) {
     return null;
   }
 
-  const originalRef = (children as any).ref;
-
-  return React.cloneElement(children as ReactElement<any>, {
+  return cloneElement(children as ReactElement, {
     ...props,
-    ref: (node: HTMLElement) => {
+    // @ts-expect-error: Cloning and merging refs is tricky but this works for standard HTML elements
+    ref: (node: HTMLElement | null) => {
       // Forward outer ref
       if (typeof ref === "function") {
         ref(node);
@@ -22,13 +24,16 @@ export function Slot({ children, ref, ...props }: SlotProps) {
         (ref as React.MutableRefObject<HTMLElement | null>).current = node;
       }
 
-      // Preserve child's original ref
-      if (typeof originalRef === "function") {
-        originalRef(node);
-      } else if (originalRef && typeof originalRef === "object") {
-        (originalRef as React.MutableRefObject<HTMLElement | null>).current =
-          node;
+      // Preserve child's original ref if it exists
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const childRef = (children as any).ref;
+      if (typeof childRef === "function") {
+        childRef(node);
+      } else if (childRef && typeof childRef === "object") {
+        (childRef as React.MutableRefObject<HTMLElement | null>).current = node;
       }
     },
   });
-}
+});
+
+Slot.displayName = "Slot";

@@ -4,7 +4,8 @@ const MOODLE_TOKEN = process.env.MOODLE_TOKEN;
 /**
  * Fonction de base pour appeler les Web Services de Moodle.
  */
-export async function fetchMoodle(wsFunction: string, params: Record<string, any> = {}, userToken?: string) {
+export async function fetchMoodle(wsFunction: string, params: Record<string, unknown> = {}, userToken?: string) {
+
   const token = userToken || MOODLE_TOKEN;
   if (!MOODLE_URL || !token) {
     return null;
@@ -17,7 +18,9 @@ export async function fetchMoodle(wsFunction: string, params: Record<string, any
   });
 
   // Helper function to flatten nested objects for Moodle REST API (e.g., users[0][username])
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const flattenParams = (obj: any, prefix: string = "") => {
+
     Object.keys(obj).forEach(key => {
       const value = obj[key];
       const newKey = prefix ? `${prefix}[${key}]` : key;
@@ -121,7 +124,8 @@ export async function getUserCourses(userId: number) {
 export async function isUserEnrolled(userId: number, courseId: number): Promise<boolean> {
   const courses = await fetchMoodle('core_enrol_get_users_courses', { userid: userId });
   if (Array.isArray(courses)) {
-    return courses.some((c: any) => c.id === courseId);
+    return courses.some((c: { id: number }) => c.id === courseId);
+
   }
   return false;
 }
@@ -158,7 +162,20 @@ import { CategoryType } from "@/types/CategoryType";
 /**
  * Mappe un cours provenant de Moodle vers le type CourseType du frontend.
  */
-export function mapMoodleCourseToCourseType(mCourse: any): CourseType {
+export function mapMoodleCourseToCourseType(mCourse: { 
+  id: string | number, 
+  fullname?: string, 
+  summary?: string, 
+  customfields?: Array<{ shortname: string, value: string }>,
+  courseimage?: string,
+  overviewfiles?: Array<{ mimetype?: string, fileurl: string }>,
+  summaryfiles?: Array<{ mimetype?: string, fileurl: string }>,
+  contacts?: Array<{ fullname: string }>,
+  enrolledusercount?: number,
+  visible?: number,
+  category?: string | number
+}): CourseType {
+
   return {
     _id: `course-${mCourse.id}`,
     title: mCourse.fullname || "Course",
@@ -166,11 +183,12 @@ export function mapMoodleCourseToCourseType(mCourse: any): CourseType {
     thumbnail: (() => {
       // 1. Chercher dans les customfields (souvent utilisé pour des images spécifiques)
       if (Array.isArray(mCourse.customfields)) {
-        const imageField = mCourse.customfields.find((f: any) => 
+        const imageField = mCourse.customfields.find((f: { shortname: string, value: string }) => 
           (f.shortname.toLowerCase().includes('image') || f.shortname.toLowerCase().includes('thumb')) && f.value
         );
         if (imageField) return imageField.value;
       }
+
 
       // 2. Priorité standard: courseimage
       if (mCourse.courseimage) return mCourse.courseimage;
@@ -178,10 +196,11 @@ export function mapMoodleCourseToCourseType(mCourse: any): CourseType {
       // 3. overviewfiles (Fichiers de résumé du cours)
       const files = mCourse.overviewfiles || mCourse.summaryfiles || [];
       if (files.length > 0) {
-        const imageFile = files.find((f: any) => f.mimetype && f.mimetype.startsWith('image/'));
+        const imageFile = files.find((f: { mimetype?: string, fileurl: string }) => f.mimetype && f.mimetype.startsWith('image/'));
         if (imageFile) {
           return `${imageFile.fileurl}${imageFile.fileurl.includes('?') ? '&' : '?'}token=${MOODLE_TOKEN}`;
         }
+
         // Fallback sur le premier fichier si pas de mimetype mais URL existante
         if (files[0].fileurl) {
            return `${files[0].fileurl}${files[0].fileurl.includes('?') ? '&' : '?'}token=${MOODLE_TOKEN}`;
@@ -211,8 +230,9 @@ export function mapMoodleCourseToCourseType(mCourse: any): CourseType {
     overview: [],
     duration: 0,
     lessonsCount: mCourse.visible === 1 ? 10 : 0,
-    categoryId: mCourse.category,
+    categoryId: typeof mCourse.category === 'string' ? parseInt(mCourse.category) : mCourse.category,
   };
+
 }
 
 /**
@@ -230,7 +250,8 @@ export async function getCourseById(courseId: number): Promise<CourseType | null
     
     // Calculer le nombre réel de leçons
     let count = 0;
-    contents.forEach((section: any) => {
+    contents.forEach((section: { modules?: Array<{ id: number }> }) => {
+
       count += (section.modules?.length || 0);
     });
     
@@ -268,7 +289,8 @@ export async function getPublicCourses(): Promise<CourseType[]> {
       // Estimation de la durée: on compte environ 15 min par module pour donner un chiffre "réel"
       mapped.duration = count * 15; 
       return mapped;
-    } catch (e) {
+    } catch (_e) {
+
       return mapMoodleCourseToCourseType(c);
     }
   }));
@@ -279,7 +301,8 @@ export async function getPublicCourses(): Promise<CourseType[]> {
 /**
  * Mappe une catégorie provenant de Moodle vers le type CategoryType du frontend.
  */
-export function mapMoodleCategoryToCategoryType(mCat: any): CategoryType {
+export function mapMoodleCategoryToCategoryType(mCat: { id: number, name?: string, description?: string, coursecount?: number }): CategoryType {
+
   return {
     _id: `cat-${mCat.id}`,
     title: mCat.name || "Category",

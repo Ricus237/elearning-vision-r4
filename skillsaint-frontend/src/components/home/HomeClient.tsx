@@ -284,12 +284,7 @@ export default function HomeClient({ heroData, courses, extraData }: HomeClientP
         </div>
       </section>
 
-      {/* Minimal Footer */}
-      <footer className="py-12 bg-slate-50 border-t border-slate-200">
-        <div className="container px-6 mx-auto text-center">
-          <p className="text-slate-400 font-medium">© {new Date().getFullYear()} {heroData.title}. All rights reserved.</p>
-        </div>
-      </footer>
+
 
       {/* Mobile Menu Backdrop */}
       <AnimatePresence>

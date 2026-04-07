@@ -534,7 +534,6 @@ const ApplyForm = ({
           Review Application <ArrowLeft size={20} className="rotate-180" />
         </button>
         <p className="text-center text-[10px] text-slate-400 mt-4 uppercase font-bold tracking-widest">
-           Secure Enrollment step 1/2
         </p>
       </div>
     </form>

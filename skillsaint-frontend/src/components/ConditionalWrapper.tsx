@@ -2,9 +2,14 @@
 import { usePathname } from "next/navigation";
 import { ReactNode } from "react";
 
-export default function ConditionalWrapper({ children }: { children: ReactNode }) {
+export default function ConditionalWrapper({ children, type }: { children: ReactNode, type?: "header" | "footer" }) {
   const pathname = usePathname();
-  // Hide header/footer on dashboard AND on the landing page (root "/")
-  if (pathname?.startsWith("/dashboard") || pathname?.startsWith("/admin") || pathname === "/") return null;
+  // Hide both on dashboard/admin
+  if (pathname?.startsWith("/dashboard") || pathname?.startsWith("/admin")) return null;
+  
+  // Hide ONLY header on home page
+  if (type === "header" && pathname === "/") return null;
+  
   return <>{children}</>;
 }
+

@@ -75,13 +75,14 @@ export default function RootLayout({
       <body
         className={`${interTight.variable} ${mulish.variable} ${inter.variable} antialiased`}
       >
-        <ConditionalWrapper>
+        <ConditionalWrapper type="header">
           <Header/>
         </ConditionalWrapper>
         {children}
-        <ConditionalWrapper>
+        <ConditionalWrapper type="footer">
           <Footer/>
         </ConditionalWrapper>
+
       </body>
     </html>
   );

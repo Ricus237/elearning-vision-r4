@@ -38,8 +38,14 @@ const Footer = () => {
           </nav>
 
           {/* Minimal Copyright */}
-          <div className="pt-10 border-t border-slate-50 w-full flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-300">
-             <p>© {new Date().getFullYear()} IBI. All rights reserved.</p>
+          <div className="pt-10 border-t border-slate-50 w-full flex flex-col md:flex-row justify-between items-center gap-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-300">
+             <div className="flex flex-col md:flex-row items-center gap-4">
+                <p>© {new Date().getFullYear()} IBI. All rights reserved.</p>
+                <span className="hidden md:inline-block opacity-30">|</span>
+                <p>
+                  Made by <a href="https://visionca.com/" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-purple-600 transition-colors">Vision / R4</a>
+                </p>
+             </div>
              <div className="flex gap-8">
                 <Link href="#" className="hover:text-slate-500">Privacy</Link>
                 <Link href="#" className="hover:text-slate-500">Terms</Link>

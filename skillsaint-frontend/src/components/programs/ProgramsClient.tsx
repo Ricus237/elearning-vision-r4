@@ -104,7 +104,7 @@ const ProgramsClient = ({ data }: ProgramsClientProps) => {
                   </div>
 
                   {/* Overview (Fallback to defaults or mapping later if needed) */}
-                  <div className="space-y-6">
+                  {/* <div className="space-y-6">
                      <div className="flex items-center gap-3 text-slate-900">
                         <div className="size-10 rounded-xl bg-slate-100 flex items-center justify-center">
                            <Globe size={20} className="text-slate-600" />
@@ -123,7 +123,7 @@ const ProgramsClient = ({ data }: ProgramsClientProps) => {
                            </li>
                         ))}
                      </ul>
-                  </div>
+                  </div> */}
                </div>
 
                {/* CTA Buttons */}
@@ -132,9 +132,9 @@ const ProgramsClient = ({ data }: ProgramsClientProps) => {
                     Apply Now
                     <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                   </Link>
-                  <Link href="/about" className="w-full sm:w-auto px-10 py-5 bg-white text-slate-900 border border-slate-200 font-bold rounded-2xl flex items-center justify-center hover:bg-slate-50 transition-all">
+                  {/* <Link href="/about" className="w-full sm:w-auto px-10 py-5 bg-white text-slate-900 border border-slate-200 font-bold rounded-2xl flex items-center justify-center hover:bg-slate-50 transition-all">
                     Learn More
-                  </Link>
+                  </Link> */}
                </div>
             </div>
           </motion.div>

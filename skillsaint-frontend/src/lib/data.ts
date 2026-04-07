@@ -126,7 +126,7 @@ export async function getGlobalSiteData() {
         premium: { price: 499, quota: 6 },
         executive: { price: 999, quota: Infinity }
       },
-      security_note: "Your data is secured by 256-bit encryption. Safe enrollment process."
+      security_note: ""
     }
   };
 
@@ -163,9 +163,10 @@ export async function getGlobalSiteData() {
           }
        };
     }
-  } catch (e) {
-    console.error("Moodle plugin error, using fallbacks:", e);
+  } catch (_e) {
+    console.error("Moodle plugin error, using fallbacks:", _e);
   }
+
   return defaultData;
 }
 
@@ -193,7 +194,12 @@ export async function getEnrollmentData() {
 /**
  * Saves student application to Moodle (pending status)
  */
-export async function saveApplication(formData: any, planId: string, courseIds: string[]) {
+export async function saveApplication(
+  formData: Record<string, string | string[] | boolean | undefined>, 
+  planId: string, 
+  courseIds: string[]
+) {
+
   try {
     const match = document.cookie.match(/moodle_user_id=([^;]+)/);
     const userId = match ? parseInt(match[1]) : 0;
@@ -249,10 +255,11 @@ export async function saveApplication(formData: any, planId: string, courseIds: 
     // Exécution directe si on est déjà côté serveur
     const result = await fetchMoodle('local_skillsaint_save_application', payload);
     return result;
-  } catch (e) {
-    console.error("Failed to save application to Moodle:", e);
+  } catch (_e) {
+    console.error("Failed to save application to Moodle:", _e);
     return { error: true };
   }
+
 }
 
 /**
@@ -271,19 +278,21 @@ export async function confirmPayment(email: string) {
         body: JSON.stringify({ function: "local_skillsaint_confirm_payment", params: { email } }),
       });
       return await response.json();
-    } catch (e) {
-      console.error("Browser-side confirmPayment error:", e);
+    } catch (_e) {
+      console.error("Browser-side confirmPayment error:", _e);
       return { status: "error", message: "Network error" };
     }
+
   }
 
   try {
     const result = await fetchMoodle("local_skillsaint_confirm_payment", { email });
     return result || { status: "error", message: "Empty response" };
-  } catch (e) {
-    console.error("Server-side confirmPayment error:", e);
+  } catch (_e) {
+    console.error("Server-side confirmPayment error:", _e);
     return { status: "error", message: "Moodle connection error" };
   }
+
 }
 
 /**
@@ -298,17 +307,19 @@ export async function activateAccount(email: string, code: string) {
         body: JSON.stringify({ function: "local_skillsaint_activate_account", params: { email, code } }),
       });
       return await response.json();
-    } catch (e) {
+    } catch (_e) {
       return { status: 'error', message: 'Connection error' };
     }
+
   }
 
   try {
     const result = await fetchMoodle('local_skillsaint_activate_account', { email, code });
     return result;
-  } catch (e) {
+  } catch (_e) {
     return { status: 'error', message: 'Connection error' };
   }
+
 }
 
 /**
@@ -324,15 +335,17 @@ export async function checkActivation(email: string) {
       });
       const result = await response.json();
       return result.is_activated === 1;
-    } catch (e) {
+    } catch (_e) {
       return false;
     }
+
   }
 
   try {
     const result = await fetchMoodle('local_skillsaint_check_activation', { email });
     return result.is_activated === 1;
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
+
 }
