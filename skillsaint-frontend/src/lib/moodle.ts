@@ -143,7 +143,7 @@ export async function getMoodleSiteData() {
   }
 
   return {
-    sitename: info?.sitename || "Skillsaint",
+    sitename: info?.sitename || "International Bible Institute",
     summary: summary || info?.summary || ""
   };
 }

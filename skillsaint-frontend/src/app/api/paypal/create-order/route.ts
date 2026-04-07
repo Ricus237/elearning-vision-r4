@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
         purchase_units: [
           {
             reference_id: isApplication ? `app_${plan}_user_${userId}` : `course_${courseId}_user_${userId}`,
-            description: courseTitle || (isApplication ? `SkillSaint ${plan} Program` : `Course #${courseId}`),
+            description: courseTitle || (isApplication ? `IBI ${plan} Program` : `Course #${courseId}`),
             custom_id: JSON.stringify({ courseId, userId, isApplication, plan, courses }),
             amount: {
               currency_code: (currency || 'USD').toUpperCase(),
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
           },
         ],
         application_context: {
-          brand_name: 'SkillSaint',
+          brand_name: 'International Bible Institute',
           landing_page: 'LOGIN',
           user_action: 'PAY_NOW',
           shipping_preference: 'NO_SHIPPING',

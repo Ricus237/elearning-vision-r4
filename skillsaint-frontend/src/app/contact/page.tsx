@@ -9,7 +9,7 @@ import { ArrowRight, Star, GraduationHat, BookOpen, Clock, SearchIcon } from "@/
 
 export const metadata: Metadata = {
   title: `Contact Us | ${siteName}`,
-  description: "Get in touch with Skillsaint support or partnership teams.",
+  description: "Get in touch with International Bible Institute support or partnership teams.",
 };
 
 const ContactPage = () => {
@@ -37,7 +37,7 @@ const ContactPage = () => {
                         </div>
                         <div>
                             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Email Us</p>
-                            <a href="mailto:support@skillsaint.com" className="text-lg font-bold text-gray-900 hover:text-purple-600 transition-colors">support@skillsaint.com</a>
+                            <a href="mailto:[EMAIL_ADDRESS]" className="text-lg font-bold text-gray-900 hover:text-purple-600 transition-colors">[EMAIL_ADDRESS]</a>
                         </div>
                     </div>
 

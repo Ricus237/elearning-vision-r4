@@ -5,7 +5,7 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: `Courses | ${siteName}`,
-  description: "Skillsaint  Online Learning Platform",
+  description: "International Bible Institute",
 };
 
 import { getPublicCourses, getMoodleCategories } from "@/lib/moodle";

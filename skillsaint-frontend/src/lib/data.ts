@@ -38,7 +38,7 @@ export async function getAllCourses(): Promise<CourseType[]> {
       title: "Introduction to Biblical Studies",
       shortDescription: "Learn the basics of interpreting sacred texts and understanding their context.",
       instructor: {
-        name: "Skillsaint Team"
+        name: "International Bible Institute Team"
       },
       thumbnail: "/images/course/course-1.png",
       price: 49.99,
@@ -58,7 +58,7 @@ export async function getAllCourses(): Promise<CourseType[]> {
       title: "Mastering Systematic Theology",
       shortDescription: "Dive deep into the foundations of faith and major theological doctrines.",
       instructor: {
-        name: "Skillsaint Expert"
+        name: "International Bible Institute Expert"
       },
       thumbnail: "/images/course/course-2.png",
       price: 89.99,
