@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { PlusCircle, FileQuestion, Edit3, Trash2, Eye, CheckCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { PlusCircle, FileQuestion, Edit3, Trash2, CheckCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { examQuestions, courses } from "@/data/curriculum";
 import AdminSidebar from "@/components/dashboard/AdminSidebar";
 

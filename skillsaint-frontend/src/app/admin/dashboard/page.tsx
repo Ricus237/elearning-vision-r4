@@ -14,13 +14,35 @@ import {
 import AdminSidebar from "@/components/dashboard/AdminSidebar";
 import { fetchMoodle } from "@/lib/moodle";
 
+interface Student {
+  id: number;
+  name: string;
+  email: string;
+  plan: string;
+  enrolled_count: number;
+  payment_status: string;
+  is_activated: boolean;
+}
+
+interface DashboardStats {
+  total_students: number;
+  active_courses: number;
+  new_this_month: number;
+  total_paid_apps: number;
+  total_quizzes: number;
+  recent_students: Student[];
+  exception?: string;
+  errorcode?: string;
+}
+
 /**
  * Admin Dashboard – 100% dynamic, all data pulled live from Moodle.
  * No static mock data anywhere.
  */
 const AdminDashboardPage = async () => {
   // Fetch live stats from our custom Moodle API
-  let stats: any = null;
+  let stats: DashboardStats | null = null;
+
   let statsError = false;
 
   try {
@@ -38,7 +60,8 @@ const AdminDashboardPage = async () => {
   const newThisMonth = stats?.new_this_month ?? 0;
   const totalPaid = stats?.total_paid_apps ?? 0;
   const totalQuizzes = stats?.total_quizzes ?? 0;
-  const recentStudents: any[] = stats?.recent_students ?? [];
+  const recentStudents: Student[] = stats?.recent_students ?? [];
+
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
@@ -144,7 +167,8 @@ const AdminDashboardPage = async () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {recentStudents.map((student: any) => (
+                    {recentStudents.map((student: Student) => (
+
                       <tr key={student.id} className="hover:bg-gray-50/50 transition-colors">
                         <td className="p-4 font-medium text-gray-900">{student.name || "—"}</td>
                         <td className="p-4 text-gray-500 text-sm">{student.email}</td>

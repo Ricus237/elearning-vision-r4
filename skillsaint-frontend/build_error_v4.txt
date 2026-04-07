@@ -1,0 +1,85 @@
+﻿
+> visionr4-IBI-elearning@1.0.0 build
+> next build
+
+node.exe :  ÔÜá 
+experimental.turbo.root 
+should be absolute, using: 
+C:\Users\Paul\Documents\Git
+Hub\elearning vision 
+r4\skillsaint-frontend
+Au caractère Ligne:1 : 1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
+    + CategoryInfo         
+     : NotSpecified: ( ÔÜ  
+  á experiment...lsaint-   
+ frontend:String) [], R    
+emoteException
+    + FullyQualifiedErrorI 
+   d : NativeCommandError
+ 
+   Ôû▓ Next.js 15.1.11
+   - Environments: .env.local, .env
+   - Experiments (use with caution):
+     ┬À turbo
+
+   Creating an optimized production build ...
+ Ô£ô (pwa) Compiling for server...
+ Ô£ô (pwa) Compiling for server...
+ Ô£ô (pwa) Compiling for client (static)...
+ Ôùï (pwa) Service worker: C:\Users\Paul\Documents\GitHub\elearning vision r4\skillsaint-frontend\public\sw.js
+ Ôùï (pwa)   URL: /sw.js
+ Ôùï (pwa)   Scope: /
+ Ô£ô Compiled successfully
+   Linting and checking validity of types ...
+Failed to compile.
+
+./src/app/page.tsx:16:7
+Type error: Type '{ 
+heroData: { title: string; 
+description: string; }; 
+courses: CourseType[]; 
+extraData: { hero_badge: 
+any; mission: { title: 
+any; content: any; }; 
+vision: { title: any; 
+content: any; }; about: { 
+hero_title: any; ... 4 
+more ...; goal_content: 
+any; }; programs: { ...; 
+}; enrollment: { ...; }; 
+}; }' is not assignable to 
+type 'IntrinsicAttributes 
+& HomeClientProps'.
+  Property 'courses' does 
+not exist on type 
+'IntrinsicAttributes & 
+HomeClientProps'.
+
+[0m [90m 14 |[39m     [
+33m<[39m[33mHomeClient[3
+9m [0m
+[0m [90m 15 |[39m       
+heroData[33m=[39m{heroDat
+a} [0m
+[0m[31m[1m>[22m[39m[9
+0m 16 |[39m       courses
+[33m=[39m{courses} [0m
+[0m [90m    |[39m       
+[31m[1m^[22m[39m[0m
+[0m [90m 17 |[39m       
+extraData[33m=[39m{extraD
+ata} [0m
+[0m [90m 18 |[39m     
+[33m/[39m[33m>[39m[0m
+[0m [90m 19 |[39m   
+)[33m;[39m[0m
+Next.js build worker 
+exited with code: 1 and 
+signal: null

@@ -10,11 +10,7 @@ import {
   LogOut,
   Lock
 } from "lucide-react";
-import Image from "next/image";
 import { logoutAction } from "@/lib/actions";
-import { mockStudents } from "@/data/students";
-
-const currentStudent = mockStudents[0];
 
 const navItems = [
   { href: "/dashboard", label: "Program Courses", icon: BookOpen },

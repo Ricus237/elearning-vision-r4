@@ -163,7 +163,7 @@ const CoursesDsiplay = ({ courses, categories, isLoggedIn }: CoursesDsiplayProps
                     <SearchIcon className="size-8" />
                 </div>
                 <h3 className="text-xl font-bold mb-2">No results found</h3>
-                <p className="text-secondary max-w-xs mx-auto text-sm">We couldn't find any courses matching your current filters. Try adjusting your search or filters.</p>
+                <p className="text-secondary max-w-xs mx-auto text-sm">We couldn&apos;t find any courses matching your current filters. Try adjusting your search or filters.</p>
                 <button 
                     onClick={() => { setSearchTerm(""); setSelectedCategory("all"); setSelectedPrice("all"); setSelectedSort("all"); }}
                     className="mt-6 text-purple-600 font-bold hover:underline"

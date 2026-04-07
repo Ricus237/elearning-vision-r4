@@ -24,9 +24,29 @@ interface Section {
   lessons: Lesson[];
 }
 
+interface MoodleModule {
+  id: number;
+  name: string;
+  modname: string;
+  url?: string;
+  instance: number;
+}
+
+interface MoodleSection {
+  id: number;
+  name: string;
+  modules?: MoodleModule[];
+}
+
+interface MoodleQuiz {
+  id: number;
+  name: string;
+}
+
 interface CourseContentProps {
-  contents?: any[];
-  quizzes?: any[];
+  contents?: MoodleSection[];
+  quizzes?: MoodleQuiz[];
+
   slug: string;
   isEnrolled: boolean;
 }
@@ -44,12 +64,12 @@ const getModuleIcon = (type: string, isEnrolled: boolean) => {
 
 const CourseContent = ({ contents = [], quizzes = [], slug, isEnrolled }: CourseContentProps) => {
   // Map Moodle contents to our Section/Lesson structure
-  const sections: Section[] = contents.map((section: any) => ({
+  const sections: Section[] = contents.map((section: MoodleSection) => ({
     _key: section.id.toString(),
     sectionTitle: section.name,
     lessons: (section.modules || [])
-      .filter((mod: any) => mod.modname === 'resource' || mod.modname === 'lesson' || mod.modname === 'video' || mod.modname === 'url' || mod.modname === 'page' || mod.modname === 'quiz')
-      .map((mod: any) => ({
+      .filter((mod: MoodleModule) => mod.modname === 'resource' || mod.modname === 'lesson' || mod.modname === 'video' || mod.modname === 'url' || mod.modname === 'page' || mod.modname === 'quiz')
+      .map((mod: MoodleModule) => ({
         _key: mod.id.toString(),
         title: mod.name,
         duration: 10,

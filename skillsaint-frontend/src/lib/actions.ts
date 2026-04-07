@@ -1,7 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { loginMoodle, createMoodleUser, enrolUserInCourse, isUserEnrolled, fetchMoodle, startQuizAttempt, getAttemptData } from './moodle';
+import { loginMoodle, createMoodleUser, enrolUserInCourse, fetchMoodle, startQuizAttempt, getAttemptData } from './moodle';
 import { redirect } from 'next/navigation';
 
 /**
@@ -206,7 +206,7 @@ export async function updateProfileDataAction(data: { name?: string, email?: str
      lastname = parts.slice(1).join(" ");
   }
 
-  const userUpdatePayload: any = {
+  const userUpdatePayload: Record<string, string | number> = {
     id: parseInt(userId)
   };
 
@@ -247,7 +247,7 @@ export async function getQuizQuestionsAction(quizId: number) {
     let attempt = null;
     if (userAttempts && userAttempts.attempts && Array.isArray(userAttempts.attempts)) {
       // On cherche une tentative en cours
-      attempt = userAttempts.attempts.find((a: any) => a.state === 'inprogress');
+      attempt = userAttempts.attempts.find((a: { state: string; id: number }) => a.state === 'inprogress');
     }
 
     if (!attempt) {
@@ -257,7 +257,7 @@ export async function getQuizQuestionsAction(quizId: number) {
         // Gérer le cas spécifique où Moodle dit qu'une tentative est déjà en cours malgré notre check
         if (startResult.message?.toLowerCase().includes('inprogress') || startResult.message?.toLowerCase().includes('en cours')) {
              const retryAttempts = await fetchMoodle('mod_quiz_get_user_attempts', { quizid: quizId }, token);
-             attempt = retryAttempts?.attempts?.find((a: any) => a.state === 'inprogress');
+             attempt = retryAttempts?.attempts?.find((a: { state: string; id: number }) => a.state === 'inprogress');
         }
         
         if (!attempt) {
@@ -280,7 +280,7 @@ export async function getQuizQuestionsAction(quizId: number) {
       attemptId: attempt.id,
       quizName: data.quizname || "Exam"
     };
-  } catch (err) {
+  } catch {
     return { error: "Erreur lors de la récupération du quiz." };
   }
 }

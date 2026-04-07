@@ -6,13 +6,24 @@ import { DollarSign, TrendingUp, Users, CheckCircle, ShieldCheck, ShieldAlert, E
  * Finance page – 100% dynamic, pulls all paid applications from Moodle.
  * No Math.random(), no static mock data → hydration error fixed.
  */
+interface FinanceApp {
+  id: number;
+  fullname: string;
+  email: string;
+  selected_plan: string;
+  is_activated: number;
+  timecreated: number;
+}
+
 const FinancePage = async () => {
-  let apps: any[] = [];
+  let apps: FinanceApp[] = [];
+
 
   try {
     const data = await fetchMoodle("local_skillsaint_get_all_paid_applications");
-    if (Array.isArray(data)) apps = data;
+    if (Array.isArray(data)) apps = data as FinanceApp[];
   } catch {}
+
 
   const totalPaid = apps.length;
   const totalActivated = apps.filter(a => a.is_activated).length;
@@ -110,7 +121,8 @@ const FinancePage = async () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {apps.slice(0, 10).map(app => (
+                      {apps.slice(0, 10).map((app: FinanceApp) => (
+
                         <tr key={app.id} className="hover:bg-gray-50/50 transition-colors">
                           <td className="p-4">
                             <p className="font-medium text-gray-900 text-sm">{app.fullname || "—"}</p>

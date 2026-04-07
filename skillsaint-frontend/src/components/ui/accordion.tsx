@@ -24,7 +24,7 @@ interface AccordionProps {
   collapsible?: boolean;
   defaultValue?: string | string[] | null;
   value?: string | string[];
-  onValueChange?: (value: any) => void;
+  onValueChange?: (value: string | string[]) => void;
   className?: string;
 }
 

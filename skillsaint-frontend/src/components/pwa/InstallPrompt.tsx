@@ -5,14 +5,18 @@ import { X, Download, Smartphone } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export const InstallPrompt = () => {
+  interface BeforeInstallPromptEvent extends Event {
+    prompt: () => void;
+    userChoice: Promise<{ outcome: string }>;
+  }
   const [showPrompt, setShowPrompt] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
   useEffect(() => {
     // Check if it's a mobile/tablet or small window
     const checkSize = () => {
       const isSmallScreen = window.innerWidth < 1024;
-      const isStandalone = (window.navigator as any).standalone || 
+      const isStandalone = ('standalone' in window.navigator && window.navigator.standalone) || 
                          window.matchMedia("(display-mode: standalone)").matches;
 
       // Only show if small screen and not already installed
@@ -23,9 +27,9 @@ export const InstallPrompt = () => {
       }
     };
 
-    const handleBeforeInstallPrompt = (e: any) => {
+    const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e);
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);

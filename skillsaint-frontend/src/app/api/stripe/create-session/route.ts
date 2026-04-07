@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { fetchMoodle } from '@/lib/moodle';
+
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -41,8 +41,9 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ url: session.url, sessionId: session.id });
-  } catch (err: any) {
+  } catch (err) {
     console.error('[Stripe create-session error]', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
+
 }

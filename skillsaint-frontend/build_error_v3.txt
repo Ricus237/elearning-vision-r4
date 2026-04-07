@@ -1,0 +1,61 @@
+﻿
+> visionr4-IBI-elearning@1.0.0 build
+> next build
+
+node.exe :  ÔÜá 
+experimental.turbo.root 
+should be absolute, using: 
+C:\Users\Paul\Documents\Git
+Hub\elearning vision 
+r4\skillsaint-frontend
+Au caractère Ligne:1 : 1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
+    + CategoryInfo         
+     : NotSpecified: ( ÔÜ  
+  á experiment...lsaint-   
+ frontend:String) [], R    
+emoteException
+    + FullyQualifiedErrorI 
+   d : NativeCommandError
+ 
+   Ôû▓ Next.js 15.1.11
+   - Environments: .env.local, .env
+   - Experiments (use with caution):
+     ┬À turbo
+
+   Creating an optimized production build ...
+ Ô£ô (pwa) Compiling for server...
+ Ô£ô (pwa) Compiling for server...
+ Ô£ô (pwa) Compiling for client (static)...
+ Ôùï (pwa) Service worker: C:\Users\Paul\Documents\GitHub\elearning vision r4\skillsaint-frontend\public\sw.js
+ Ôùï (pwa)   URL: /sw.js
+ Ôùï (pwa)   Scope: /
+ Ô£ô Compiled successfully
+   Linting and checking validity of types ...
+
+Failed to compile.
+
+./src/app/apply/components/
+ApplyForm.tsx
+102:17  Error: 
+'_onPlanChange' is defined 
+but never used.  @typescrip
+t-eslint/no-unused-vars
+103:19  Error: 
+'_onToggleCourse' is 
+defined but never used.  @t
+ypescript-eslint/no-unused-
+vars
+
+info  - Need to disable 
+some ESLint rules? Learn 
+more here: https://nextjs.o
+rg/docs/app/api-reference/c
+onfig/eslint#disabling-rule
+s

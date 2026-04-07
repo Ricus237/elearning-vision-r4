@@ -1,7 +1,7 @@
 import Button from "../ui/button";
 import Link from "next/link";
 import Image from "next/image";
-import { WheatLeavesLeft, WheatLeavesRight } from "@/lib/icons";
+
 import ButtonArrow from "../ui/buttonArrow";
 
 interface HeroProps {

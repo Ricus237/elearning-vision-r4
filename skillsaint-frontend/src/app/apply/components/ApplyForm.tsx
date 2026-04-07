@@ -4,8 +4,8 @@ import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   User, Flame, Lightbulb, ChevronDown, ChevronUp,
-  CheckCircle2, X, BookOpen, CreditCard, Send,
-  ShieldCheck, Lock, AlertCircle, Loader2, ArrowLeft, Mail, Phone, Calendar, MapPin
+  CheckCircle2, BookOpen, CreditCard,
+  ShieldCheck, Lock, AlertCircle, Loader2, ArrowLeft
 } from "lucide-react";
 import { BorderBeam } from "@/components/magicui/border-beam";
 // import { coursesData } from "@/components/courses/courseData";
@@ -99,12 +99,10 @@ const ApplyForm = ({
   courses,
   selectedPlan,
   selectedCourses,
-  onPlanChange,
-  onToggleCourse,
   isReviewing,
   setIsReviewing,
 }: {
-  plans: any[];
+  plans: { id: string; label: string; price: number; courseQuota: number; activeColor?: string; }[];
   courses: CourseType[];
   selectedPlan: string;
   selectedCourses: string[];
@@ -129,7 +127,6 @@ const ApplyForm = ({
   const [submitError, setSubmitError] = useState("");
 
   const currentPlan = plans.find((p) => p.id === selectedPlan)!;
-  const quota = currentPlan.courseQuota;
 
   const toggleSection = (i: number) => {
     setOpenSections((prev) => prev.map((v, idx) => (idx === i ? !v : v)));
@@ -213,7 +210,7 @@ const ApplyForm = ({
         setSubmitError(data.error || "Failed to start Stripe checkout.");
         setIsProcessing(false);
       }
-    } catch (err) {
+    } catch {
       setSubmitError("Network error. Please try again.");
       setIsProcessing(false);
     }
@@ -549,7 +546,7 @@ export function CourseSelector({
   onToggleCourse,
   onPlanChange,
 }: {
-  plans: any[];
+  plans: { id: string; label: string; price: number; courseQuota: number; activeColor?: string; }[];
   courses: CourseType[];
   selectedPlan: string;
   selectedCourses: string[];

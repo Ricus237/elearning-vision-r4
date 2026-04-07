@@ -1,0 +1,123 @@
+﻿
+> visionr4-IBI-elearning@1.0.0 build
+> next build
+
+node.exe :  ÔÜá 
+experimental.turbo.root 
+should be absolute, using: 
+C:\Users\Paul\Documents\Git
+Hub\elearning vision 
+r4\skillsaint-frontend
+Au caractère Ligne:1 : 1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
+    + CategoryInfo         
+     : NotSpecified: ( ÔÜ  
+  á experiment...lsaint-   
+ frontend:String) [], R    
+emoteException
+    + FullyQualifiedErrorI 
+   d : NativeCommandError
+ 
+   Ôû▓ Next.js 15.1.11
+   - Environments: .env.local, .env
+   - Experiments (use with caution):
+     ┬À turbo
+
+   Creating an optimized production build ...
+ Ô£ô (pwa) Compiling for server...
+ Ô£ô (pwa) Compiling for server...
+ Ô£ô (pwa) Compiling for client (static)...
+ Ôùï (pwa) Service worker: C:\Users\Paul\Documents\GitHub\elearning vision r4\skillsaint-frontend\public\sw.js
+ Ôùï (pwa)   URL: /sw.js
+ Ôùï (pwa)   Scope: /
+ Ô£ô Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/34) ...
+TypeError: e[o] is not a 
+function
+    at Object.t [as 
+require] (C:\Users\Paul\Doc
+uments\GitHub\elearning 
+vision r4\skillsaint-fronte
+nd\.next\server\webpack-run
+time.js:1:127)
+    at JSON.parse 
+(<anonymous>)
+Error occurred 
+prerendering page 
+"/login". Read more: https:
+//nextjs.org/docs/messages/
+prerender-error
+TypeError: e[o] is not a 
+function
+    at Object.t [as 
+require] (C:\Users\Paul\Doc
+uments\GitHub\elearning 
+vision r4\skillsaint-fronte
+nd\.next\server\webpack-run
+time.js:1:127)
+    at require (C:\Users\Pa
+ul\Documents\GitHub\elearni
+ng vision r4\skillsaint-fro
+ntend\node_modules\next\dis
+t\compiled\next-server\app-
+page.runtime.prod.js:132:79
+46)
+    at c (C:\Users\Paul\Doc
+uments\GitHub\elearning 
+vision r4\skillsaint-fronte
+nd\node_modules\next\dist\c
+ompiled\next-server\app-pag
+e.runtime.prod.js:36:680)
+    at U (C:\Users\Paul\Doc
+uments\GitHub\elearning 
+vision r4\skillsaint-fronte
+nd\node_modules\next\dist\c
+ompiled\next-server\app-pag
+e.runtime.prod.js:36:10628)
+    at V (C:\Users\Paul\Doc
+uments\GitHub\elearning 
+vision r4\skillsaint-fronte
+nd\node_modules\next\dist\c
+ompiled\next-server\app-pag
+e.runtime.prod.js:36:13184)
+    at C:\Users\Paul\Docume
+nts\GitHub\elearning 
+vision r4\skillsaint-fronte
+nd\node_modules\next\dist\c
+ompiled\next-server\app-pag
+e.runtime.prod.js:36:15435
+    at Array._fromJSON (C:\
+Users\Paul\Documents\GitHub
+\elearning vision r4\skills
+aint-frontend\node_modules\
+next\dist\compiled\next-ser
+ver\app-page.runtime.prod.j
+s:36:15469)
+    at JSON.parse 
+(<anonymous>)
+    at F (C:\Users\Paul\Doc
+uments\GitHub\elearning 
+vision r4\skillsaint-fronte
+nd\node_modules\next\dist\c
+ompiled\next-server\app-pag
+e.runtime.prod.js:36:10352)
+    at N (C:\Users\Paul\Doc
+uments\GitHub\elearning 
+vision r4\skillsaint-fronte
+nd\node_modules\next\dist\c
+ompiled\next-server\app-pag
+e.runtime.prod.js:36:9669)
+Export encountered an 
+error on /login/page: 
+/login, exiting the build.
+ Ô¿» Next.js build worker 
+exited with code: 1 and 
+signal: null

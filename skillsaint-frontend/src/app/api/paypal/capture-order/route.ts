@@ -64,7 +64,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, captureId: capture.id });
     }
 
-    const enrolments: Record<string, any> = {};
+    const enrolments: Record<string, { roleid: number; userid: number; courseid: number }> = {};
+
 
     if (isApplication && Array.isArray(courses)) {
       courses.forEach((id, index) => {
@@ -96,8 +97,9 @@ export async function POST(req: NextRequest) {
       captureId: capture.id,
       status: capture.status,
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error('[PayPal capture-order error]', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
+
 }

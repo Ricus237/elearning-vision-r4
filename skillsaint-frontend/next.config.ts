@@ -8,11 +8,6 @@ const pwaConfig = withPWA({
 });
 
 const config: NextConfig = {
-  experimental: {
-    turbo: {
-      root: ".", 
-    },
-  },
   images: {
     remotePatterns: [
       {

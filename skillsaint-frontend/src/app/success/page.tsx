@@ -4,8 +4,7 @@ import { motion } from "framer-motion";
 import { CheckCircle2, Home, Loader2, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { confirmPayment } from "@/lib/data";
+import { useSearchParams } from "next/navigation";
 
 function SuccessContent() {
   const searchParams = useSearchParams();
@@ -16,7 +15,7 @@ function SuccessContent() {
 
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [errorMsg, setErrorMsg] = useState("");
-  const router = useRouter();
+
 
   useEffect(() => {
     async function finalize() {
@@ -24,7 +23,18 @@ function SuccessContent() {
       const email = rawEmail ? rawEmail.trim().toLowerCase() : "";
       
       if (email && isApplication) {
-        const res = await confirmPayment(email);
+        // Call API route directly instead of importing server-side code
+        let res;
+        try {
+          const response = await fetch("/api/moodle/confirm-payment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email }),
+          });
+          res = await response.json();
+        } catch {
+          res = { status: "error", message: "Network error" };
+        }
         if (res && res.status === 'success') {
           setStatus("success");
           // Store email for activation check

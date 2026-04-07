@@ -13,12 +13,13 @@ const Avatar = ({
   return (
     <div className={cn("rounded-full bg-gray-100 size-12", className)}>
       {img ? (
-        <img
+        <Image
           width={48}
           height={48}
           src={img || ""}
           alt={name}
           className={cn("size-full rounded-full bg-cover")}
+          unoptimized
         />
       ) : (
         <div className="flex size-full items-center justify-center rounded-full">

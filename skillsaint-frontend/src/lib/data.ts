@@ -1,5 +1,5 @@
 import { CourseType } from "@/types/CourseType";
-import { getPublicCourses, getMoodleSiteData, getCourseContents, fetchMoodle } from "./moodle";
+import { getPublicCourses, getMoodleSiteData, fetchMoodle } from "./moodle";
 
 /**
  * Fetches Hero data from Moodle site info or returns default values.
@@ -27,9 +27,10 @@ export async function getAllCourses(): Promise<CourseType[]> {
     if (realCourses && realCourses.length > 0) {
       return realCourses;
     }
-  } catch (error) {
+  } catch {
     console.warn("Could not fetch real courses from Moodle, using fallbacks.");
   }
+
 
   // Fallback / Mock data if Moodle is not connected or empty
   return [
@@ -307,7 +308,7 @@ export async function activateAccount(email: string, code: string) {
         body: JSON.stringify({ function: "local_skillsaint_activate_account", params: { email, code } }),
       });
       return await response.json();
-    } catch (_e) {
+    } catch {
       return { status: 'error', message: 'Connection error' };
     }
 
@@ -316,7 +317,7 @@ export async function activateAccount(email: string, code: string) {
   try {
     const result = await fetchMoodle('local_skillsaint_activate_account', { email, code });
     return result;
-  } catch (_e) {
+  } catch {
     return { status: 'error', message: 'Connection error' };
   }
 
@@ -335,7 +336,7 @@ export async function checkActivation(email: string) {
       });
       const result = await response.json();
       return result.is_activated === 1;
-    } catch (_e) {
+    } catch {
       return false;
     }
 
@@ -344,7 +345,7 @@ export async function checkActivation(email: string) {
   try {
     const result = await fetchMoodle('local_skillsaint_check_activation', { email });
     return result.is_activated === 1;
-  } catch (_e) {
+  } catch {
     return false;
   }
 

@@ -23,9 +23,9 @@ const MobileNavigation = ({ data }: { data: MenuType[] }) => {
     e: MouseEvent,
     id: number,
     label: string,
-    subMenu: any,
+    subMenu?: { id: number; label: string; href: string }[],
   ) => {
-    if (subMenu.length) {
+    if (subMenu && subMenu.length) {
       e.preventDefault();
     }
     setDropdownOpen(id);

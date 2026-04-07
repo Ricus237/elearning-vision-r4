@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { BookOpen, Users, ExternalLink, Eye, Plus, X, Pencil, Trash2, ChevronDown, ChevronRight, Play, FileText, Link as LinkIcon, HelpCircle } from "lucide-react";
+
+import { BookOpen, Users, Eye, Plus, X, Pencil, ChevronDown, ChevronRight, Play, FileText, Link as LinkIcon, HelpCircle } from "lucide-react";
+
+
 import AdminSidebar from "@/components/dashboard/AdminSidebar";
 
 type Course = {
@@ -15,7 +18,31 @@ type Course = {
   categoryid?: number;
 };
 
-async function callMoodleAdmin(wsfunction: string, params: Record<string, any> = {}) {
+interface MoodleContent {
+  fileurl: string;
+  filename: string;
+  mimetype?: string;
+}
+
+interface MoodleModule {
+  id: number;
+  name: string;
+  modname: string;
+  description?: string;
+  contents?: MoodleContent[];
+}
+
+
+interface MoodleSection {
+  id: string;
+  name: string;
+  summary?: string;
+  modules: MoodleModule[];
+}
+
+
+async function callMoodleAdmin(wsfunction: string, params: Record<string, unknown> = {}) {
+
   const res = await fetch("/api/moodle", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -33,7 +60,8 @@ export default function CoursesClient({ initialCourses, moodleToken }: { initial
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  const [courseContents, setCourseContents] = useState<any[]>([]);
+  const [courseContents, setCourseContents] = useState<MoodleSection[]>([]);
+
   const [isLoadingContents, setIsLoadingContents] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   
@@ -81,7 +109,8 @@ export default function CoursesClient({ initialCourses, moodleToken }: { initial
          setCourseContents(res);
          
          // Auto-expand first section that contains items
-         const firstContentSection = res.find((s: any) => s.modules && s.modules.length > 0);
+         const firstContentSection = res.find((s: MoodleSection) => s.modules && s.modules.length > 0);
+
          if (firstContentSection) {
              setExpandedSections({ [firstContentSection.id]: true });
          } else if (res.length > 0) {
@@ -168,9 +197,11 @@ export default function CoursesClient({ initialCourses, moodleToken }: { initial
             setIsModalOpen(false);
           }
         }
-      } catch (error) {
+      } catch {
          setActionMsg("Network error.");
       }
+
+
       setTimeout(() => setActionMsg(null), 4000);
     });
   };
@@ -495,7 +526,8 @@ export default function CoursesClient({ initialCourses, moodleToken }: { initial
                                               <div className="space-y-3">
                                                  {modules.length === 0 ? (
                                                    <p className="text-xs text-gray-400 text-center py-4 bg-gray-50 rounded-xl">This section is empty.</p>
-                                                 ) : modules.map((mod: any) => (
+                                                 ) : modules.map((mod: MoodleModule) => (
+
                                                     <div key={mod.id} className="flex flex-col p-4 bg-gray-50/50 rounded-xl border border-gray-100">
                                                        <div className="flex items-start gap-4">
                                                           <div className={`p-2.5 rounded-xl shrink-0 ${
@@ -527,7 +559,7 @@ export default function CoursesClient({ initialCourses, moodleToken }: { initial
                                                             {/* Inline Resource Viewer */}
                                                             {mod.contents && mod.contents.length > 0 && (
                                                                <div className="mt-4 flex flex-col gap-4">
-                                                                  {mod.contents.map((file: any, i: number) => {
+                                                                  {mod.contents.map((file: MoodleContent, i: number) => {
                                                                      const url = file.fileurl + (file.fileurl.includes('?') ? '&' : '?') + 'token=' + moodleToken;
                                                                      const isHtml = file.mimetype === 'text/html' || file.filename.endsWith('.html');
                                                                      const isImg = file.mimetype?.startsWith('image/');
@@ -559,7 +591,7 @@ export default function CoursesClient({ initialCourses, moodleToken }: { initial
                                                                         );
                                                                      }
 
-                                                                     if (isImg) return <img key={i} src={url} alt={file.filename} className="max-w-full rounded-xl shadow-sm border border-gray-200 mt-2" />;
+                                                                     if (isImg) return <img key={i} src={url} alt={file.filename} className="max-w-full rounded-xl shadow-sm border border-gray-200 mt-2" />; // eslint-disable-line @next/next/no-img-element
                                                                      if (isVideo) return <video key={i} controls src={url} className="w-full rounded-xl shadow-sm border border-gray-200 mt-2" />;
                                                                      
                                                                      return (

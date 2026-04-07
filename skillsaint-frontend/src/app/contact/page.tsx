@@ -5,7 +5,7 @@ import Button from "@/components/ui/button";
 import Cta from "@/components/cta";
 import { siteName } from "@/utils/envExport";
 import { Metadata } from "next";
-import { ArrowRight, Star, GraduationHat, BookOpen, Clock, SearchIcon } from "@/lib/icons";
+import { ArrowRight, Star, BookOpen, Clock } from "@/lib/icons";
 
 export const metadata: Metadata = {
   title: `Contact Us | ${siteName}`,

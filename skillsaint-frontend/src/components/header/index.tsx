@@ -1,8 +1,7 @@
-import { Logo } from "@/lib/icons";
+
 import Link from "next/link";
 import Navigation from "./navigation";
 import MobileNavigation from "./mobileNavigation";
-import HeaderExtraInfo from "./headerExtraInfo";
 
 export type MenuType = {
   id: number;
@@ -42,12 +41,7 @@ const menuList: MenuType[] = [
   },
 ];
 
-import { cookies } from "next/headers";
-
-const Header = async () => {
-  const cookieStore = await cookies();
-  const username = cookieStore.get("moodle_user")?.value;
-  const user = username ? { username } : null;
+const Header = () => {
 
   return (
     <header className="sticky top-0 left-0 z-50 w-full overflow-x-clip bg-primary py-4">

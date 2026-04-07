@@ -33,7 +33,7 @@ const CheckoutForm = () => {
 
   // ─── Pricing ────────────────────────────────────────────────────────────────
   let amount = 0;
-  let currency = "USD";
+  const currency = "USD";
   let title = "Selected Course";
   let originalPrice = 0;
   let discountAmount: number | null = null;
@@ -204,7 +204,7 @@ const CheckoutForm = () => {
         {paymentMethod === "paypal" && (
           <div className="space-y-4">
             <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 text-center text-sm text-blue-700 mb-2">
-              You'll be redirected to PayPal's secure checkout. No account required.
+              You&apos;ll be redirected to PayPal&apos;s secure checkout. No account required.
             </div>
             {isProcessing ? (
               <div className="flex items-center justify-center py-6">
@@ -238,7 +238,7 @@ const CheckoutForm = () => {
         {paymentMethod === "card" && (
           <div className="space-y-4">
             <div className="p-4 bg-purple-50 rounded-2xl border border-purple-100 text-center text-sm text-purple-700 mb-4">
-              You'll be taken to Stripe's secure checkout page to enter your card details.
+              You&apos;ll be taken to Stripe&apos;s secure checkout page to enter your card details.
             </div>
             <button
               type="button"

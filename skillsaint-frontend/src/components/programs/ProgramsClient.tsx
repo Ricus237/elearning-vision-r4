@@ -8,7 +8,7 @@ import {
   Calendar, 
   Video, 
   Lightbulb, 
-  Globe, 
+
   ArrowRight
 } from "lucide-react";
 import { Rays } from "@/components/magicui/rays";

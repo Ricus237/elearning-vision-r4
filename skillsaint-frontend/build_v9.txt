@@ -1,0 +1,69 @@
+﻿
+> visionr4-IBI-elearning@1.0.0 build
+> next build
+
+   Ôû▓ Next.js 15.1.11
+   - Environments: .env.local, .env
+
+   Creating an optimized production build ...
+ Ô£ô (pwa) Compiling for server...
+ Ô£ô (pwa) Compiling for server...
+ Ô£ô (pwa) Compiling for client (static)...
+ Ôùï (pwa) Service worker: C:\Users\Paul\Documents\GitHub\elearning vision r4\skillsaint-frontend\public\sw.js
+ Ôùï (pwa)   URL: /sw.js
+ Ôùï (pwa)   Scope: /
+ Ô£ô Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/34) ...
+   Generating static pages (8/34) 
+   Generating static pages (16/34) 
+   Generating static pages (25/34) 
+ Ô£ô Generating static pages (34/34)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                              Size     First Load JS
+Ôöî ãÆ /                                    10.2 kB         171 kB
+Ôö£ Ôùï /_not-found                          166 B           108 kB
+Ôö£ ãÆ /about                               3.1 kB          169 kB
+Ôö£ ãÆ /admin                               180 B           111 kB
+Ôö£ ãÆ /admin/courses                       8.28 kB         120 kB
+Ôö£ ãÆ /admin/dashboard                     2.6 kB          114 kB
+Ôö£ ãÆ /admin/exams                         3.93 kB         118 kB
+Ôö£ ãÆ /admin/finance                       2.58 kB         114 kB
+Ôö£ ãÆ /admin/students                      6.04 kB         117 kB
+Ôö£ ãÆ /api/moodle                          166 B           108 kB
+Ôö£ ãÆ /api/moodle/confirm-payment          166 B           108 kB
+Ôö£ ãÆ /api/paypal/capture-order            166 B           108 kB
+Ôö£ ãÆ /api/paypal/create-order             166 B           108 kB
+Ôö£ ãÆ /api/stripe/create-session           166 B           108 kB
+Ôö£ ãÆ /api/stripe/webhook                  166 B           108 kB
+Ôö£ ãÆ /apply                               8.29 kB         173 kB
+Ôö£ Ôùï /checkout                            4.05 kB         117 kB
+Ôö£ Ôùï /contact                             1.4 kB          121 kB
+Ôö£ ãÆ /courses                             11.7 kB         140 kB
+Ôö£ ãÆ /courses/[slug]                      19.9 kB         188 kB
+Ôö£ ãÆ /courses/[slug]/modules/[cmid]       180 B           111 kB
+Ôö£ ãÆ /dashboard                           9.76 kB         164 kB
+Ôö£ ãÆ /dashboard/certificates              3 kB            118 kB
+Ôö£ ãÆ /dashboard/completed-exams           2.4 kB          120 kB
+Ôö£ ãÆ /dashboard/my-courses                4.16 kB         121 kB
+Ôö£ ãÆ /dashboard/profile                   5.16 kB         122 kB
+Ôö£ ãÆ /dashboard/settings                  4.2 kB          115 kB
+Ôö£ Ôùï /exam                                3.45 kB         126 kB
+Ôö£ Ôùï /exams                               2.84 kB         119 kB
+Ôö£ ãÆ /instructors                         187 B           117 kB
+Ôö£ Ôùï /login                               1.63 kB         113 kB
+Ôö£ ãÆ /programs                            3.04 kB         163 kB
+Ôö£ ãÆ /register                            3.43 kB         111 kB
+Ôöö Ôùï /success                             3.23 kB         155 kB
++ First Load JS shared by all            108 kB
+  Ôö£ chunks/4bd1b696-8dc19097e57a562d.js  52.9 kB
+  Ôö£ chunks/7455-8274cc6a776e8e94.js      52.7 kB
+  Ôöö other shared chunks (total)          2 kB
+
+
+Ôùï  (Static)   prerendered as static content
+ãÆ  (Dynamic)  server-rendered on demand
+

@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+
 
 const Footer = () => {
   return (
@@ -43,8 +43,9 @@ const Footer = () => {
                 <p>© {new Date().getFullYear()} IBI. All rights reserved.</p>
                 <span className="hidden md:inline-block opacity-30">|</span>
                 <p>
-                  Made by <a href="https://visionca.com/" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-purple-600 transition-colors">Vision / R4</a>
+                  Made by <a href="https://visionca.com/" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-purple-600 transition-colors">Vision/R4</a>
                 </p>
+
              </div>
              <div className="flex gap-8">
                 <Link href="#" className="hover:text-slate-500">Privacy</Link>

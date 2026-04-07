@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Bell, Globe, Lock, Moon, Shield, Trash2 } from "lucide-react";
+import { Bell, Globe, Lock, Shield, Trash2 } from "lucide-react";
 import StudentSidebar from "@/components/dashboard/StudentSidebar";
 
 const SettingsPage = () => {

@@ -3,7 +3,7 @@ import Button from "@/components/ui/button";
 import Textarea from "@/components/ui/textarea";
 import { Star } from "@/lib/icons";
 import { useState } from "react";
-import { set, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 
 type ReviewForm = {
@@ -44,14 +44,14 @@ const AddReview = () => {
       toast.success("Comment added successfully");
       reset();
       setRating(0);
-    } catch (error) {
+    } catch {
       toast.error("Something went wrong");
     }
   };
 
   return (
     <form
-      onSubmit={handleSubmit((data) => onSubmit())}
+      onSubmit={handleSubmit(() => onSubmit())}
       className="mt-8 rounded-3xl bg-primary p-6"
     >
       <h6 className="mb-5 text-lg leading-7 font-semibold">Write a review</h6>

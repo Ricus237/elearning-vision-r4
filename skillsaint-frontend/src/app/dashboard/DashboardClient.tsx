@@ -1,6 +1,6 @@
 "use client";
-import Link from "next/link";
-import { BookOpen, CheckCircle, Trophy, Lock, FileText, PlayCircle, Download, FilePlus, X, Mail } from "lucide-react";
+
+import { CheckCircle, Trophy, Lock, FileText, PlayCircle, Download, FilePlus, X, Mail } from "lucide-react";
 import StudentSidebar from "@/components/dashboard/StudentSidebar";
 import { CourseType } from "@/types/CourseType";
 import { useState, useEffect } from "react";
@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { checkActivation, activateAccount } from "@/lib/data";
 
 interface DashboardClientProps {
-  enrolledCourses: CourseType[];
+  enrolledCourses?: CourseType[];
 }
 
 const mockTrimesters = [
@@ -66,9 +66,17 @@ const mockTrimesters = [
   }
 ];
 
-const DashboardClient = ({ enrolledCourses }: DashboardClientProps) => {
+interface Subject {
+  id: string;
+  title: string;
+  completedLessons: number;
+  totalLessons: number;
+  isLocked: boolean;
+}
+
+const DashboardClient = ({}: DashboardClientProps) => {
   const [activeTrimester, setActiveTrimester] = useState<number>(1);
-  const [selectedSubject, setSelectedSubject] = useState<any>(null);
+  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   
   // Question form state
   const [isAskingQuestion, setIsAskingQuestion] = useState(false);
@@ -367,7 +375,7 @@ const DashboardClient = ({ enrolledCourses }: DashboardClientProps) => {
                           <div className="mt-8 p-6 bg-amber-50 rounded-2xl border border-amber-200 flex flex-col sm:flex-row items-center justify-between gap-6">
                              <div>
                                 <h4 className="text-lg font-black text-amber-900 mb-1">Exams Page</h4>
-                                <p className="text-sm text-amber-700 font-medium">Separate locked page. Can only be opened with the teacher's permission. Submitted directly to our email.</p>
+                                <p className="text-sm text-amber-700 font-medium">Separate locked page. Can only be opened with the teacher&apos;s permission. Submitted directly to our email.</p>
                              </div>
                              <button disabled className="shrink-0 px-6 py-3 bg-white border-2 border-amber-200 text-amber-700 font-bold rounded-xl cursor-not-allowed flex items-center gap-2">
                                 <Lock size={18} />
@@ -453,7 +461,7 @@ const DashboardClient = ({ enrolledCourses }: DashboardClientProps) => {
                         <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
                            <div className="text-center sm:text-left">
                               <h4 className="font-bold text-slate-900 mb-1">Scripture Meditation Assignment</h4>
-                              <p className="text-sm font-medium text-slate-500 leading-relaxed max-w-sm">Read and meditate on this week's verses prior to viewing the session.</p>
+                              <p className="text-sm font-medium text-slate-500 leading-relaxed max-w-sm">Read and meditate on this week&apos;s verses prior to viewing the session.</p>
                            </div>
                            <button className="w-full sm:w-auto px-6 py-3 bg-white text-slate-900 font-bold rounded-xl border border-slate-200 hover:border-purple-200 hover:bg-purple-50 transition-all text-sm shrink-0 shadow-sm">
                               View Verses

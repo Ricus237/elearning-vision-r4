@@ -21,6 +21,7 @@ export async function fetchMoodle(wsFunction: string, params: Record<string, unk
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const flattenParams = (obj: any, prefix: string = "") => {
 
+
     Object.keys(obj).forEach(key => {
       const value = obj[key];
       const newKey = prefix ? `${prefix}[${key}]` : key;
@@ -56,9 +57,10 @@ export async function fetchMoodle(wsFunction: string, params: Record<string, unk
       return { error: json.message };
     }
     return json;
-  } catch (error) {
+  } catch {
     return null;
   }
+
 }
 
 /**
@@ -75,9 +77,10 @@ export async function loginMoodle(username: string, password: string) {
   try {
     const response = await fetch(`${MOODLE_URL}/login/token.php?${query.toString()}`);
     return await response.json();
-  } catch (error) {
+  } catch {
     return null;
   }
+
 }
 
 /**
@@ -272,15 +275,17 @@ export async function getPublicCourses(): Promise<CourseType[]> {
   
   if (!Array.isArray(courses)) return [];
   
-  const publicCourses = courses.filter((c: any) => c.id > 1);
+  const publicCourses = courses.filter((c: { id: number }) => c.id > 1);
   
   // Pour avoir le vrai nombre de leçons, on doit charger le contenu de chaque cours
   // on utilise Promise.all pour paralléliser les appels
-  const coursesWithDetails = await Promise.all(publicCourses.map(async (c: any) => {
+  const coursesWithDetails = await Promise.all(publicCourses.map(async (c: { id: number }) => {
+
     try {
       const contents = await getCourseContents(c.id);
       let count = 0;
-      contents.forEach((section: any) => {
+      contents.forEach((section: { modules?: Array<{ id: number }> }) => {
+
         count += (section.modules?.length || 0);
       });
       
@@ -289,7 +294,7 @@ export async function getPublicCourses(): Promise<CourseType[]> {
       // Estimation de la durée: on compte environ 15 min par module pour donner un chiffre "réel"
       mapped.duration = count * 15; 
       return mapped;
-    } catch (_e) {
+    } catch {
 
       return mapMoodleCourseToCourseType(c);
     }

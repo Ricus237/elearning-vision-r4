@@ -3,7 +3,8 @@ import { useState, useTransition } from "react";
 import { Search, UserX, Trash2, Eye, Mail, ChevronLeft, Users, ShieldCheck, ShieldAlert, CheckCircle, Clock, XCircle } from "lucide-react";
 import AdminSidebar from "@/components/dashboard/AdminSidebar";
 
-type Student = {
+export type Student = {
+
   id: number;
   name: string;
   email: string;
@@ -16,7 +17,8 @@ type Student = {
   registered_at: number;
 };
 
-async function callMoodleAdmin(wsfunction: string, params: Record<string, any> = {}) {
+async function callMoodleAdmin(wsfunction: string, params: Record<string, unknown> = {}) {
+
   const res = await fetch("/api/moodle", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -174,7 +176,8 @@ export default function StudentsClient({ initialStudents }: { initialStudents: S
                   <input type="text" placeholder="Search by name or email..." value={search} onChange={e => setSearch(e.target.value)}
                     className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-200" />
                 </div>
-                <select value={filter} onChange={e => setFilter(e.target.value as any)}
+                <select value={filter} onChange={e => setFilter(e.target.value as "all" | "active" | "suspended" | "paid" | "pending")}
+
                   className="px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-200">
                   <option value="all">All Users</option>
                   <option value="active">Active</option>

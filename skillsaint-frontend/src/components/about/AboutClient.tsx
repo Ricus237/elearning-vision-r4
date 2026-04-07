@@ -3,7 +3,7 @@
 import React from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Heart, Target, Eye, Quote, ArrowRight, Sun } from "lucide-react";
+import { Quote, ArrowRight } from "lucide-react";
 import { Rays } from "@/components/magicui/rays";
 import Link from "next/link";
 

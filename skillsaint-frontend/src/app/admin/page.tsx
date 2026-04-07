@@ -2,7 +2,9 @@ import PageHeader from "@/components/pageHeader";
 import { siteName } from "@/utils/envExport";
 import { Metadata } from "next";
 import Link from "next/link";
-import { LayoutDashboard, Users, BookOpen, Settings, BarChart } from "@/lib/icons";
+import { LayoutDashboard, Settings, BarChart3 } from "lucide-react";
+import { Users, BookOpen } from "@/lib/icons";
+
 
 export const metadata: Metadata = {
   title: `Admin Dashboard | ${siteName}`,
@@ -13,7 +15,8 @@ const AdminDashboard = () => {
   const stats = [
     { label: "Total Students", value: "1,240", icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
     { label: "Active Courses", value: "48", icon: BookOpen, color: "text-purple-600", bg: "bg-purple-50" },
-    { label: "Monthly Revenue", value: "$12,450", icon: BarChart, color: "text-emerald-600", bg: "bg-emerald-50" },
+    { label: "Monthly Revenue", value: "$12,450", icon: BarChart3, color: "text-emerald-600", bg: "bg-emerald-50" },
+
   ];
 
   return (

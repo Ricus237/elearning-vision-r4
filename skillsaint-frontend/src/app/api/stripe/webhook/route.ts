@@ -17,10 +17,12 @@ export async function POST(req: NextRequest) {
 
   try {
     event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
-  } catch (err: any) {
-    console.error('[Stripe Webhook] Signature verification failed:', err.message);
-    return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
+  } catch (err) {
+    const error = err as Error;
+    console.error('[Stripe Webhook] Signature verification failed:', error.message);
+    return NextResponse.json({ error: `Webhook Error: ${error.message}` }, { status: 400 });
   }
+
 
   switch (event.type) {
     case 'checkout.session.completed':
@@ -50,7 +52,8 @@ async function handleEnrolment(session: Stripe.Checkout.Session) {
     return;
   }
 
-  const enrolments: Record<string, any> = {};
+  const enrolments: Record<string, { roleid: number; userid: number; courseid: number }> = {};
+
   
   if (isApplication && coursesString) {
     // Enroll in multiple courses (from application)

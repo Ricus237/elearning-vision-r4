@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
+import { motion, useScroll, AnimatePresence } from "framer-motion";
 import { 
   BookOpen, 
   ArrowRight, 
@@ -19,7 +19,7 @@ import {
 import { Rays } from "@/components/magicui/rays";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { CourseType } from "@/types/CourseType";
-import CourseCard from "@/components/courses/courseCard";
+
 
 interface HomeClientProps {
   heroData: {
@@ -28,16 +28,17 @@ interface HomeClientProps {
   };
   courses: CourseType[];
   extraData: {
+    hero_badge: string;
     mission: { title: string; content: string };
     vision: { title: string; content: string };
   };
 }
 
-export default function HomeClient({ heroData, courses, extraData }: HomeClientProps) {
+
+export default function HomeClient({ heroData, extraData }: HomeClientProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { scrollYProgress } = useScroll();
-  const backgroundOpacity = useTransform(scrollYProgress, [0, 0.1], [0, 1]);
+  useScroll();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -110,8 +111,9 @@ export default function HomeClient({ heroData, courses, extraData }: HomeClientP
               className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full  font-bold text-xs uppercase tracking-widest mb-8"
             >
               <Zap size={14} className="fill-purple-600 text-purple-600" />
-              {(extraData as any).hero_badge || "Empowering Spiritual Leaders"}
+              {extraData.hero_badge || "Empowering Spiritual Leaders"}
             </motion.div>
+
             
             <motion.h1 
               initial={{ opacity: 0, y: 30 }}

@@ -4,12 +4,17 @@ import { ReactNode } from "react";
 
 export default function ConditionalWrapper({ children, type }: { children: ReactNode, type?: "header" | "footer" }) {
   const pathname = usePathname();
-  // Hide both on dashboard/admin
-  if (pathname?.startsWith("/dashboard") || pathname?.startsWith("/admin")) return null;
-  
-  // Hide ONLY header on home page
-  if (type === "header" && pathname === "/") return null;
-  
+  // Always show footer
+  if (type === "footer") return <>{children}</>;
+
+  // Hide header on dashboard/admin or home page
+  if (type === "header") {
+    if (pathname?.startsWith("/dashboard") || pathname?.startsWith("/admin") || pathname === "/") {
+      return null;
+    }
+  }
+
   return <>{children}</>;
 }
+
 

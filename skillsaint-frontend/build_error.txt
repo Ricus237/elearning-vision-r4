@@ -1,0 +1,112 @@
+﻿
+> visionr4-IBI-elearning@1.0.0 build
+> next build
+
+node.exe :  ÔÜá 
+experimental.turbo.root 
+should be absolute, using: 
+C:\Users\Paul\Documents\Git
+Hub\elearning vision 
+r4\skillsaint-frontend
+Au caractère Ligne:1 : 1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
+    + CategoryInfo         
+     : NotSpecified: ( ÔÜ  
+  á experiment...lsaint-   
+ frontend:String) [], R    
+emoteException
+    + FullyQualifiedErrorI 
+   d : NativeCommandError
+ 
+   Ôû▓ Next.js 15.1.11
+   - Environments: .env.local, .env
+   - Experiments (use with caution):
+     ┬À turbo
+
+   Creating an optimized production build ...
+ Ô£ô (pwa) Compiling for server...
+ Ô£ô (pwa) Compiling for server...
+ Ô£ô (pwa) Compiling for client (static)...
+ Ôùï (pwa) Service worker: C:\Users\Paul\Documents\GitHub\elearning vision r4\skillsaint-frontend\public\sw.js
+ Ôùï (pwa)   URL: /sw.js
+ Ôùï (pwa)   Scope: /
+ Ô£ô Compiled successfully
+   Linting and checking validity of types ...
+Failed to compile.
+
+./src/app/apply/ApplyClient
+.tsx:123:15
+Type error: Type '{ plans: 
+({ id: string; label: 
+string; price: number; 
+courseQuota: number; 
+activeColor: string; 
+recommended?: undefined; } 
+| { id: string; label: 
+string; price: number; 
+courseQuota: number; 
+activeColor: string; 
+recommended: boolean; 
+})[]; ... 6 more ...; 
+setIsReviewing: 
+Dispatch<...>; }' is not 
+assignable to type 
+'IntrinsicAttributes & { 
+plans: { id: string; 
+label: string; price: 
+number; courseQuota: 
+number; activeColor?: 
+string | undefined; }[]; 
+courses: CourseType[]; 
+selectedPlan: string; 
+selectedCourses: string[]; 
+isReviewing: boolean; 
+setIsReviewing: (val: 
+boolean) => void; }'.
+  Property 'onPlanChange' 
+does not exist on type 
+'IntrinsicAttributes & { 
+plans: { id: string; 
+label: string; price: 
+number; courseQuota: 
+number; activeColor?: 
+string | undefined; }[]; 
+courses: CourseType[]; 
+selectedPlan: string; 
+selectedCourses: string[]; 
+isReviewing: boolean; 
+setIsReviewing: (val: 
+boolean) => void; }'.
+
+[0m [90m 121 |[39m      
+         selectedPlan[33m=
+[39m{selectedPlan}[0m
+[0m [90m 122 |[39m      
+         selectedCourses[3
+3m=[39m{selectedCourses}[
+0m
+[0m[31m[1m>[22m[39m[9
+0m 123 |[39m              
+ onPlanChange[33m=[39m{ha
+ndlePlanChange}[0m
+[0m [90m     |[39m      
+         
+[31m[1m^[22m[39m[0m
+[0m [90m 124 |[39m      
+         onToggleCourse[33
+m=[39m{toggleCourse}[0m
+[0m [90m 125 |[39m      
+         isReviewing[33m=
+[39m{isReviewing}[0m
+[0m [90m 126 |[39m      
+         setIsReviewing[33
+m=[39m{setIsReviewing}[0m
+Next.js build worker 
+exited with code: 1 and 
+signal: null

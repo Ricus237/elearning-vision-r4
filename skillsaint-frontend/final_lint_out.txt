@@ -1,0 +1,9 @@
+﻿
+C:\Users\Paul\Documents\GitHub\elearning vision r4\skillsaint-frontend\src\app\courses\[slug]\modules\[cmid]\page.tsx
+  66:61  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Paul\Documents\GitHub\elearning vision r4\skillsaint-frontend\src\app\dashboard\page.tsx
+  11:9  error  'userIdStr' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+Ô£û 2 problems (2 errors, 0 warnings)
+

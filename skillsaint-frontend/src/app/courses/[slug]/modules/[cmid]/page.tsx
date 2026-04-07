@@ -7,19 +7,37 @@ const ModuleViewer = async ({ params }: { params: Promise<{ slug: string, cmid: 
   const courseId = parseInt(slug);
   const cmidNum = parseInt(cmid);
 
-  // 1. Get contents to find out what this module is
+  interface MoodleModule {
+    id: number;
+    name: string;
+    modname: string;
+    url?: string;
+    contents?: { filename: string; fileurl: string }[];
+  }
+  interface MoodleSection {
+    modules?: MoodleModule[];
+  }
+  interface ContentPage {
+    id: number;
+    coursemodule: number;
+    content: string;
+    page: { title: string; contents: string };
+  }
+
+
+  // 1. Get contents to find out what this courseModule is
   const contents = await getCourseContents(courseId);
-  let module: any = null;
+  let courseModule: MoodleModule | null = null;
   if (Array.isArray(contents)) {
-    for (const section of contents) {
+    for (const section of contents as MoodleSection[]) {
       if (section.modules) {
-        module = section.modules.find((m: any) => m.id === cmidNum);
-        if (module) break;
+        courseModule = section.modules.find((m: MoodleModule) => m.id === cmidNum) || null;
+        if (courseModule) break;
       }
     }
   }
 
-  if (!module) {
+  if (!courseModule) {
     return (
       <main className="container py-20 text-center">
         <h1 className="text-2xl font-bold mb-4">Module not found</h1>
@@ -31,24 +49,24 @@ const ModuleViewer = async ({ params }: { params: Promise<{ slug: string, cmid: 
   }
 
   let contentHtml = "";
-  const title = module.name;
+  const title = courseModule.name;
 
-  if (module.modname === 'page') {
+  if (courseModule.modname === 'page') {
     const pages = await getCoursePages(courseId);
-    const pageDetail = Array.isArray(pages) ? pages.find((p: any) => p.coursemodule === cmidNum) : null;
+    const pageDetail = Array.isArray(pages) ? pages.find((p: ContentPage) => p.coursemodule === cmidNum) : null;
     if (pageDetail) {
         contentHtml = pageDetail.content;
     } else {
         contentHtml = "<p>Could not load page content from Moodle.</p>";
     }
-  } else if (module.modname === 'lesson') {
+  } else if (courseModule.modname === 'lesson') {
     const lessons = await getCourseLessons(courseId);
-    const lessonDetail = Array.isArray(lessons) ? lessons.find((l: any) => l.coursemodule === cmidNum) : null;
+    const lessonDetail = Array.isArray(lessons) ? lessons.find((l: ContentPage) => l.coursemodule === cmidNum) : null;
     if (lessonDetail) {
         const pages = await getLessonPages(lessonDetail.id);
         if (Array.isArray(pages) && pages.length > 0) {
             // Join all pages with a separator for simple viewing
-            contentHtml = pages.map((p: any) => `
+            contentHtml = pages.map((p: ContentPage) => `
                 <div class="lesson-page mb-12">
                     <h2 class="text-2xl font-bold mb-6 text-purple-900 border-b pb-2">${p.page.title}</h2>
                     <div class="page-contents">${p.page.contents}</div>
@@ -60,9 +78,9 @@ const ModuleViewer = async ({ params }: { params: Promise<{ slug: string, cmid: 
     } else {
         contentHtml = "<p>Could not load lesson details from Moodle.</p>";
     }
-  } else if (module.modname === 'resource') {
-     if (module.contents?.[0]) {
-         const file = module.contents[0];
+  } else if (courseModule.modname === 'resource') {
+     if (courseModule.contents?.[0]) {
+         const file = courseModule.contents[0];
          contentHtml = `
             <div class="flex flex-col items-center justify-center py-12 px-6 border-2 border-dashed border-gray-100 rounded-3xl bg-gray-50/50">
                 <div class="size-16 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-6">
@@ -79,8 +97,8 @@ const ModuleViewer = async ({ params }: { params: Promise<{ slug: string, cmid: 
   } else {
       contentHtml = `
         <div class="py-12 text-center">
-            <p class="text-gray-500 mb-6">Internal viewing for <strong>${module.modname}</strong> is not yet supported.</p>
-            <a href="${module.url}" target="_blank" class="text-purple-600 font-medium hover:underline inline-flex items-center gap-2">
+            <p class="text-gray-500 mb-6">Internal viewing for <strong>${courseModule.modname}</strong> is not yet supported.</p>
+            <a href="${courseModule.url}" target="_blank" class="text-purple-600 font-medium hover:underline inline-flex items-center gap-2">
                 View on Moodle <ArrowRight className="size-4" />
             </a>
         </div>
@@ -103,7 +121,7 @@ const ModuleViewer = async ({ params }: { params: Promise<{ slug: string, cmid: 
             <div className="bg-white p-8 sm:p-12 rounded-[2rem] shadow-sm border border-gray-100">
                 <div className="flex items-center gap-3 mb-4">
                     <span className="px-3 py-1 bg-purple-100 text-purple-600 text-[10px] font-bold uppercase rounded-full tracking-wider">
-                        {module.modname}
+                        {courseModule.modname}
                     </span>
                 </div>
                 <h1 className="text-3xl sm:text-4xl font-bold mb-10 text-gray-900 leading-tight">{title}</h1>

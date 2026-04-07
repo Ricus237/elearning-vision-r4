@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Clock, BookOpen, Search } from "lucide-react";
+import { BookOpen, Search } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 import StudentSidebar from "@/components/dashboard/StudentSidebar";
@@ -16,7 +16,8 @@ const MyCoursesClient = ({ initialCourses }: MyCoursesClientProps) => {
 
   const filteredCourses = initialCourses.filter(course => {
     // Note: Pour l'instant on simule le progrès car Moodle ne le renvoie pas directement via ce WS sans plugin additionnel
-    let progress = 0; 
+    // eslint-disable-next-line prefer-const
+    let progress = 0;
     const matchesFilter =
       filter === "all" ||
       (filter === "completed" && progress === 100) ||

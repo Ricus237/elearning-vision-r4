@@ -4,9 +4,7 @@ import ButtonArrow from "@/components/ui/buttonArrow";
 import {
   BookOpen,
   Clock,
-  FileAlt,
   GraduationHat,
-  LifeRing,
   SingleStrong,
 } from "@/lib/icons";
 import Image from "next/image";

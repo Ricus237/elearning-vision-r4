@@ -1,0 +1,49 @@
+﻿
+C:\Users\Paul\Documents\GitHub\elearning vision r4\skillsaint-frontend\src\app\admin\courses\CoursesClient.tsx
+    4:8   error    'Image' is defined but never used                                                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+  562:92  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  594:88  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\Paul\Documents\GitHub\elearning vision r4\skillsaint-frontend\src\app\apply\components\ApplyForm.tsx
+  211:14  error  '_err' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Paul\Documents\GitHub\elearning vision r4\skillsaint-frontend\src\app\courses\[slug]\modules\[cmid]\page.tsx
+  65:61  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Paul\Documents\GitHub\elearning vision r4\skillsaint-frontend\src\app\dashboard\my-courses\MyCoursesClient.tsx
+  19:9  error  'progress' is never reassigned. Use 'const' instead  prefer-const
+
+C:\Users\Paul\Documents\GitHub\elearning vision r4\skillsaint-frontend\src\app\dashboard\page.tsx
+   3:10  error  'getUserCourses' is defined but never used   @typescript-eslint/no-unused-vars
+  14:9   error  'userId' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Paul\Documents\GitHub\elearning vision r4\skillsaint-frontend\src\app\success\page.tsx
+  7:27  error  'useRouter' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Paul\Documents\GitHub\elearning vision r4\skillsaint-frontend\src\components\header\index.tsx
+  47:9  error  'cookieStore' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Paul\Documents\GitHub\elearning vision r4\skillsaint-frontend\src\components\home\HomeClient.tsx
+   5:29  error  'useTransform' is defined but never used              @typescript-eslint/no-unused-vars
+  21:10  error  'CourseType' is defined but never used                @typescript-eslint/no-unused-vars
+  40:11  error  'scrollYProgress' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Paul\Documents\GitHub\elearning vision r4\skillsaint-frontend\src\lib\data.ts
+    2:47  error  'getCourseContents' is defined but never used  @typescript-eslint/no-unused-vars
+   30:12  error  '_error' is defined but never used             @typescript-eslint/no-unused-vars
+  311:14  error  '_e' is defined but never used                 @typescript-eslint/no-unused-vars
+  320:12  error  '_e' is defined but never used                 @typescript-eslint/no-unused-vars
+  339:14  error  '_e' is defined but never used                 @typescript-eslint/no-unused-vars
+  348:12  error  '_e' is defined but never used                 @typescript-eslint/no-unused-vars
+
+C:\Users\Paul\Documents\GitHub\elearning vision r4\skillsaint-frontend\src\lib\moodle.ts
+   60:12  error  '_error' is defined but never used  @typescript-eslint/no-unused-vars
+   80:12  error  '_error' is defined but never used  @typescript-eslint/no-unused-vars
+  297:14  error  '_e' is defined but never used      @typescript-eslint/no-unused-vars
+
+C:\Users\Paul\Documents\GitHub\elearning vision r4\skillsaint-frontend\src\lib\slot.tsx
+  1:42  error  'Ref' is defined but never used  @typescript-eslint/no-unused-vars
+
+Ô£û 23 problems (22 errors, 1 warning)
+  1 error and 0 warnings potentially fixable with the `--fix` option.
+

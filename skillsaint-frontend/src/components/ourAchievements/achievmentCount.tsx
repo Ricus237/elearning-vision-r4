@@ -9,7 +9,7 @@ const AchievmentCount = ({
   value: number;
   suffix: string;
 }) => {
-  const { ref, inView, entry } = useInView({
+  const { ref, inView } = useInView({
     threshold: 0.2,
     triggerOnce: true,
   });

@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { Camera, Mail, MapPin, Calendar, BookOpen, Award } from "lucide-react";
 import StudentSidebar from "@/components/dashboard/StudentSidebar";
+import Image from "next/image";
 import { getProfileDataAction, updateProfileDataAction } from "@/lib/actions";
 
 const ProfilePage = () => {
@@ -18,7 +19,7 @@ const ProfilePage = () => {
     firstaccess: Date.now() / 1000
   });
 
-  const [isLoading, setIsLoading] = useState(true);
+
   const [isSaving, setIsSaving] = useState(false);
   const [userProfileUrl, setUserProfileUrl] = useState<string | null>(null);
 
@@ -44,8 +45,6 @@ const ProfilePage = () => {
         }
       } catch (err) {
         console.error(err);
-      } finally {
-        setIsLoading(false);
       }
     }
     loadData();
@@ -95,10 +94,13 @@ const ProfilePage = () => {
                 <div className="relative">
                   <div className="w-24 h-24 rounded-2xl overflow-hidden border-4 border-white shadow-lg bg-gray-100 flex items-center justify-center">
                     {userProfileUrl ? (
-                      <img
+                      <Image
+                        width={96}
+                        height={96}
                         src={userProfileUrl}
                         alt={formData.name}
                         className="w-full h-full object-cover"
+                        unoptimized
                       />
                     ) : (
                       <span className="text-3xl text-gray-400 font-bold">{formData.name.charAt(0)}</span>

@@ -1,10 +1,9 @@
 "use client";
-import { ArrowRight, BookOpen, Clock, GraduationHat, Star } from "@/lib/icons";
+import { ArrowRight, BookOpen, Clock, Star } from "@/lib/icons";
 import Image from "next/image";
 import Link from "next/link";
-import Button from "../ui/button";
 import { CourseType } from "@/types/CourseType";
-import { calculateMinutes, formatViews } from "@/lib/utils";
+import { calculateMinutes } from "@/lib/utils";
 
 const CourseCard = ({ course, isLoggedIn }: { course: CourseType, isLoggedIn?: boolean }) => {
 

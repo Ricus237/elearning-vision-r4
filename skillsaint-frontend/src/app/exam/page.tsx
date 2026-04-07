@@ -23,13 +23,23 @@ const defaultExamQuestions = examQuestions[0]?.questions || [
   },
 ];
 
+interface QuestionType {
+  id: number;
+  question: string;
+  options: string[];
+  correct: number;
+  difficulty: string;
+  isReal?: boolean;
+  html?: string;
+}
+
 const ExamContent = () => {
   const searchParams = useSearchParams();
   const quizIdStr = searchParams.get("quizId");
   
-  const [questions, setQuestions] = useState<any[]>(defaultExamQuestions);
+  const [questions, setQuestions] = useState<QuestionType[]>(defaultExamQuestions);
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, any>>({});
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(!!quizIdStr);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +54,7 @@ const ExamContent = () => {
       
       if (result.success && result.questions) {
         // Map Moodle questions to our simple format
-        const mappedQuestions = result.questions.map((q: any, idx: number) => {
+        const mappedQuestions = result.questions.map((q: { html?: string; slot: number }) => {
           // Moodle HTML extraction is complex, we'll try to strip tags for now
           // In a real app, we'd render the HTML safely
           const cleanQuestion = q.html?.replace(/<[^>]*>?/gm, '').split('Question')[0].trim() || q.slot.toString();
@@ -177,7 +187,7 @@ const ExamContent = () => {
           {question.isReal ? (
             <div 
               className="prose prose-purple max-w-none mb-8 text-xl font-medium"
-              dangerouslySetInnerHTML={{ __html: question.html }}
+              dangerouslySetInnerHTML={{ __html: question.html || '' }}
             />
           ) : (
             <h2 className="text-xl md:text-2xl font-semibold mb-8 text-gray-900">
