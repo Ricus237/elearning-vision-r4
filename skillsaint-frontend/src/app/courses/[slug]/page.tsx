@@ -16,7 +16,7 @@ import CoursseReview from "./coursseReview";
 import AddReview from "./addReview";
 import BackButton from "./backButton";
 
-import { getCourseById, getCourseContents, getCourseQuizzes, isUserEnrolled } from "@/lib/moodle";
+import { getCourseById, getCourseContents, getCourseQuizzes, isUserEnrolled, processMoodleHtml } from "@/lib/moodle";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -34,10 +34,11 @@ const CourseDetails = async ({
   const quizzes = await getCourseQuizzes(courseId);
 
   const cookieStore = await cookies();
-  const username = cookieStore.get("moodle_user")?.value;
+  const moodleUser = cookieStore.get("moodle_user")?.value;
   const userIdStr = cookieStore.get("moodle_user_id")?.value;
+  const isAdmin = cookieStore.get("moodle_is_admin")?.value === "true" || moodleUser === "admin";
   
-  const isEnrolled = userIdStr ? await isUserEnrolled(parseInt(userIdStr), courseId) : false;
+  const isEnrolled = isAdmin ? true : (userIdStr ? await isUserEnrolled(parseInt(userIdStr), courseId) : false);
 
   if (!course) {
     return (
@@ -60,8 +61,8 @@ const CourseDetails = async ({
               <div className={`w-full shrink space-y-12 ${!isEnrolled ? "lg:max-w-150" : ""}`}>
                 <div>
                   <SectionTitle
-                    subTitle="Courses Details"
-                    description={course.shortDescription}
+                    subTitle="Course Details"
+                    description={course.shortDescription.replace(/<[^>]*>?/gm, '').substring(0, 160) + "..."}
                     descriptionClass="max-w-full"
                   >
                     {course.title}
@@ -94,26 +95,27 @@ const CourseDetails = async ({
                     sizes="100vw"
                     src={course.thumbnail}
                     alt="img"
-                    className="w-full rounded-2xl"
+                    className="w-full rounded-2xl shadow-xl"
                   />
                 </div>
 
                 <div>
-                  <h4 className="font-mulish text-xl font-bold sm:text-2xl sm:leading-8">
-                    Overview
+                  <h4 className="font-mulish text-xl font-black md:text-3xl tracking-tight mb-6">
+                    Professional Overview
                   </h4>
-                  <div className="mt-5 space-y-4 text-sm leading-5 tracking-sm text-secondary">
-                    <p>{course.shortDescription}</p>
-                  </div>
+                  <div 
+                    className="mt-5 space-y-4 text-sm leading-7 tracking-normal text-secondary prose prose-purple max-w-none"
+                    dangerouslySetInnerHTML={{ __html: processMoodleHtml(course.shortDescription) }}
+                  />
                 </div>
                 <CourseContent contents={contents} quizzes={quizzes} slug={slug} isEnrolled={isEnrolled} />
-                {!isEnrolled && (
-                  <>
-                    <InstructorInfo />
-                    <CoursseReview />
-                    <AddReview />
-                  </>
-                )}
+                <InstructorInfo 
+                  instructor={course.instructor} 
+                  totalStudents={course.totalLearners} 
+                  totalCourses={1} 
+                />
+                <CoursseReview />
+                <AddReview />
               </div>
 
               {!isEnrolled && (
@@ -179,7 +181,7 @@ const CourseDetails = async ({
                         className="mt-8 w-full py-1.5 pr-1.5 pl-6"
                       >
                         <span className="w-full text-center">
-                          {username ? "Enroll Now" : "Register to Enroll"}
+                          {moodleUser ? "Enroll Now" : "Register to Enroll"}
                         </span>
                         <ButtonArrow />
                       </Button>

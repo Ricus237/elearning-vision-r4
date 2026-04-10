@@ -1,7 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { loginMoodle, createMoodleUser, enrolUserInCourse, fetchMoodle, startQuizAttempt, getAttemptData } from './moodle';
+import { loginMoodle, createMoodleUser, enrolUserInCourse, fetchMoodle, startQuizAttempt, getAttemptData, getPublicCourses } from './moodle';
 import { redirect } from 'next/navigation';
 
 /**
@@ -291,20 +291,68 @@ export async function getQuizQuestionsAction(quizId: number) {
 export async function getStudentDashboardAction() {
   const cookieStore = await cookies();
   const userId = cookieStore.get('moodle_user_id')?.value;
+  const moodleUser = cookieStore.get('moodle_user')?.value || "";
+  const isAdmin = cookieStore.get('moodle_is_admin')?.value === 'true' || moodleUser === 'admin';
+
   if (!userId) return null;
+
+  interface DashboardCourse {
+    id: number;
+    fullname: string;
+    image_url?: string;
+    summary?: string;
+  }
+
+  interface DashboardExam {
+    id: number;
+    name: string;
+    courseid: number;
+    timeLimit: number;
+    intro: string;
+  }
+
+  const dashboardData: { plan: string, courses: DashboardCourse[], exams: DashboardExam[] } = {
+    plan: 'none',
+    courses: [],
+    exams: []
+  };
 
   try {
     const data = await fetchMoodle('local_skillsaint_get_student_dashboard_data', { userid: parseInt(userId) });
     if (data && !data.error) {
-      return {
-        plan: data.plan || 'none',
-        courses: data.courses || [],
-        exams: data.exams || []
-      };
+      dashboardData.plan = data.plan || 'none';
+      dashboardData.courses = data.courses || [];
+      dashboardData.exams = data.exams || [];
     }
-    return null;
-  } catch (_err) {
-    console.error("Dashboard data fetch error:", _err);
-    return null;
+  } catch (err) {
+    console.error("Dashboard data fetch error:", err);
   }
+
+  // SMART FALLBACK: If admin has no enrolled courses (or fetch failed), show all public courses for preview
+  if (isAdmin && dashboardData.courses.length === 0) {
+    try {
+      const allCourses = await getPublicCourses();
+      
+      if (allCourses && allCourses.length > 0) {
+        dashboardData.courses = allCourses.map(c => ({
+          id: parseInt(c.slug.current),
+          fullname: c.title,
+          image_url: c.thumbnail,
+          summary: c.shortDescription
+        }));
+      } else {
+        // Ultimate fallback if even public courses are empty
+        dashboardData.courses = [
+          { id: 999, fullname: "Admin Preview: Biblic Foundation", summary: "This is a preview course because you are logged in as admin.", image_url: "https://images.unsplash.com/photo-1504052434569-70ad5836ab65?q=80&w=800" },
+          { id: 998, fullname: "Admin Preview: Systematic Theology", summary: "Another preview course for testing purposes.", image_url: "https://images.unsplash.com/photo-1544648181-3bf43c92015a?q=80&w=800" }
+        ];
+      }
+      
+      if (dashboardData.plan === 'none') dashboardData.plan = 'executive';
+    } catch (e) {
+      console.error("Fallback fetch failed", e);
+    }
+  }
+
+  return dashboardData;
 }

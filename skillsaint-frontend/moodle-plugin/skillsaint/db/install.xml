@@ -1,29 +1,32 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd">
+<XMLDB PATH="local/skillsaint/db" VERSION="20240410" COMMENT="XMLDB file for local_skillsaint"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
+>
   <TABLES>
     <TABLE NAME="local_skillsaint_apps" COMMENT="Store student applications before and after payment">
       <FIELDS>
-        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true" COMMENT="Unique identifier for the application"/>
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Moodle user ID if already logged in"/>
-        <FIELD NAME="fullname" TYPE="char" LENGTH="255" NOTNULL="true"/>
-        <FIELD NAME="email" TYPE="char" LENGTH="255" NOTNULL="true"/>
-        <FIELD NAME="phone" TYPE="char" LENGTH="50" NOTNULL="false"/>
-        <FIELD NAME="address" TYPE="text" NOTNULL="false"/>
-        <FIELD NAME="motivation" TYPE="text" NOTNULL="false"/>
+        <FIELD NAME="fullname" TYPE="char" LENGTH="255" NOTNULL="true" COMMENT="User full name"/>
+        <FIELD NAME="email" TYPE="char" LENGTH="255" NOTNULL="true" COMMENT="User email address"/>
+        <FIELD NAME="phone" TYPE="char" LENGTH="50" NOTNULL="false" COMMENT="User phone number"/>
+        <FIELD NAME="address" TYPE="text" NOTNULL="false" COMMENT="User physical address"/>
+        <FIELD NAME="motivation" TYPE="text" NOTNULL="false" COMMENT="User motivation for application"/>
         <FIELD NAME="spiritual_bg" TYPE="text" NOTNULL="false" COMMENT="Combined spiritual info"/>
-        <FIELD NAME="selected_plan" TYPE="char" LENGTH="50" NOTNULL="true"/>
-        <FIELD NAME="selected_courses" TYPE="text" NOTNULL="false"/>
-        <FIELD NAME="payment_status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="pending"/>
-        <FIELD NAME="activation_code" TYPE="char" LENGTH="20" NOTNULL="false"/>
-        <FIELD NAME="is_activated" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0"/>
-        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
-        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+        <FIELD NAME="selected_plan" TYPE="char" LENGTH="50" NOTNULL="true" COMMENT="Selected membership or course plan"/>
+        <FIELD NAME="selected_courses" TYPE="text" NOTNULL="false" COMMENT="JSON or comma-separated list of courses"/>
+        <FIELD NAME="payment_status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="pending" COMMENT="Status of payment (pending, paid, etc)"/>
+        <FIELD NAME="activation_code" TYPE="char" LENGTH="20" NOTNULL="false" COMMENT="Code to activate the account"/>
+        <FIELD NAME="is_activated" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" COMMENT="Flag for activation status"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Timestamp of creation"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Timestamp of last modification"/>
       </FIELDS>
       <KEYS>
-        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id" COMMENT="Primary key for the table"/>
       </KEYS>
       <INDEXES>
-        <INDEX NAME="email_idx" UNIQUE="false" FIELDS="email"/>
+        <INDEX NAME="email_idx" UNIQUE="false" FIELDS="email" COMMENT="Search index for user email"/>
       </INDEXES>
     </TABLE>
   </TABLES>

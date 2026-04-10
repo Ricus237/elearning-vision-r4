@@ -5,13 +5,13 @@ import {
   Lock, 
   FileText, 
   PlayCircle, 
-  Download, 
   X, 
   Clock, 
   Play,
   Send,
   HelpCircle,
-  ShieldCheck
+  ShieldCheck,
+  Image as ImageIcon
 } from "lucide-react";
 import StudentSidebar from "@/components/dashboard/StudentSidebar";
 import { useEffect, useState } from "react";
@@ -44,8 +44,15 @@ interface Subject {
   instructor: string;
 }
 
-const DashboardClient = ({ initialData, userEmail, isActivated: serverIsActivated }: { initialData: DashboardData, userEmail: string, isActivated: boolean }) => {
-  const [activeTrimester, setActiveTrimester] = useState(1);
+const getAuthenticatedUrl = (url?: string, token?: string) => {
+  if (!url) return "/images/course/course-1.png";
+  if (url.startsWith('data:') || url.includes('token=')) return url;
+  if (!url.includes('pluginfile.php')) return url;
+  return `${url}${url.includes('?') ? '&' : '?'}token=${token}`;
+};
+
+const DashboardClient = ({ initialData, userEmail, isActivated: serverIsActivated, moodleToken }: { initialData: DashboardData, userEmail: string, isActivated: boolean, moodleToken: string }) => {
+  const [activeTrimester] = useState(1);
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [showActivationWall, setShowActivationWall] = useState(!serverIsActivated);
   const [activationCode, setActivationCode] = useState("");
@@ -58,8 +65,6 @@ const DashboardClient = ({ initialData, userEmail, isActivated: serverIsActivate
   const isExecutive = userPlan === "executive";
 
   // Map courses to trimesters 
-  // For now, we put everything in Trimester 1 as a list of enrolled subjects.
-  // Real logic would be based on course categories or manual mapping.
   const roadmap = [
     {
       id: 1,
@@ -71,9 +76,9 @@ const DashboardClient = ({ initialData, userEmail, isActivated: serverIsActivate
         id: c.id,
         title: c.fullname,
         name: c.fullname,
-        image: c.image_url || "/images/course/course-1.png",
+        image: getAuthenticatedUrl(c.image_url, moodleToken),
         status: "Resume",
-        progress: 12, // Mock progress, should come from Moodle gradebook later
+        progress: 12, // Mock progress
         manual: "Course_Guide.pdf",
         summary: c.summary,
         instructor: "IBI Global Team"
@@ -106,7 +111,6 @@ const DashboardClient = ({ initialData, userEmail, isActivated: serverIsActivate
   ];
 
   useEffect(() => {
-    // Check local bypass for dev/test
     const localBypass = localStorage.getItem('ibi_dev_activated');
     if (localBypass === 'true') {
       setShowActivationWall(false);
@@ -118,7 +122,6 @@ const DashboardClient = ({ initialData, userEmail, isActivated: serverIsActivate
     setIsActivating(true);
     setActivationError("");
 
-    // Special bypass for testing
     if (activationCode === "0000") {
       localStorage.setItem('ibi_dev_activated', 'true');
       setShowActivationWall(false);
@@ -131,7 +134,7 @@ const DashboardClient = ({ initialData, userEmail, isActivated: serverIsActivate
       const result = await activateAccount(userEmail, activationCode);
       if (result.status === "success" ) {
         setShowActivationWall(false);
-        window.location.reload(); // Refresh to get all data
+        window.location.reload();
       } else {
         setActivationError(result.message || "Invalid code");
       }
@@ -152,7 +155,6 @@ const DashboardClient = ({ initialData, userEmail, isActivated: serverIsActivate
         <div className="pt-24 md:pt-0 p-6 md:p-10 lg:p-14">
           <div className="max-w-7xl mx-auto space-y-12">
             
-            {/* Real Data Header */}
             <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 animate-in slide-in-from-left duration-700">
                <div>
                   <div className="flex items-center gap-3 mb-4">
@@ -184,38 +186,6 @@ const DashboardClient = ({ initialData, userEmail, isActivated: serverIsActivate
                </div>
             </header>
 
-            {/* Trimester Roadmap */}
-            <nav className="flex flex-wrap items-center gap-4 animate-in fade-in duration-1000 slide-in-from-bottom-5">
-               {roadmap.map((trimester) => (
-                 <button 
-                  key={trimester.id}
-                  onClick={() => setActiveTrimester(trimester.id)}
-                  className={`relative px-8 py-5 rounded-[2rem] border-2 transition-all duration-500 overflow-hidden ${
-                    activeTrimester === trimester.id 
-                    ? "bg-gray-900 border-gray-900 text-white shadow-2xl shadow-gray-200 -translate-y-1 scale-105 z-10" 
-                    : "bg-white border-gray-50 text-gray-400 hover:border-gray-200"
-                  }`}
-                 >
-                    <div className="relative z-10 flex items-center gap-4">
-                       <span className={`text-[10px] font-black uppercase tracking-widest ${activeTrimester === trimester.id ? "text-purple-400" : "text-gray-400"}`}>
-                        0{trimester.id}
-                       </span>
-                       <div className="text-left">
-                          <p className="text-sm font-black tracking-tight">{trimester.title}</p>
-                          <p className={`text-[9px] font-bold uppercase tracking-wider opacity-60 ${activeTrimester === trimester.id ? "text-white" : ""}`}>
-                            {trimester.subtitle}
-                          </p>
-                       </div>
-                       {trimester.status === "Locked" && <Lock size={12} className="opacity-40" />}
-                    </div>
-                    {activeTrimester === trimester.id && (
-                       <div className="absolute top-0 right-0 w-24 h-24 bg-purple-600/20 rounded-full blur-2xl -mr-12 -mt-12" />
-                    )}
-                 </button>
-               ))}
-            </nav>
-
-            {/* Subjects Grid */}
             <section className="animate-in fade-in duration-1000 delay-200 pb-20">
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {currentTrimester?.subjects && currentTrimester.subjects.length > 0 ? (
@@ -223,11 +193,11 @@ const DashboardClient = ({ initialData, userEmail, isActivated: serverIsActivate
                       <div 
                         key={subject.id}
                         onClick={() => setSelectedSubject(subject)}
-                        className="group relative bg-white border border-gray-100 rounded-[3rem] p-4 pb-8 transition-all duration-500 hover:shadow-2xl hover:shadow-purple-50 hover:-translate-y-2 cursor-pointer overflow-hidden"
+                        className="group relative bg-white border border-gray-100 rounded-[3rem] p-4 pb-8 transition-all duration-500 hover:shadow-2xl hover:shadow-purple-50 hover:-translate-y-2 cursor-pointer overflow-hidden block"
                       >
                          <div className="relative h-48 w-full rounded-[2.5rem] overflow-hidden mb-8">
                             <Image 
-                              src={subject.image} 
+                              src={getAuthenticatedUrl(subject.image, moodleToken)} 
                               alt={subject.title} 
                               fill 
                               className="object-cover transition-transform duration-700 group-hover:scale-110 opacity-90" 
@@ -252,7 +222,7 @@ const DashboardClient = ({ initialData, userEmail, isActivated: serverIsActivate
                                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-gray-400">
                                   <span>Curriculum Progress</span>
                                   <span className="text-gray-900">{subject.progress}%</span>
-                               </div>
+                                </div>
                                <div className="h-1.5 w-full bg-gray-50 rounded-full overflow-hidden">
                                   <div 
                                     className="h-full bg-gray-900 rounded-full transition-all duration-1000" 
@@ -262,7 +232,6 @@ const DashboardClient = ({ initialData, userEmail, isActivated: serverIsActivate
                             </div>
                          </div>
 
-                         {/* Background decoration */}
                          <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-purple-100/30 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                     ))
@@ -281,7 +250,6 @@ const DashboardClient = ({ initialData, userEmail, isActivated: serverIsActivate
         </div>
       </main>
 
-      {/* Activation Wall Overlay */}
       <AnimatePresence>
         {showActivationWall && (
            <motion.div 
@@ -347,17 +315,76 @@ const DashboardClient = ({ initialData, userEmail, isActivated: serverIsActivate
       {/* Subject Modal (Viewer) */}
       <AnimatePresence>
          {selectedSubject && (
-           <SubjectModal subject={selectedSubject} onClose={() => setSelectedSubject(null)} />
+           <SubjectModal subject={selectedSubject} onClose={() => setSelectedSubject(null)} moodleToken={moodleToken} />
          )}
       </AnimatePresence>
     </div>
   );
 };
 
-const SubjectModal = ({ subject, onClose }: { subject: Subject; onClose: () => void }) => {
-  const [activeTab, setActiveTab] = useState("video");
+interface MoodleSection {
+  id: number;
+  name: string;
+  summary: string;
+  modules: MoodleModule[];
+}
+
+interface MoodleModule {
+  id: number;
+  name: string;
+  modname: string;
+  description?: string;
+  contents?: Array<{
+    fileurl: string;
+    filename: string;
+    mimetype?: string;
+  }>;
+}
+
+const SubjectModal = ({ subject, onClose, moodleToken }: { subject: Subject; onClose: () => void; moodleToken: string }) => {
+  const [activeTab, setActiveTab] = useState("curriculum");
+  const [sections, setSections] = useState<MoodleSection[]>([]);
+  const [activeModule, setActiveModule] = useState<MoodleModule | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [messageSent, setMessageSent] = useState(false);
+
+  useEffect(() => {
+    const fetchContents = async () => {
+      try {
+        const response = await fetch('/api/moodle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ function: 'core_course_get_contents', params: { courseid: subject.id } })
+        });
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          setSections(data);
+          // Set first module as active by default if available
+          const firstSection = data.find(s => s.modules && s.modules.length > 0);
+          if (firstSection) {
+            setActiveModule(firstSection.modules[0]);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch course content:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchContents();
+  }, [subject.id]);
+
+  const processHtml = (html: string) => {
+    if (!html) return "";
+    // Replace Moodle pluginfile URLs with authenticated ones
+    const moodleFileRegex = /src="([^"]+pluginfile\.php\/[^"]+)"/g;
+    return html.replace(moodleFileRegex, (match, url) => {
+      const separator = url.includes('?') ? '&' : '?';
+      if (url.includes('token=')) return match;
+      return `src="${url}${separator}token=${moodleToken}"`;
+    });
+  };
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -385,11 +412,11 @@ const SubjectModal = ({ subject, onClose }: { subject: Subject; onClose: () => v
              <div className="relative z-10 flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
                    <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-purple-400">
-                      <PlayCircle size={24} />
+                      {activeModule?.modname === "video" ? <PlayCircle size={24} /> : <FileText size={24} />}
                    </div>
                    <div>
-                      <h3 className="text-white font-black uppercase tracking-widest text-xs">{subject.title}</h3>
-                      <p className="text-[9px] font-black text-purple-400 uppercase tracking-[0.2em]">Module 01: Kingdom Authority</p>
+                      <h3 className="text-white font-black uppercase tracking-widest text-xs truncate max-w-[200px] md:max-w-md">{activeModule?.name || subject.title}</h3>
+                      <p className="text-[9px] font-black text-purple-400 uppercase tracking-[0.2em]">Learning Resource</p>
                    </div>
                 </div>
                 <button onClick={onClose} className="p-4 bg-white/10 text-white rounded-2xl transition-all hover:bg-white hover:text-gray-900">
@@ -397,20 +424,58 @@ const SubjectModal = ({ subject, onClose }: { subject: Subject; onClose: () => v
                 </button>
              </div>
 
-             <div className="flex-1 rounded-[3rem] bg-black border border-white/5 relative flex items-center justify-center shadow-inner group cursor-pointer overflow-hidden">
-                <Image src={subject.image} alt="subject" fill className="object-cover opacity-40 group-hover:opacity-30 transition-opacity" />
-                <div className="relative z-10 flex flex-col items-center gap-6">
-                   <div className="w-24 h-24 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 transition-all group-hover:scale-110 group-hover:bg-purple-600">
-                      <Play size={32} />
-                   </div>
-                   <p className="text-[10px] font-black text-white/50 uppercase tracking-[0.3em]">Initialize Media Pipeline</p>
-                </div>
-                
-                <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-end gap-1 px-10">
-                   {[40, 70, 45, 90, 65, 80, 50, 85, 40, 100, 60].map((h, i) => (
-                      <div key={i} className="w-1 bg-white/20 rounded-full" style={{ height: `${h * 0.4}px` }} />
-                   ))}
-                </div>
+             <div className="flex-1 rounded-[3rem] bg-white border border-white/5 relative flex flex-col shadow-inner overflow-hidden">
+                {isLoading ? (
+                  <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-4">
+                    <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
+                    <p className="text-[10px] font-black uppercase tracking-widest">Synchronizing Academic Assets...</p>
+                  </div>
+                ) : activeModule ? (
+                  <div className="flex-1 overflow-y-auto p-10 bg-white custom-scrollbar text-gray-800">
+                    <div className="max-w-3xl mx-auto prose prose-purple lg:prose-xl">
+                       <h2 className="text-3xl font-black text-gray-900 mb-8 tracking-tight">{activeModule.name}</h2>
+                       
+                       {/* Description/Written content from Moodle */}
+                       <div 
+                         className="text-gray-600 leading-relaxed font-medium space-y-6 moodle-content"
+                         dangerouslySetInnerHTML={{ __html: processHtml(activeModule.description || "") }}
+                       />
+
+                       {/* Assets list (Video, PDF, etc) */}
+                       {activeModule.contents && activeModule.contents.length > 0 && (
+                         <div className="mt-12 space-y-4">
+                           <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Attached Resources</h4>
+                           {activeModule.contents.map((file, idx) => (
+                             <div key={idx} className="p-6 bg-gray-50 rounded-[2rem] border border-gray-100 flex items-center justify-between group hover:border-purple-200 transition-all">
+                                <div className="flex items-center gap-4">
+                                   <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-purple-600 shadow-sm">
+                                      {file.mimetype?.includes('image') ? <ImageIcon size={20} /> : file.mimetype?.includes('pdf') ? <FileText size={20} /> : <Play size={20} />}
+                                   </div>
+                                   <div>
+                                      <p className="text-xs font-black text-gray-900">{file.filename}</p>
+                                      <p className="text-[10px] font-bold text-gray-400 uppercase">{file.mimetype || "Digital Asset"}</p>
+                                   </div>
+                                </div>
+                                <a 
+                                  href={`${file.fileurl}${file.fileurl.includes('?') ? '&' : '?'}token=${moodleToken}`} 
+                                  target="_blank" 
+                                  rel="noreferrer"
+                                  className="px-6 py-2 bg-gray-900 text-white rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-purple-600 transition-colors"
+                                >
+                                  Open File
+                                </a>
+                             </div>
+                           ))}
+                         </div>
+                       )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-6 p-10 text-center">
+                    <HelpCircle size={48} className="opacity-20" />
+                    <p className="text-sm font-bold max-w-xs">No active content modules found for this subject. Please check back later or contact your advisor.</p>
+                  </div>
+                )}
              </div>
 
              <div className="mt-8 flex items-center justify-between text-white">
@@ -435,10 +500,10 @@ const SubjectModal = ({ subject, onClose }: { subject: Subject; onClose: () => v
           <div className="w-full lg:w-96 bg-white border-l border-gray-50 p-10 flex flex-col">
              <nav className="flex items-center gap-6 mb-10 border-b border-gray-50 pb-6">
                 <button 
-                  onClick={() => setActiveTab("video")} 
-                  className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors ${activeTab === "video" ? "text-purple-600" : "text-gray-400"}`}
+                  onClick={() => setActiveTab("curriculum")} 
+                  className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors ${activeTab === "curriculum" ? "text-purple-600" : "text-gray-400"}`}
                 >
-                  Resources
+                  Curriculum
                 </button>
                 <button 
                   onClick={() => setActiveTab("advisor")} 
@@ -448,32 +513,39 @@ const SubjectModal = ({ subject, onClose }: { subject: Subject; onClose: () => v
                 </button>
              </nav>
 
-             <div className="flex-1 overflow-y-auto">
-                {activeTab === "video" ? (
+             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
+                {activeTab === "curriculum" ? (
                    <div className="space-y-8">
-                      <div>
-                         <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Study Materials</h4>
-                         <button className="w-full flex items-center justify-between p-6 bg-gray-50 rounded-3xl border border-transparent hover:border-purple-200 hover:bg-white transition-all group text-left">
-                            <div className="flex items-center gap-4">
-                               <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-purple-600 shadow-sm">
-                                  <FileText size={18} />
-                               </div>
-                               <div>
-                                  <p className="text-xs font-black text-gray-900 group-hover:text-purple-600 transition-colors">Course Manual</p>
-                                  <p className="text-[9px] font-bold text-gray-400 uppercase">PDF • 4.2 MB</p>
-                               </div>
-                            </div>
-                            <Download size={16} className="text-gray-300 group-hover:text-purple-400 transition-transform" />
-                         </button>
-                      </div>
-
-                      <div className="p-8 bg-purple-50 rounded-[2.5rem]">
-                         <HelpCircle className="text-purple-600 mb-4" size={24} />
-                         <h5 className="text-[10px] font-black text-purple-900 uppercase tracking-widest mb-2">Subject Summary</h5>
-                         <p className="text-xs text-purple-900/70 leading-relaxed font-medium line-clamp-6">
-                            {subject.summary || "No description provided for this module."}
-                         </p>
-                      </div>
+                     {sections.map((section, sIdx) => (
+                       <div key={sIdx}>
+                          <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                             <span className="w-4 h-px bg-gray-200" /> {section.name || `Section ${sIdx + 1}`}
+                          </h4>
+                          <div className="space-y-2">
+                             {section.modules.map((mod, mIdx) => (
+                               <button 
+                                 key={mIdx}
+                                 onClick={() => setActiveModule(mod)}
+                                 className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${
+                                   activeModule?.id === mod.id 
+                                     ? "bg-purple-600 border-purple-600 text-white shadow-lg shadow-purple-100 scale-[1.02]" 
+                                     : "bg-white border-transparent text-gray-500 hover:border-gray-100 hover:bg-gray-50"
+                                 }`}
+                               >
+                                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${activeModule?.id === mod.id ? "bg-white/20 text-white" : "bg-purple-50 text-purple-600"}`}>
+                                    {mod.modname === "video" ? <Play size={14} /> : <FileText size={14} />}
+                                  </div>
+                                  <div className="flex-1 truncate">
+                                     <p className="text-[10px] font-black uppercase leading-tight truncate">{mod.name}</p>
+                                     <p className={`text-[8px] font-bold uppercase tracking-wider opacity-60 ${activeModule?.id === mod.id ? "text-white" : ""}`}>
+                                       {mod.modname === "label" ? "Text Entry" : mod.modname}
+                                     </p>
+                                  </div>
+                               </button>
+                             ))}
+                          </div>
+                       </div>
+                     ))}
                    </div>
                 ) : (
                    <div className="space-y-6">

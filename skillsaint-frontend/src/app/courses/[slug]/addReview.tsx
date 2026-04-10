@@ -52,17 +52,18 @@ const AddReview = () => {
   return (
     <form
       onSubmit={handleSubmit(() => onSubmit())}
-      className="mt-8 rounded-3xl bg-primary p-6"
+      className="mt-12 rounded-[3rem] bg-white border border-gray-100 p-8 shadow-sm"
     >
-      <h6 className="mb-5 text-lg leading-7 font-semibold">Write a review</h6>
-      <div className="w-full">
+      <h6 className="mb-6 text-xl font-black text-gray-900 tracking-tight">Share Your Perspective</h6>
+      
+      <div className="w-full mb-8">
         <label
           htmlFor="rating"
-          className="mb-1.5 block text-sm leading-5 font-medium tracking-sm text-secondary"
+          className="mb-3 block text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1"
         >
-          Rating
+          Your Assessment
         </label>
-        <ul className="flex items-center gap-1">
+        <ul className="flex items-center gap-2 bg-gray-50 w-fit p-3 rounded-2xl border border-gray-100">
           {[1, 2, 3, 4, 5].map((star) => (
             <li key={star}>
               <button
@@ -70,14 +71,14 @@ const AddReview = () => {
                 onClick={() => setRating(star)}
                 onMouseEnter={() => setHoveredRating(star)}
                 onMouseLeave={() => setHoveredRating(0)}
-                className="transition-all duration-200"
+                className="transition-all duration-300"
               >
                 <Star
-                  className={`size-5 ${
+                  className={`size-6 ${
                     star <= (hoveredRating || rating)
                       ? "fill-yellow-400 text-yellow-400"
-                      : "text-gray-400"
-                  } hover:scale-110`}
+                      : "text-gray-300"
+                  } hover:scale-125 transition-transform`}
                 />
               </button>
             </li>
@@ -85,16 +86,17 @@ const AddReview = () => {
         </ul>
       </div>
 
-      <div className="mt-5 w-full">
+      <div className="w-full">
         <label
           htmlFor="message"
-          className="mb-1.5 block text-sm leading-5 font-medium tracking-sm text-secondary"
+          className="mb-3 block text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1"
         >
-          Message
+          Academic Feedback
         </label>
         <Textarea
           id="message"
-          placeholder="Enter your message here..."
+          className="min-h-[160px] bg-gray-50 border-2 border-transparent focus:border-purple-600 focus:bg-white rounded-[2rem] p-6 text-sm font-medium transition-all"
+          placeholder="Reflect on your learning journey..."
           {...register("message", {
             required: "Message is required",
             minLength: {
@@ -105,13 +107,16 @@ const AddReview = () => {
           dataState={errors.message ? "error" : "default"}
         />
         {errors.message && (
-          <span className="text-xs text-[#FB3748]">
+          <span className="text-xs font-bold text-red-500 mt-2 block ml-2">
             {errors.message.message}
           </span>
         )}
       </div>
-      <Button disabled={isSubmitting} className="mt-6">
-        Submit your review
+      <Button 
+        disabled={isSubmitting} 
+        className="mt-8 w-full py-4 bg-gray-900 text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[10px] shadow-xl shadow-gray-200 hover:bg-purple-600 transition-all flex items-center justify-center gap-3"
+      >
+        {isSubmitting ? "Dispatching..." : "Transmit Review"}
       </Button>
     </form>
   );
