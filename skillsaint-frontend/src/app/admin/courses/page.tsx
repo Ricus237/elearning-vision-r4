@@ -1,22 +1,41 @@
-import { fetchMoodle } from "@/lib/moodle";
+import { fetchMoodle, getMoodleCategories } from "@/lib/moodle";
 import CoursesClient from "./CoursesClient";
+import { CategoryType } from "@/types/CategoryType";
 
 const ManageCoursesPage = async () => {
 
-  let courses: { id: number; fullname: string; shortname: string; summary: string; visible: number; numsections: number; startdate: number; categoryid?: number; }[] = [];
+  let courses: { 
+    id: number; 
+    fullname: string; 
+    shortname: string; 
+    summary: string; 
+    visible: number; 
+    numsections: number; 
+    startdate: number; 
+    categoryid?: number; 
+    overviewfiles?: { fileurl: string; filename: string }[];
+    summaryfiles?: { fileurl: string; filename: string }[];
+  }[] = [];
+  let categories: CategoryType[] = [];
 
   try {
-    const data = await fetchMoodle("core_course_get_courses");
-    if (Array.isArray(data)) {
-      // Exclude the site course (id=1)
-      courses = data.filter((c: { id: number }) => c.id !== 1);
+    // Custom function that returns visible status AND overviewfiles reliably
+    const res = await fetchMoodle("local_skillsaint_get_courses_full", {});
+    if (res && Array.isArray(res)) {
+      courses = res;
     }
+  } catch (err) {
+    console.error("Error fetching courses:", err);
+  }
+
+  try {
+    categories = await getMoodleCategories();
   } catch {}
 
 
   const moodleToken = process.env.MOODLE_TOKEN || "";
 
-  return <CoursesClient initialCourses={courses} moodleToken={moodleToken} />;
+  return <CoursesClient initialCourses={courses} initialCategories={categories} moodleToken={moodleToken} />;
 };
 
 export default ManageCoursesPage;

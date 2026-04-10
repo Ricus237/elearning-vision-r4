@@ -2,42 +2,45 @@
 defined('MOODLE_INTERNAL') || die();
 require_once("$CFG->libdir/externallib.php");
 
-class local_skillsaint_external extends external_api {
+class local_skillsaint_external extends external_api
+{
 
     /**
      * Set/Update application data before payment.
      */
-    public static function save_application_parameters() {
+    public static function save_application_parameters()
+    {
         return new external_function_parameters(array(
-            'fullname'         => new external_value(PARAM_TEXT, 'User full name'),
-            'email'            => new external_value(PARAM_RAW, 'User email address'),
-            'phone'            => new external_value(PARAM_TEXT, 'Phone number'),
-            'address'          => new external_value(PARAM_TEXT, 'Mailing address'),
-            'motivation'       => new external_value(PARAM_TEXT, 'Enrollment goals/motivation'),
-            'spiritual_info'   => new external_value(PARAM_TEXT, 'Spiritual background (serialized/json)'),
-            'selected_plan'    => new external_value(PARAM_TEXT, 'Selected plan ID'),
+            'fullname' => new external_value(PARAM_TEXT, 'User full name'),
+            'email' => new external_value(PARAM_RAW, 'User email address'),
+            'phone' => new external_value(PARAM_TEXT, 'Phone number'),
+            'address' => new external_value(PARAM_TEXT, 'Mailing address'),
+            'motivation' => new external_value(PARAM_TEXT, 'Enrollment goals/motivation'),
+            'spiritual_info' => new external_value(PARAM_TEXT, 'Spiritual background (serialized/json)'),
+            'selected_plan' => new external_value(PARAM_TEXT, 'Selected plan ID'),
             'selected_courses' => new external_value(PARAM_TEXT, 'Comma separated course IDs'),
-            'userid'           => new external_value(PARAM_INT, 'User ID if available', VALUE_DEFAULT, 0),
+            'userid' => new external_value(PARAM_INT, 'User ID if available', VALUE_DEFAULT, 0),
         ));
     }
 
-    public static function save_application($fullname, $email, $phone, $address, $motivation, $spiritual_info, $selected_plan, $selected_courses, $userid) {
+    public static function save_application($fullname, $email, $phone, $address, $motivation, $spiritual_info, $selected_plan, $selected_courses, $userid)
+    {
         global $DB;
         $email = strtolower(trim($email));
-        
+
         $record = new stdClass();
-        $record->fullname         = $fullname;
-        $record->email            = $email;
-        $record->phone            = $phone;
-        $record->address          = $address;
-        $record->motivation       = $motivation;
-        $record->spiritual_bg     = $spiritual_info;
-        $record->selected_plan    = $selected_plan;
+        $record->fullname = $fullname;
+        $record->email = $email;
+        $record->phone = $phone;
+        $record->address = $address;
+        $record->motivation = $motivation;
+        $record->spiritual_bg = $spiritual_info;
+        $record->selected_plan = $selected_plan;
         $record->selected_courses = $selected_courses;
-        $record->userid           = $userid;
-        $record->timecreated      = time();
-        $record->timemodified     = time();
-        $record->payment_status   = 'pending';
+        $record->userid = $userid;
+        $record->timecreated = time();
+        $record->timemodified = time();
+        $record->payment_status = 'pending';
 
         // Check if application already exists for this email
         $existing = $DB->get_record('local_skillsaint_apps', array('email' => $email, 'payment_status' => 'pending'));
@@ -52,7 +55,8 @@ class local_skillsaint_external extends external_api {
         }
     }
 
-    public static function save_application_returns() {
+    public static function save_application_returns()
+    {
         return new external_single_structure(array(
             'status' => new external_value(PARAM_ALPHA, 'created or updated'),
             'app_id' => new external_value(PARAM_INT, 'The application record ID'),
@@ -62,13 +66,15 @@ class local_skillsaint_external extends external_api {
     /**
      * Finalize application after payment: Update status, Create user, Enroll in courses.
      */
-    public static function confirm_payment_parameters() {
+    public static function confirm_payment_parameters()
+    {
         return new external_function_parameters(array(
             'email' => new external_value(PARAM_RAW, 'User email address to find the application'),
         ));
     }
 
-    public static function confirm_payment($email) {
+    public static function confirm_payment($email)
+    {
         global $DB, $CFG;
         $email = strtolower(trim($email));
         require_once($CFG->dirroot . '/user/lib.php');
@@ -82,12 +88,12 @@ class local_skillsaint_external extends external_api {
 
         // 2. If already paid, just return success (prevents error on refresh)
         if ($app->payment_status === 'paid') {
-           return array(
-               'status' => 'success', 
-               'user_id' => 0, // Should find actual user ID if needed
-               'courses_enrolled' => 0,
-               'activation_code' => $app->activation_code
-           );
+            return array(
+                'status' => 'success',
+                'user_id' => 0, // Should find actual user ID if needed
+                'courses_enrolled' => 0,
+                'activation_code' => $app->activation_code
+            );
         }
 
         // 3. Mark as paid
@@ -128,7 +134,7 @@ class local_skillsaint_external extends external_api {
             $enrol = enrol_get_plugin('manual');
             if ($enrol) {
                 foreach ($course_ids as $cid) {
-                    $cid = (int)trim($cid);
+                    $cid = (int) trim($cid);
                     $course = $DB->get_record('course', array('id' => $cid));
                     if ($course) {
                         $instance = $DB->get_record('enrol', array('courseid' => $cid, 'enrol' => 'manual'), '*', IGNORE_MISSING);
@@ -147,14 +153,15 @@ class local_skillsaint_external extends external_api {
         $DB->update_record('local_skillsaint_apps', $app);
 
         return array(
-            'status' => 'success', 
-            'user_id' => $user->id, 
+            'status' => 'success',
+            'user_id' => $user->id,
             'courses_enrolled' => count(explode(',', $app->selected_courses)),
             'activation_code' => $activation_code
         );
     }
 
-    public static function confirm_payment_returns() {
+    public static function confirm_payment_returns()
+    {
         return new external_single_structure(array(
             'status' => new external_value(PARAM_ALPHA, 'success or error'),
             'user_id' => new external_value(PARAM_INT, 'The Moodle user ID'),
@@ -166,14 +173,16 @@ class local_skillsaint_external extends external_api {
     /**
      * Verify activation code and unlock account.
      */
-    public static function activate_account_parameters() {
+    public static function activate_account_parameters()
+    {
         return new external_function_parameters(array(
             'email' => new external_value(PARAM_RAW, 'User email address'),
-            'code'  => new external_value(PARAM_TEXT, 'The activation code entered by user'),
+            'code' => new external_value(PARAM_TEXT, 'The activation code entered by user'),
         ));
     }
 
-    public static function activate_account($email, $code) {
+    public static function activate_account($email, $code)
+    {
         global $DB;
         $email = strtolower(trim($email));
         $app = $DB->get_record('local_skillsaint_apps', array('email' => $email));
@@ -202,9 +211,10 @@ class local_skillsaint_external extends external_api {
         return array('status' => 'success', 'message' => 'Account unlocked!');
     }
 
-    public static function activate_account_returns() {
+    public static function activate_account_returns()
+    {
         return new external_single_structure(array(
-            'status'  => new external_value(PARAM_ALPHA, 'success or error'),
+            'status' => new external_value(PARAM_ALPHA, 'success or error'),
             'message' => new external_value(PARAM_TEXT, 'Status message'),
         ));
     }
@@ -212,103 +222,230 @@ class local_skillsaint_external extends external_api {
     /**
      * Check if an account is activated.
      */
-    public static function check_activation_parameters() {
+    public static function check_activation_parameters()
+    {
         return new external_function_parameters(array(
             'email' => new external_value(PARAM_RAW, 'User email address'),
         ));
     }
 
-    public static function check_activation($email) {
+    public static function check_activation($email)
+    {
         global $DB;
         $email = strtolower(trim($email));
         $app = $DB->get_record('local_skillsaint_apps', array('email' => $email));
         if ($app) {
-            return array('is_activated' => (int)$app->is_activated);
+            return array('is_activated' => (int) $app->is_activated);
         }
         return array('is_activated' => 0);
     }
 
-    public static function check_activation_returns() {
+    public static function check_activation_returns()
+    {
         return new external_single_structure(array(
             'is_activated' => new external_value(PARAM_INT, '1 if active, 0 otherwise'),
         ));
     }
 
 
-    public static function get_all_site_data_parameters() {
+    public static function get_all_site_data_parameters()
+    {
         return new external_function_parameters(array());
     }
 
-    public static function get_all_site_data() {
+    public static function get_all_site_data()
+    {
         return array(
-            'hero_badge'        => get_config('local_skillsaint', 'hero_badge'),
-            'mission_title'     => get_config('local_skillsaint', 'mission_title'),
-            'mission_content'   => get_config('local_skillsaint', 'mission_content'),
-            'vision_title'      => get_config('local_skillsaint', 'vision_title'),
-            'vision_content'    => get_config('local_skillsaint', 'vision_content'),
-            
-            'about_hero_title'  => get_config('local_skillsaint', 'about_hero_title'),
-            'founder_title'     => get_config('local_skillsaint', 'founder_title'),
-            'founder_content'   => get_config('local_skillsaint', 'founder_content'),
-            'founder_name'      => get_config('local_skillsaint', 'founder_name'),
-            'goal_title'        => get_config('local_skillsaint', 'goal_title'),
-            'goal_content'      => get_config('local_skillsaint', 'goal_content'),
-            
+            'hero_badge' => get_config('local_skillsaint', 'hero_badge'),
+            'mission_title' => get_config('local_skillsaint', 'mission_title'),
+            'mission_content' => get_config('local_skillsaint', 'mission_content'),
+            'vision_title' => get_config('local_skillsaint', 'vision_title'),
+            'vision_content' => get_config('local_skillsaint', 'vision_content'),
+
+            'about_hero_title' => get_config('local_skillsaint', 'about_hero_title'),
+            'founder_title' => get_config('local_skillsaint', 'founder_title'),
+            'founder_content' => get_config('local_skillsaint', 'founder_content'),
+            'founder_name' => get_config('local_skillsaint', 'founder_name'),
+            'goal_title' => get_config('local_skillsaint', 'goal_title'),
+            'goal_content' => get_config('local_skillsaint', 'goal_content'),
+
             'programs_hero_title' => get_config('local_skillsaint', 'programs_hero_title'),
-            'programs_hero_desc'  => get_config('local_skillsaint', 'programs_hero_desc'),
-            'core_program_title'  => get_config('local_skillsaint', 'core_program_title'),
-            'core_program_items'  => get_config('local_skillsaint', 'core_program_items'),
-            
-            'apply_hero_title'    => get_config('local_skillsaint', 'apply_hero_title'),
-            'apply_hero_desc'     => get_config('local_skillsaint', 'apply_hero_desc'),
-            'price_standard'      => get_config('local_skillsaint', 'price_standard'),
-            'quota_standard'      => get_config('local_skillsaint', 'quota_standard'),
-            'price_premium'       => get_config('local_skillsaint', 'price_premium'),
-            'quota_premium'       => get_config('local_skillsaint', 'quota_premium'),
-            'price_executive'     => get_config('local_skillsaint', 'price_executive'),
-            'security_note'       => get_config('local_skillsaint', 'security_note'),
+            'programs_hero_desc' => get_config('local_skillsaint', 'programs_hero_desc'),
+            'core_program_title' => get_config('local_skillsaint', 'core_program_title'),
+            'core_program_items' => get_config('local_skillsaint', 'core_program_items'),
+
+            'apply_hero_title' => get_config('local_skillsaint', 'apply_hero_title'),
+            'apply_hero_desc' => get_config('local_skillsaint', 'apply_hero_desc'),
+            'price_standard' => get_config('local_skillsaint', 'price_standard'),
+            'quota_standard' => get_config('local_skillsaint', 'quota_standard'),
+            'price_premium' => get_config('local_skillsaint', 'price_premium'),
+            'quota_premium' => get_config('local_skillsaint', 'quota_premium'),
+            'price_executive' => get_config('local_skillsaint', 'price_executive'),
+            'security_note' => get_config('local_skillsaint', 'security_note'),
         );
     }
 
-    public static function get_all_site_data_returns() {
+    public static function get_all_site_data_returns()
+    {
         return new external_single_structure(array(
-            'hero_badge'        => new external_value(PARAM_TEXT, 'The hero badge label'),
-            'mission_title'     => new external_value(PARAM_TEXT, 'Mission section title'),
-            'mission_content'   => new external_value(PARAM_TEXT, 'Mission section content'),
-            'vision_title'      => new external_value(PARAM_TEXT, 'Vision section title'),
-            'vision_content'    => new external_value(PARAM_TEXT, 'Vision section content'),
-            
-            'about_hero_title'  => new external_value(PARAM_TEXT, 'About page hero title'),
-            'founder_title'     => new external_value(PARAM_TEXT, 'Founder section title'),
-            'founder_content'   => new external_value(PARAM_TEXT, 'Founder section content'),
-            'founder_name'      => new external_value(PARAM_TEXT, 'Founder name'),
-            'goal_title'        => new external_value(PARAM_TEXT, 'Goal title'),
-            'goal_content'      => new external_value(PARAM_TEXT, 'Goal content'),
-            
+            'hero_badge' => new external_value(PARAM_TEXT, 'The hero badge label'),
+            'mission_title' => new external_value(PARAM_TEXT, 'Mission section title'),
+            'mission_content' => new external_value(PARAM_TEXT, 'Mission section content'),
+            'vision_title' => new external_value(PARAM_TEXT, 'Vision section title'),
+            'vision_content' => new external_value(PARAM_TEXT, 'Vision section content'),
+            'about_hero_title' => new external_value(PARAM_TEXT, 'About page hero title'),
+            'founder_title' => new external_value(PARAM_TEXT, 'Founder section title'),
+            'founder_content' => new external_value(PARAM_TEXT, 'Founder section content'),
+            'founder_name' => new external_value(PARAM_TEXT, 'Founder name'),
+            'goal_title' => new external_value(PARAM_TEXT, 'Goal title'),
+            'goal_content' => new external_value(PARAM_TEXT, 'Goal content'),
             'programs_hero_title' => new external_value(PARAM_TEXT, 'Programs page title'),
-            'programs_hero_desc'  => new external_value(PARAM_TEXT, 'Programs page desc'),
-            'core_program_title'  => new external_value(PARAM_TEXT, 'Core program title'),
-            'core_program_items'  => new external_value(PARAM_TEXT, 'Core program items list'),
-            
-            'apply_hero_title'    => new external_value(PARAM_TEXT, 'Apply hero title'),
-            'apply_hero_desc'     => new external_value(PARAM_TEXT, 'Apply hero desc'),
-            'price_standard'      => new external_value(PARAM_TEXT, 'Standard Price'),
-            'quota_standard'      => new external_value(PARAM_TEXT, 'Standard Quota'),
-            'price_premium'       => new external_value(PARAM_TEXT, 'Premium Price'),
-            'quota_premium'       => new external_value(PARAM_TEXT, 'Premium Quota'),
-            'price_executive'     => new external_value(PARAM_TEXT, 'Executive Price'),
-            'security_note'       => new external_value(PARAM_TEXT, 'Security Note'),
+            'programs_hero_desc' => new external_value(PARAM_TEXT, 'Programs page desc'),
+            'core_program_title' => new external_value(PARAM_TEXT, 'Core program title'),
+            'core_program_items' => new external_value(PARAM_TEXT, 'Core program items list'),
+            'apply_hero_title' => new external_value(PARAM_TEXT, 'Apply hero title'),
+            'apply_hero_desc' => new external_value(PARAM_TEXT, 'Apply hero desc'),
+            'price_standard' => new external_value(PARAM_TEXT, 'Standard Price'),
+            'quota_standard' => new external_value(PARAM_TEXT, 'Standard Quota'),
+            'price_premium' => new external_value(PARAM_TEXT, 'Premium Price'),
+            'quota_premium' => new external_value(PARAM_TEXT, 'Premium Quota'),
+            'price_executive' => new external_value(PARAM_TEXT, 'Executive Price'),
+            'security_note' => new external_value(PARAM_TEXT, 'Security Note'),
+        ));
+    }
+
+    /**
+     * Save all site content data.
+     */
+    public static function save_site_data_parameters()
+    {
+        return new external_function_parameters(array(
+            'sitename' => new external_value(PARAM_TEXT, 'Site name', VALUE_DEFAULT, ''),
+            'summary' => new external_value(PARAM_TEXT, 'Site summary / hero description', VALUE_DEFAULT, ''),
+            'hero_badge' => new external_value(PARAM_TEXT, 'Hero badge', VALUE_DEFAULT, ''),
+            'mission_title' => new external_value(PARAM_TEXT, 'Mission title', VALUE_DEFAULT, ''),
+            'mission_content' => new external_value(PARAM_TEXT, 'Mission content', VALUE_DEFAULT, ''),
+            'vision_title' => new external_value(PARAM_TEXT, 'Vision title', VALUE_DEFAULT, ''),
+            'vision_content' => new external_value(PARAM_TEXT, 'Vision content', VALUE_DEFAULT, ''),
+            'about_hero_title' => new external_value(PARAM_TEXT, 'About hero title', VALUE_DEFAULT, ''),
+            'founder_title' => new external_value(PARAM_TEXT, 'Founder title', VALUE_DEFAULT, ''),
+            'founder_content' => new external_value(PARAM_RAW, 'Founder content', VALUE_DEFAULT, ''),
+            'founder_name' => new external_value(PARAM_TEXT, 'Founder name', VALUE_DEFAULT, ''),
+            'goal_title' => new external_value(PARAM_TEXT, 'Goal title', VALUE_DEFAULT, ''),
+            'goal_content' => new external_value(PARAM_TEXT, 'Goal content', VALUE_DEFAULT, ''),
+            'programs_hero_title' => new external_value(PARAM_TEXT, 'Programs hero title', VALUE_DEFAULT, ''),
+            'programs_hero_desc' => new external_value(PARAM_TEXT, 'Programs hero desc', VALUE_DEFAULT, ''),
+            'core_program_title' => new external_value(PARAM_TEXT, 'Core program title', VALUE_DEFAULT, ''),
+            'core_program_items' => new external_value(PARAM_RAW, 'Core program items', VALUE_DEFAULT, ''),
+            'apply_hero_title' => new external_value(PARAM_TEXT, 'Apply hero title', VALUE_DEFAULT, ''),
+            'apply_hero_desc' => new external_value(PARAM_TEXT, 'Apply hero desc', VALUE_DEFAULT, ''),
+            'price_standard' => new external_value(PARAM_TEXT, 'Standard price', VALUE_DEFAULT, ''),
+            'quota_standard' => new external_value(PARAM_TEXT, 'Standard quota', VALUE_DEFAULT, ''),
+            'price_premium' => new external_value(PARAM_TEXT, 'Premium price', VALUE_DEFAULT, ''),
+            'quota_premium' => new external_value(PARAM_TEXT, 'Premium quota', VALUE_DEFAULT, ''),
+            'price_executive' => new external_value(PARAM_TEXT, 'Executive price', VALUE_DEFAULT, ''),
+            'security_note' => new external_value(PARAM_TEXT, 'Security note', VALUE_DEFAULT, ''),
+        ));
+    }
+
+    public static function save_site_data(
+        $sitename,
+        $summary,
+        $hero_badge,
+        $mission_title,
+        $mission_content,
+        $vision_title,
+        $vision_content,
+        $about_hero_title,
+        $founder_title,
+        $founder_content,
+        $founder_name,
+        $goal_title,
+        $goal_content,
+        $programs_hero_title,
+        $programs_hero_desc,
+        $core_program_title,
+        $core_program_items,
+        $apply_hero_title,
+        $apply_hero_desc,
+        $price_standard,
+        $quota_standard,
+        $price_premium,
+        $quota_premium,
+        $price_executive,
+        $security_note
+    ) {
+        global $DB, $CFG;
+
+        // 1. Update Moodle site name & summary (stored in the 'course' table, id=1 = site course)
+        if (!empty($sitename) || !empty($summary)) {
+            $site = $DB->get_record('course', array('id' => 1));
+            if ($site) {
+                if (!empty($sitename))
+                    $site->fullname = $sitename;
+                if (!empty($summary))
+                    $site->summary = $summary;
+                $site->timemodified = time();
+                $DB->update_record('course', $site);
+            }
+        }
+
+        // 2. Save all other fields to plugin config
+        $fields = array(
+            'hero_badge' => $hero_badge,
+            'mission_title' => $mission_title,
+            'mission_content' => $mission_content,
+            'vision_title' => $vision_title,
+            'vision_content' => $vision_content,
+            'about_hero_title' => $about_hero_title,
+            'founder_title' => $founder_title,
+            'founder_content' => $founder_content,
+            'founder_name' => $founder_name,
+            'goal_title' => $goal_title,
+            'goal_content' => $goal_content,
+            'programs_hero_title' => $programs_hero_title,
+            'programs_hero_desc' => $programs_hero_desc,
+            'core_program_title' => $core_program_title,
+            'core_program_items' => $core_program_items,
+            'apply_hero_title' => $apply_hero_title,
+            'apply_hero_desc' => $apply_hero_desc,
+            'price_standard' => $price_standard,
+            'quota_standard' => $quota_standard,
+            'price_premium' => $price_premium,
+            'quota_premium' => $quota_premium,
+            'price_executive' => $price_executive,
+            'security_note' => $security_note,
+        );
+
+        foreach ($fields as $key => $value) {
+            if ($value !== '') {
+                set_config($key, $value, 'local_skillsaint');
+            }
+        }
+
+        // 3. Purge caches so changes are reflected immediately
+        purge_all_caches();
+
+        return array('status' => 'success');
+    }
+
+    public static function save_site_data_returns()
+    {
+        return new external_single_structure(array(
+            'status' => new external_value(PARAM_TEXT, 'success or error'),
         ));
     }
 
     /**
      * Get all admin dashboard statistics from real DB data.
      */
-    public static function get_admin_dashboard_stats_parameters() {
+    public static function get_admin_dashboard_stats_parameters()
+    {
         return new external_function_parameters(array());
     }
 
-    public static function get_admin_dashboard_stats() {
+    public static function get_admin_dashboard_stats()
+    {
         global $DB;
 
         // Count all enrolled students (users with at least 1 active enrollment, excluding admin)
@@ -341,14 +478,14 @@ class local_skillsaint_external extends external_api {
         $recent_students = array();
         foreach ($recent_users_raw as $u) {
             $recent_students[] = array(
-                'id'             => (int)$u->id,
-                'name'           => trim($u->firstname . ' ' . $u->lastname),
-                'email'          => $u->email,
-                'plan'           => $u->plan,
+                'id' => (int) $u->id,
+                'name' => trim($u->firstname . ' ' . $u->lastname),
+                'email' => $u->email,
+                'plan' => $u->plan,
                 'payment_status' => $u->payment_status,
-                'is_activated'   => (int)$u->is_activated,
-                'enrolled_count' => (int)$u->enrolled_count,
-                'registered_at'  => (int)$u->timecreated,
+                'is_activated' => (int) $u->is_activated,
+                'enrolled_count' => (int) $u->enrolled_count,
+                'registered_at' => (int) $u->timecreated,
             );
         }
 
@@ -367,32 +504,33 @@ class local_skillsaint_external extends external_api {
         $total_quizzes = $DB->count_records('quiz');
 
         return array(
-            'total_students'   => (int)$total_students,
-            'active_courses'   => (int)$active_courses,
-            'new_this_month'   => (int)$new_this_month,
-            'total_paid_apps'  => (int)$total_paid,
-            'total_quizzes'    => (int)$total_quizzes,
-            'recent_students'  => $recent_students,
+            'total_students' => (int) $total_students,
+            'active_courses' => (int) $active_courses,
+            'new_this_month' => (int) $new_this_month,
+            'total_paid_apps' => (int) $total_paid,
+            'total_quizzes' => (int) $total_quizzes,
+            'recent_students' => $recent_students,
         );
     }
 
-    public static function get_admin_dashboard_stats_returns() {
+    public static function get_admin_dashboard_stats_returns()
+    {
         return new external_single_structure(array(
-            'total_students'  => new external_value(PARAM_INT, 'Total enrolled students'),
-            'active_courses'  => new external_value(PARAM_INT, 'Number of active courses'),
-            'new_this_month'  => new external_value(PARAM_INT, 'New paid enrollments this month'),
+            'total_students' => new external_value(PARAM_INT, 'Total enrolled students'),
+            'active_courses' => new external_value(PARAM_INT, 'Number of active courses'),
+            'new_this_month' => new external_value(PARAM_INT, 'New paid enrollments this month'),
             'total_paid_apps' => new external_value(PARAM_INT, 'Total paid applications ever'),
-            'total_quizzes'   => new external_value(PARAM_INT, 'Number of quizzes/exams'),
+            'total_quizzes' => new external_value(PARAM_INT, 'Number of quizzes/exams'),
             'recent_students' => new external_multiple_structure(
                 new external_single_structure(array(
-                    'id'             => new external_value(PARAM_INT, 'User ID'),
-                    'name'           => new external_value(PARAM_TEXT, 'Full name'),
-                    'email'          => new external_value(PARAM_TEXT, 'Email'),
-                    'plan'           => new external_value(PARAM_TEXT, 'Subscription plan'),
+                    'id' => new external_value(PARAM_INT, 'User ID'),
+                    'name' => new external_value(PARAM_TEXT, 'Full name'),
+                    'email' => new external_value(PARAM_TEXT, 'Email'),
+                    'plan' => new external_value(PARAM_TEXT, 'Subscription plan'),
                     'payment_status' => new external_value(PARAM_TEXT, 'Payment status'),
-                    'is_activated'   => new external_value(PARAM_INT, 'Is account activated'),
+                    'is_activated' => new external_value(PARAM_INT, 'Is account activated'),
                     'enrolled_count' => new external_value(PARAM_INT, 'Number of courses enrolled'),
-                    'registered_at'  => new external_value(PARAM_INT, 'Unix timestamp of registration'),
+                    'registered_at' => new external_value(PARAM_INT, 'Unix timestamp of registration'),
                 ))
             ),
         ));
@@ -401,11 +539,13 @@ class local_skillsaint_external extends external_api {
     /**
      * Get all Moodle users for the admin students page.
      */
-    public static function get_all_admin_users_parameters() {
+    public static function get_all_admin_users_parameters()
+    {
         return new external_function_parameters(array());
     }
 
-    public static function get_all_admin_users() {
+    public static function get_all_admin_users()
+    {
         global $DB;
         $sql = "
             SELECT u.id, u.firstname, u.lastname, u.email, u.suspended, u.timecreated, u.deleted,
@@ -422,38 +562,39 @@ class local_skillsaint_external extends external_api {
             ORDER BY u.timecreated DESC
         ";
         $rows = $DB->get_records_sql($sql);
-        
+
         $result = array();
         foreach ($rows as $r) {
             $result[] = array(
-                'id'             => (int)$r->id,
-                'name'           => trim($r->firstname . ' ' . $r->lastname),
-                'email'          => $r->email,
-                'suspended'      => (int)$r->suspended,
-                'plan'           => $r->plan,
+                'id' => (int) $r->id,
+                'name' => trim($r->firstname . ' ' . $r->lastname),
+                'email' => $r->email,
+                'suspended' => (int) $r->suspended,
+                'plan' => $r->plan,
                 'payment_status' => $r->payment_status,
-                'is_activated'   => (int)$r->is_activated,
-                'activation_code'=> $r->activation_code,
-                'enrolled_count' => (int)$r->enrolled_count,
-                'registered_at'  => (int)$r->timecreated,
+                'is_activated' => (int) $r->is_activated,
+                'activation_code' => $r->activation_code,
+                'enrolled_count' => (int) $r->enrolled_count,
+                'registered_at' => (int) $r->timecreated,
             );
         }
         return $result;
     }
 
-    public static function get_all_admin_users_returns() {
+    public static function get_all_admin_users_returns()
+    {
         return new external_multiple_structure(
             new external_single_structure(array(
-                'id'             => new external_value(PARAM_INT,  'User ID'),
-                'name'           => new external_value(PARAM_TEXT, 'Full name'),
-                'email'          => new external_value(PARAM_TEXT, 'Email'),
-                'suspended'      => new external_value(PARAM_INT,  '1 if suspended'),
-                'plan'           => new external_value(PARAM_TEXT, 'Subscription plan'),
+                'id' => new external_value(PARAM_INT, 'User ID'),
+                'name' => new external_value(PARAM_TEXT, 'Full name'),
+                'email' => new external_value(PARAM_TEXT, 'Email'),
+                'suspended' => new external_value(PARAM_INT, '1 if suspended'),
+                'plan' => new external_value(PARAM_TEXT, 'Subscription plan'),
                 'payment_status' => new external_value(PARAM_TEXT, 'Payment status'),
-                'is_activated'   => new external_value(PARAM_INT,  '1 if activated'),
-                'activation_code'=> new external_value(PARAM_TEXT, 'Activation code'),
-                'enrolled_count' => new external_value(PARAM_INT,  'Number of enrolled courses'),
-                'registered_at'  => new external_value(PARAM_INT,  'Unix timestamp'),
+                'is_activated' => new external_value(PARAM_INT, '1 if activated'),
+                'activation_code' => new external_value(PARAM_TEXT, 'Activation code'),
+                'enrolled_count' => new external_value(PARAM_INT, 'Number of enrolled courses'),
+                'registered_at' => new external_value(PARAM_INT, 'Unix timestamp'),
             ))
         );
     }
@@ -461,11 +602,13 @@ class local_skillsaint_external extends external_api {
     /**
      * Get all paid applications for the finance page.
      */
-    public static function get_all_paid_applications_parameters() {
+    public static function get_all_paid_applications_parameters()
+    {
         return new external_function_parameters(array());
     }
 
-    public static function get_all_paid_applications() {
+    public static function get_all_paid_applications()
+    {
         global $DB;
         $apps = $DB->get_records_select(
             'local_skillsaint_apps',
@@ -477,26 +620,27 @@ class local_skillsaint_external extends external_api {
         $result = array();
         foreach ($apps as $a) {
             $result[] = array(
-                'id'             => (int)$a->id,
-                'fullname'       => $a->fullname,
-                'email'          => $a->email,
-                'selected_plan'  => $a->selected_plan,
-                'is_activated'   => (int)$a->is_activated,
-                'timecreated'    => (int)$a->timecreated,
+                'id' => (int) $a->id,
+                'fullname' => $a->fullname,
+                'email' => $a->email,
+                'selected_plan' => $a->selected_plan,
+                'is_activated' => (int) $a->is_activated,
+                'timecreated' => (int) $a->timecreated,
             );
         }
         return $result;
     }
 
-    public static function get_all_paid_applications_returns() {
+    public static function get_all_paid_applications_returns()
+    {
         return new external_multiple_structure(
             new external_single_structure(array(
-                'id'            => new external_value(PARAM_INT,  'App ID'),
-                'fullname'      => new external_value(PARAM_TEXT, 'Full name'),
-                'email'         => new external_value(PARAM_TEXT, 'Email'),
+                'id' => new external_value(PARAM_INT, 'App ID'),
+                'fullname' => new external_value(PARAM_TEXT, 'Full name'),
+                'email' => new external_value(PARAM_TEXT, 'Email'),
                 'selected_plan' => new external_value(PARAM_TEXT, 'Plan'),
-                'is_activated'  => new external_value(PARAM_INT,  '1 if activated'),
-                'timecreated'   => new external_value(PARAM_INT,  'Unix timestamp'),
+                'is_activated' => new external_value(PARAM_INT, '1 if activated'),
+                'timecreated' => new external_value(PARAM_INT, 'Unix timestamp'),
             ))
         );
     }
@@ -504,117 +648,165 @@ class local_skillsaint_external extends external_api {
     // NATIVE COURSE OPERATIONS
     // ==========================================
 
-    public static function create_course_parameters() {
+    public static function create_course_parameters()
+    {
         return new external_function_parameters(array(
             'courses' => new external_multiple_structure(
                 new external_single_structure(array(
-                    'fullname'  => new external_value(PARAM_TEXT, 'Course full name'),
+                    'fullname' => new external_value(PARAM_TEXT, 'Course full name'),
                     'shortname' => new external_value(PARAM_TEXT, 'Course short name'),
-                    'summary'   => new external_value(PARAM_RAW,  'Course summary', VALUE_DEFAULT, ''),
-                    'visible'   => new external_value(PARAM_INT,  '1 if visible, 0 hidden', VALUE_DEFAULT, 1),
+                    'summary' => new external_value(PARAM_RAW, 'Course summary', VALUE_DEFAULT, ''),
+                    'visible' => new external_value(PARAM_INT, '1 if visible, 0 hidden', VALUE_DEFAULT, 1),
                     'numsections' => new external_value(PARAM_INT, 'Number of sections', VALUE_DEFAULT, 4),
-                    'format'    => new external_value(PARAM_TEXT, 'Course format (topics, weeks, social, etc.)', VALUE_DEFAULT, 'topics'),
+                    'format' => new external_value(PARAM_TEXT, 'Course format', VALUE_DEFAULT, 'topics'),
                     'startdate' => new external_value(PARAM_INT, 'Course start date', VALUE_DEFAULT, 0),
-                    'enddate'   => new external_value(PARAM_INT, 'Course end date', VALUE_DEFAULT, 0),
-                    'categoryid'=> new external_value(PARAM_INT, 'Category ID', VALUE_DEFAULT, 1),
+                    'enddate' => new external_value(PARAM_INT, 'Course end date', VALUE_DEFAULT, 0),
+                    'categoryid' => new external_value(PARAM_INT, 'Category ID', VALUE_DEFAULT, 1),
+                    'cover_image' => new external_value(PARAM_RAW, 'Base64 image content', VALUE_DEFAULT, ''),
+                    'syllabus_pdf' => new external_value(PARAM_RAW, 'Base64 PDF content', VALUE_DEFAULT, ''),
                 ))
             )
         ));
     }
 
-    public static function create_course($courses) {
+    public static function create_course($courses)
+    {
         global $CFG, $DB;
         require_once($CFG->dirroot . '/course/lib.php');
-        
+
         $params = self::validate_parameters(self::create_course_parameters(), array('courses' => $courses));
         $created_courses = array();
 
-        // Get the first available category ID dynamically to avoid ID mismatch (e.g. if ID 1 was deleted)
         $category = $DB->get_records_sql('SELECT id FROM {course_categories} ORDER BY sortorder ASC', null, 0, 1);
         $category_id = $category ? reset($category)->id : 1;
 
         foreach ($params['courses'] as $cdata) {
             $course = new stdClass();
-            $course->fullname  = $cdata['fullname'];
+            $course->fullname = $cdata['fullname'];
             $course->shortname = $cdata['shortname'];
-            $course->summary   = $cdata['summary'];
-            $course->visible   = $cdata['visible'];
-            $course->category  = !empty($cdata['categoryid']) ? $cdata['categoryid'] : $category_id;
+            $course->summary = $cdata['summary'];
+            $course->visible = $cdata['visible'];
+            $course->category = !empty($cdata['categoryid']) ? $cdata['categoryid'] : $category_id;
             $course->startdate = $cdata['startdate'] ? $cdata['startdate'] : time();
-            if (!empty($cdata['enddate'])) {
-                $course->enddate = $cdata['enddate'];
-            }
             $course->format = $cdata['format'];
-            $course->numsections = $cdata['numsections'];
-            
-            $newcourse = create_course($course);
-            $newcourse->numsections = $cdata['numsections']; // Mock for Next.js UI compatibility
-            $created_courses[] = (array)$newcourse;
-        }
+            if (!empty($cdata['enddate']))
+                $course->enddate = $cdata['enddate'];
 
+            $newcourse = create_course($course);
+
+            // Handle Files
+            $context = context_course::instance($newcourse->id);
+            if (!empty($cdata['cover_image'])) {
+                self::save_base64_file($cdata['cover_image'], $context->id, 'course', 'overviewfiles', 'cover_' . time() . '.png');
+            }
+            if (!empty($cdata['syllabus_pdf'])) {
+                self::save_base64_file($cdata['syllabus_pdf'], $context->id, 'course', 'summaryfiles', 'syllabus_' . time() . '.pdf');
+            }
+
+            $created_courses[] = array('id' => $newcourse->id, 'shortname' => $newcourse->shortname);
+        }
         return $created_courses;
     }
 
-    public static function create_course_returns() {
+    public static function create_course_returns()
+    {
         return new external_multiple_structure(
             new external_single_structure(array(
-                'id'          => new external_value(PARAM_INT, 'Course ID'),
-                'shortname'   => new external_value(PARAM_TEXT, 'Course short name'),
+                'id' => new external_value(PARAM_INT, 'Course ID'),
+                'shortname' => new external_value(PARAM_TEXT, 'Course short name'),
             ))
         );
     }
 
-    public static function update_course_parameters() {
+    public static function update_course_parameters()
+    {
         return new external_function_parameters(array(
             'courses' => new external_multiple_structure(
                 new external_single_structure(array(
-                    'id'        => new external_value(PARAM_INT, 'Course ID'),
-                    'fullname'  => new external_value(PARAM_TEXT, 'Course full name'),
+                    'id' => new external_value(PARAM_INT, 'Course ID'),
+                    'fullname' => new external_value(PARAM_TEXT, 'Course full name'),
                     'shortname' => new external_value(PARAM_TEXT, 'Course short name'),
-                    'summary'   => new external_value(PARAM_RAW,  'Course summary', VALUE_DEFAULT, ''),
-                    'visible'   => new external_value(PARAM_INT,  '1 if visible, 0 hidden', VALUE_DEFAULT, 1),
+                    'summary' => new external_value(PARAM_RAW, 'Course summary', VALUE_DEFAULT, ''),
+                    'visible' => new external_value(PARAM_INT, '1 if visible, 0 hidden', VALUE_DEFAULT, 1),
                     'numsections' => new external_value(PARAM_INT, 'Number of sections', VALUE_DEFAULT, 4),
-                    'format'    => new external_value(PARAM_TEXT, 'Course format', VALUE_DEFAULT, 'topics'),
+                    'format' => new external_value(PARAM_TEXT, 'Course format', VALUE_DEFAULT, 'topics'),
                     'startdate' => new external_value(PARAM_INT, 'Course start date', VALUE_DEFAULT, 0),
-                    'enddate'   => new external_value(PARAM_INT, 'Course end date', VALUE_DEFAULT, 0),
-                    'categoryid'=> new external_value(PARAM_INT, 'Category ID', VALUE_DEFAULT, 1),
+                    'enddate' => new external_value(PARAM_INT, 'Course end date', VALUE_DEFAULT, 0),
+                    'categoryid' => new external_value(PARAM_INT, 'Category ID', VALUE_DEFAULT, 1),
+                    'cover_image' => new external_value(PARAM_RAW, 'Base64 image content', VALUE_DEFAULT, ''),
+                    'syllabus_pdf' => new external_value(PARAM_RAW, 'Base64 PDF content', VALUE_DEFAULT, ''),
                 ))
             )
         ));
     }
 
-    public static function update_course($courses) {
-        global $CFG;
+    public static function update_course($courses)
+    {
+        global $CFG, $DB;
         require_once($CFG->dirroot . '/course/lib.php');
-        
+
         $params = self::validate_parameters(self::update_course_parameters(), array('courses' => $courses));
 
         foreach ($params['courses'] as $cdata) {
             $course = new stdClass();
-            $course->id        = $cdata['id'];
-            $course->fullname  = $cdata['fullname'];
+            $course->id = $cdata['id'];
+            $course->fullname = $cdata['fullname'];
             $course->shortname = $cdata['shortname'];
-            $course->summary   = $cdata['summary'];
-            $course->visible   = $cdata['visible'];
-            if (!empty($cdata['categoryid'])) $course->category = $cdata['categoryid'];
-            if (!empty($cdata['startdate'])) $course->startdate = $cdata['startdate'];
-            if (!empty($cdata['enddate'])) $course->enddate = $cdata['enddate'];
-            if (!empty($cdata['format'])) $course->format = $cdata['format'];
-            if (!empty($cdata['numsections'])) $course->numsections = $cdata['numsections'];
-            
-            update_course($course);
-        }
+            $course->summary = $cdata['summary'];
+            $course->visible = $cdata['visible'];
+            if (!empty($cdata['categoryid']))
+                $course->category = $cdata['categoryid'];
+            if (!empty($cdata['startdate']))
+                $course->startdate = $cdata['startdate'];
+            if (!empty($cdata['enddate']))
+                $course->enddate = $cdata['enddate'];
+            if (!empty($cdata['format']))
+                $course->format = $cdata['format'];
 
+            update_course($course);
+
+            // Handle Files
+            $context = context_course::instance($cdata['id']);
+            if (!empty($cdata['cover_image'])) {
+                self::save_base64_file($cdata['cover_image'], $context->id, 'course', 'overviewfiles', 'cover_' . time() . '.png');
+            }
+            if (!empty($cdata['syllabus_pdf'])) {
+                self::save_base64_file($cdata['syllabus_pdf'], $context->id, 'course', 'summaryfiles', 'syllabus_' . time() . '.pdf');
+            }
+        }
         return array('status' => 'success');
     }
 
-    public static function update_course_returns() {
+    private static function save_base64_file($base64data, $contextid, $component, $filearea, $filename)
+    {
+        $fs = get_file_storage();
+        if (strpos($base64data, ',') !== false) {
+            $base64data = explode(',', $base64data)[1];
+        }
+        $content = base64_decode($base64data, true);
+        if (!$content)
+            return false;
+        $fs->delete_area_files($contextid, $component, $filearea, 0);
+        $filerecord = array(
+            'contextid' => $contextid,
+            'component' => $component,
+            'filearea' => $filearea,
+            'itemid' => 0,
+            'filepath' => '/',
+            'filename' => $filename,
+        );
+        return $fs->create_file_from_string($filerecord, $content);
+    }
+
+    public static function update_course_returns()
+    {
         return new external_single_structure(array(
             'status' => new external_value(PARAM_ALPHA, 'Status')
         ));
     }
 
-    public static function delete_course_parameters() {
+    public static function delete_course_parameters()
+    {
         return new external_function_parameters(array(
             'courseids' => new external_multiple_structure(
                 new external_value(PARAM_INT, 'Course ID')
@@ -622,20 +814,19 @@ class local_skillsaint_external extends external_api {
         ));
     }
 
-    public static function delete_course($courseids) {
+    public static function delete_course($courseids)
+    {
         global $CFG;
         require_once($CFG->dirroot . '/course/lib.php');
-        
         $params = self::validate_parameters(self::delete_course_parameters(), array('courseids' => $courseids));
-
         foreach ($params['courseids'] as $cid) {
             delete_course($cid, false);
         }
-
         return array('warnings' => array());
     }
 
-    public static function delete_course_returns() {
+    public static function delete_course_returns()
+    {
         return new external_single_structure(array(
             'warnings' => new external_multiple_structure(
                 new external_single_structure(array(
@@ -643,8 +834,820 @@ class local_skillsaint_external extends external_api {
                     'itemid' => new external_value(PARAM_INT, '', VALUE_OPTIONAL),
                     'warningcode' => new external_value(PARAM_ALPHANUM, '', VALUE_OPTIONAL),
                     'message' => new external_value(PARAM_TEXT, '', VALUE_OPTIONAL)
-                )), 'List of warnings', VALUE_OPTIONAL
+                )),
+                'List of warnings',
+                VALUE_OPTIONAL
             )
+        ));
+    }
+
+    // ==========================================
+    // SECTION OPERATIONS
+    // ==========================================
+
+    public static function rename_section_parameters()
+    {
+        return new external_function_parameters(array(
+            'sectionid' => new external_value(PARAM_INT, 'Section ID'),
+            'name' => new external_value(PARAM_TEXT, 'New section name'),
+        ));
+    }
+
+    public static function rename_section($sectionid, $name)
+    {
+        global $DB;
+        $section = $DB->get_record('course_sections', array('id' => $sectionid), '*', MUST_EXIST);
+        $section->name = $name;
+        $section->timemodified = time();
+        $DB->update_record('course_sections', $section);
+        return array('status' => 'success');
+    }
+
+    public static function rename_section_returns()
+    {
+        return new external_single_structure(array(
+            'status' => new external_value(PARAM_ALPHA, 'success or error')
+        ));
+    }
+
+    public static function add_section_parameters()
+    {
+        return new external_function_parameters(array(
+            'courseid' => new external_value(PARAM_INT, 'Course ID'),
+        ));
+    }
+
+    public static function add_section($courseid)
+    {
+        global $DB, $CFG;
+        require_once($CFG->dirroot . '/course/lib.php');
+        $course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
+
+        // Use standard Moodle core logic if available, otherwise manual
+        $newsection = course_create_section($courseid, 0); // 0 appends to end
+        return array('status' => 'success', 'sectionid' => $newsection->id);
+    }
+
+    public static function add_section_returns()
+    {
+        return new external_single_structure(array(
+            'status' => new external_value(PARAM_ALPHA, 'success'),
+            'sectionid' => new external_value(PARAM_INT, 'New section ID'),
+        ));
+    }
+
+    // ==========================================
+    // MODULE OPERATIONS
+    // ==========================================
+
+    public static function add_module_parameters()
+    {
+        return new external_function_parameters(array(
+            'courseid' => new external_value(PARAM_INT, 'Course ID'),
+            'sectionid' => new external_value(PARAM_INT, 'Section ID'),
+            'name' => new external_value(PARAM_TEXT, 'Module name'),
+            'content' => new external_value(PARAM_RAW, 'Page content'),
+        ));
+    }
+
+    public static function add_module($courseid, $sectionid, $name, $content)
+    {
+        global $DB, $CFG;
+        require_once($CFG->dirroot . '/course/lib.php');
+        require_once($CFG->dirroot . '/mod/page/lib.php');
+
+        $course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
+        $section = $DB->get_record('course_sections', array('id' => $sectionid), '*', MUST_EXIST);
+
+        // 1. Create the Course Module (CM) entry
+        $module = $DB->get_record('modules', array('name' => 'page'), '*', MUST_EXIST);
+
+        $cw = new stdClass();
+        $cw->course = $courseid;
+        $cw->module = $module->id;
+        $cw->instance = 0; // Will be updated
+        $cw->section = $section->id;
+        $cw->added = time();
+        $cw->visible = 1;
+        $cw->visibleoncoursepage = 1;
+
+        $cmid = add_course_module($cw);
+
+        // 2. Create the Page instance
+        $page = new stdClass();
+        $page->course = $courseid;
+        $page->name = $name;
+        $page->intro = $name;
+        $page->introformat = FORMAT_HTML;
+        $page->content = $content;
+        $page->contentformat = FORMAT_HTML;
+        $page->legacyfiles = 0;
+        $page->printheading = 1;
+        $page->printintro = 0;
+        $page->display = 0;
+        $page->coursemodule = $cmid;
+
+        $instanceid = page_add_instance($page, null);
+
+        // 3. Link CM to Instance
+        $DB->set_field('course_modules', 'instance', $instanceid, array('id' => $cmid));
+
+        // 4. Add to section and rebuild cache
+        if (!empty($section->section)) {
+            course_add_cm_to_section($course->id, $cmid, $section->section);
+        }
+
+        rebuild_course_cache($courseid, true);
+
+        return array('status' => 'success', 'cmid' => $cmid);
+    }
+
+    public static function add_module_returns()
+    {
+        return new external_single_structure(array(
+            'status' => new external_value(PARAM_ALPHA, 'success'),
+            'cmid' => new external_value(PARAM_INT, 'New module ID'),
+        ));
+    }
+
+    public static function update_module_content_parameters()
+    {
+        return new external_function_parameters(array(
+            'cmid' => new external_value(PARAM_INT, 'Course module ID'),
+            'content' => new external_value(PARAM_RAW, 'New HTML content for the page'),
+        ));
+    }
+
+    public static function update_module_content($cmid, $content)
+    {
+        global $DB, $CFG;
+        require_once($CFG->dirroot . '/course/lib.php');
+
+        $params = self::validate_parameters(self::update_module_content_parameters(), array(
+            'cmid' => $cmid,
+            'content' => $content,
+        ));
+
+        // Get the course module
+        $cm = $DB->get_record('course_modules', array('id' => $params['cmid']), '*', MUST_EXIST);
+        $module = $DB->get_record('modules', array('id' => $cm->module), '*', MUST_EXIST);
+
+        // Support Page, Label and Resource
+        if ($module->name === 'page') {
+            $DB->set_field('page', 'content', $params['content'], array('id' => $cm->instance));
+            $DB->set_field('page', 'timemodified', time(), array('id' => $cm->instance));
+        } else if ($module->name === 'label') {
+            $DB->set_field('label', 'intro', $params['content'], array('id' => $cm->instance));
+            $DB->set_field('label', 'timemodified', time(), array('id' => $cm->instance));
+        } else if ($module->name === 'resource') {
+            $DB->set_field('resource', 'intro', $params['content'], array('id' => $cm->instance));
+            $DB->set_field('resource', 'timemodified', time(), array('id' => $cm->instance));
+        } else {
+            throw new moodle_exception('Module type is "' . $module->name . '". This type of content cannot be edited directly yet.');
+        }
+
+        rebuild_course_cache($cm->course, true);
+
+        return array('status' => 'success');
+    }
+
+    public static function update_module_content_returns()
+    {
+        return new external_single_structure(array(
+            'status' => new external_value(PARAM_ALPHA, 'success'),
+        ));
+    }
+
+    public static function get_module_content_parameters()
+    {
+        return new external_function_parameters(array(
+            'cmid' => new external_value(PARAM_INT, 'Course module ID'),
+        ));
+    }
+
+    public static function get_module_content($cmid)
+    {
+        global $DB, $CFG;
+
+        $params = self::validate_parameters(self::get_module_content_parameters(), array(
+            'cmid' => $cmid,
+        ));
+
+        // Get the course module
+        $cm = $DB->get_record('course_modules', array('id' => $params['cmid']), '*', MUST_EXIST);
+        $module = $DB->get_record('modules', array('id' => $cm->module), '*', MUST_EXIST);
+
+        $content = "";
+
+        if ($module->name === 'page') {
+            $page = $DB->get_record('page', array('id' => $cm->instance), '*', MUST_EXIST);
+            $content = $page->content;
+        } else if ($module->name === 'label') {
+            $label = $DB->get_record('label', array('id' => $cm->instance), '*', MUST_EXIST);
+            $content = $label->intro;
+        } else if ($module->name === 'resource') {
+            $res = $DB->get_record('resource', array('id' => $cm->instance), '*', MUST_EXIST);
+            $content = $res->intro;
+        }
+
+        return array('status' => 'success', 'content' => $content);
+    }
+
+    public static function get_module_content_returns()
+    {
+        return new external_single_structure(array(
+            'status' => new external_value(PARAM_ALPHA, 'success'),
+            'content' => new external_value(PARAM_RAW, 'HTML content of the module'),
+        ));
+    }
+
+    public static function delete_section_parameters()
+    {
+        return new external_function_parameters(array(
+            'sectionid' => new external_value(PARAM_INT, 'Section ID to delete'),
+        ));
+    }
+
+    public static function delete_section($sectionid)
+    {
+        global $DB, $CFG;
+        require_once($CFG->dirroot . '/course/lib.php');
+
+        $params = self::validate_parameters(self::delete_section_parameters(), array(
+            'sectionid' => $sectionid,
+        ));
+
+        // Get section details
+        $section = $DB->get_record('course_sections', array('id' => $params['sectionid']), '*', MUST_EXIST);
+        $course = $DB->get_record('course', array('id' => $section->course), '*', MUST_EXIST);
+
+        // Delete the section
+        course_delete_section($course, $section, true, true);
+
+        return array('status' => 'success');
+    }
+
+    public static function delete_section_returns()
+    {
+        return new external_single_structure(array(
+            'status' => new external_value(PARAM_ALPHA, 'success'),
+        ));
+    }
+
+    public static function get_courses_full_parameters()
+    {
+        return new external_function_parameters(array());
+    }
+
+    public static function get_courses_full()
+    {
+        global $DB, $CFG;
+        require_once($CFG->dirroot . '/course/lib.php');
+
+        $courses = $DB->get_records('course', array(), 'id ASC');
+        $result = array();
+
+        foreach ($courses as $c) {
+            if ($c->id == 1)
+                continue; // Skip site course
+
+            $context = context_course::instance($c->id);
+            $fs = get_file_storage();
+
+            // Get Overview Files (Cover Image) as Base64 for instant display
+            $overviewfiles = array();
+            $files = $fs->get_area_files($context->id, 'course', 'overviewfiles', 0, 'itemid, filepath, filename', false);
+            foreach ($files as $f) {
+                $content = $f->get_content();
+                $base64 = base64_encode($content);
+                $mimetype = $f->get_mimetype();
+                $datauri = 'data:' . $mimetype . ';base64,' . $base64;
+
+                $overviewfiles[] = array(
+                    'fileurl' => $datauri,
+                    'filename' => $f->get_filename()
+                );
+                break; // Just need the first one for the cover
+            }
+
+            // Get Summary Files (Syllabus PDF) - Keep as URL for now or build correctly
+            $summaryfiles = array();
+            $files = $fs->get_area_files($context->id, 'course', 'summaryfiles', 0, 'itemid, filepath, filename', false);
+            foreach ($files as $f) {
+                $fileurl = $CFG->wwwroot . '/webservice/pluginfile.php/' . $f->get_contextid() . '/' . $f->get_component() . '/' . $f->get_filearea() . '/' . $f->get_itemid() . $f->get_filepath() . $f->get_filename();
+                $summaryfiles[] = array(
+                    'fileurl' => $fileurl,
+                    'filename' => $f->get_filename()
+                );
+            }
+
+            $result[] = array(
+                'id' => $c->id,
+                'fullname' => $c->fullname,
+                'shortname' => $c->shortname,
+                'summary' => $c->summary,
+                'visible' => (int) $c->visible,
+                'numsections' => (int) $c->numsections,
+                'startdate' => (int) $c->startdate,
+                'categoryid' => (int) $c->category,
+                'overviewfiles' => $overviewfiles,
+                'summaryfiles' => $summaryfiles
+            );
+        }
+
+        return $result;
+    }
+
+    public static function get_courses_full_returns()
+    {
+        return new external_multiple_structure(
+            new external_single_structure(array(
+                'id' => new external_value(PARAM_INT, 'ID'),
+                'fullname' => new external_value(PARAM_TEXT, 'Fullname'),
+                'shortname' => new external_value(PARAM_TEXT, 'Shortname'),
+                'summary' => new external_value(PARAM_RAW, 'Summary'),
+                'visible' => new external_value(PARAM_INT, 'Visible'),
+                'numsections' => new external_value(PARAM_INT, 'Numsections'),
+                'startdate' => new external_value(PARAM_INT, 'Startdate'),
+                'categoryid' => new external_value(PARAM_INT, 'Category ID'),
+                'overviewfiles' => new external_multiple_structure(
+                    new external_single_structure(array(
+                        'fileurl' => new external_value(PARAM_RAW, 'File URL'),
+                        'filename' => new external_value(PARAM_TEXT, 'File name')
+                    ))
+                ),
+                'summaryfiles' => new external_multiple_structure(
+                    new external_single_structure(array(
+                        'fileurl' => new external_value(PARAM_RAW, 'File URL'),
+                        'filename' => new external_value(PARAM_TEXT, 'File name')
+                    ))
+                ),
+            ))
+        );
+    }
+
+    /**
+     * Get all quizzes for all courses.
+     */
+    public static function get_exams_parameters()
+    {
+        return new external_function_parameters(array());
+    }
+
+    public static function get_exams()
+    {
+        global $DB;
+        $quizzes = $DB->get_records_sql("
+            SELECT q.id, q.course, q.name, q.intro, c.fullname as coursename,
+                   (SELECT COUNT(*) FROM {quiz_slots} WHERE quizid = q.id) as questioncount
+            FROM {quiz} q
+            JOIN {course} c ON c.id = q.course
+            ORDER BY q.course, q.id
+        ");
+
+        $results = array();
+        foreach ($quizzes as $q) {
+            $results[] = array(
+                'id' => $q->id,
+                'courseid' => (int) $q->course,
+                'coursename' => $q->coursename,
+                'name' => $q->name,
+                'intro' => $q->intro,
+                'questioncount' => (int) $q->questioncount
+            );
+        }
+        return $results;
+    }
+
+    public static function get_exams_returns()
+    {
+        return new external_multiple_structure(
+            new external_single_structure(array(
+                'id' => new external_value(PARAM_INT, 'Quiz ID'),
+                'courseid' => new external_value(PARAM_INT, 'Course ID'),
+                'coursename' => new external_value(PARAM_TEXT, 'Course Fullname'),
+                'name' => new external_value(PARAM_TEXT, 'Quiz Name'),
+                'intro' => new external_value(PARAM_RAW, 'Quiz Intro'),
+                'questioncount' => new external_value(PARAM_INT, 'Number of questions')
+            ))
+        );
+    }
+
+    /**
+     * Create a multichoice question and add it to a quiz.
+     */
+    public static function create_question_parameters()
+    {
+        return new external_function_parameters(array(
+            'courseid' => new external_value(PARAM_INT, 'Course ID'),
+            'quizid' => new external_value(PARAM_INT, 'Quiz ID to add question to'),
+            'name' => new external_value(PARAM_TEXT, 'Question name'),
+            'text' => new external_value(PARAM_RAW, 'Question text'),
+            'answers' => new external_multiple_structure(
+                new external_single_structure(array(
+                    'text' => new external_value(PARAM_RAW, 'Answer text'),
+                    'fraction' => new external_value(PARAM_FLOAT, 'Fraction (1.0 for correct, 0.0 for wrong)')
+                ))
+            )
+        ));
+    }
+
+    public static function create_question($courseid, $quizid, $name, $text, $answers)
+    {
+        global $DB, $USER, $CFG;
+        require_once($CFG->libdir . '/questionlib.php');
+        require_once($CFG->dirroot . '/mod/quiz/locallib.php');
+
+        // 1. Get or create default category for the course
+        $context = context_course::instance($courseid);
+        $category = question_make_default_categories(array($context));
+
+        // 2. Filter non-empty answers
+        $validanswers = array();
+        foreach ($answers as $a) {
+            if (!empty(trim($a['text']))) {
+                $validanswers[] = $a;
+            }
+        }
+
+        if (count($validanswers) < 2) {
+            return array('status' => 'error', 'error' => 'A multichoice question requires at least 2 non-empty answers.');
+        }
+
+        // 3. Insert question directly into DB
+        $now = time();
+        $question = new stdClass();
+        $question->category = $category->id;
+        $question->parent = 0;
+        $question->name = $name;
+        $question->questiontext = $text;
+        $question->questiontextformat = FORMAT_HTML;
+        $question->generalfeedback = '';
+        $question->generalfeedbackformat = FORMAT_HTML;
+        $question->defaultmark = 1.0;
+        $question->penalty = 0.3333333;
+        $question->qtype = 'multichoice';
+        $question->length = 1;
+        $question->stamp = make_unique_id_code();
+        $question->version = make_unique_id_code();
+        $question->hidden = 0;
+        $question->timecreated = $now;
+        $question->timemodified = $now;
+        $question->createdby = $USER->id;
+        $question->modifiedby = $USER->id;
+        $question->id = $DB->insert_record('question', $question);
+
+        // 3b. Moodle 4.x: Insert question_bank_entries and question_versions
+        $qbe = new stdClass();
+        $qbe->questioncategoryid = $category->id;
+        $qbe->idnumber = null;
+        $qbe->ownerid = $USER->id;
+        $qbe->id = $DB->insert_record('question_bank_entries', $qbe);
+
+        $qv = new stdClass();
+        $qv->questionbankentryid = $qbe->id;
+        $qv->version = 1;
+        $qv->questionid = $question->id;
+        $qv->status = 'ready';
+        $DB->insert_record('question_versions', $qv);
+
+        // 4. Insert multichoice options
+        $options = new stdClass();
+        $options->questionid = $question->id;
+        $options->layout = 0;
+        $options->answers = '';
+        $options->single = 1;
+        $options->shuffleanswers = 1;
+        $options->correctfeedback = '';
+        $options->correctfeedbackformat = FORMAT_HTML;
+        $options->partiallycorrectfeedback = '';
+        $options->partiallycorrectfeedbackformat = FORMAT_HTML;
+        $options->incorrectfeedback = '';
+        $options->incorrectfeedbackformat = FORMAT_HTML;
+        $options->answernumbering = 'abc';
+        $options->shownumcorrect = 0;
+        $options->showstandardinstruction = 0;
+        $DB->insert_record('qtype_multichoice_options', $options);
+
+        // 5. Insert each answer
+        foreach ($validanswers as $a) {
+            $ans = new stdClass();
+            $ans->question = $question->id;
+            $ans->answer = $a['text'];
+            $ans->answerformat = FORMAT_HTML;
+            $ans->fraction = (float) $a['fraction'];
+            $ans->feedback = '';
+            $ans->feedbackformat = FORMAT_HTML;
+            $DB->insert_record('question_answers', $ans);
+        }
+
+        // 6. Link to quiz
+        if ($quizid) {
+            $quiz = $DB->get_record('quiz', array('id' => $quizid), '*', MUST_EXIST);
+            quiz_add_quiz_question($question->id, $quiz);
+        }
+
+        return array('status' => 'success', 'questionid' => $question->id);
+    }
+
+    public static function create_question_returns()
+    {
+        return new external_single_structure(array(
+            'status' => new external_value(PARAM_ALPHA, 'Status of the operation'),
+            'questionid' => new external_value(PARAM_INT, 'The created question ID')
+        ));
+    }
+
+    /**
+     * Initialize a new Quiz in a course.
+     */
+    public static function init_exam_parameters()
+    {
+        return new external_function_parameters(
+            array(
+                'courseid' => new external_value(PARAM_INT, 'The course ID'),
+                'name' => new external_value(PARAM_TEXT, 'The quiz name', VALUE_DEFAULT, 'Final Assessment'),
+            )
+        );
+    }
+
+    public static function init_exam($courseid, $name)
+    {
+        global $DB, $CFG;
+        require_once($CFG->dirroot . '/mod/quiz/lib.php');
+        require_once($CFG->dirroot . '/course/lib.php');
+
+        // On vérifie si un quiz existe déjà pour éviter les doublons
+        $existing = $DB->get_record('quiz', array('course' => $courseid, 'name' => $name));
+        if ($existing) {
+            return array('status' => 'success', 'quizid' => $existing->id);
+        }
+
+        $course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
+
+        // Configuration de base du quiz
+        $quiz = new stdClass();
+        $quiz->course = $courseid;
+        $quiz->name = $name;
+        $quiz->intro = 'Auto-generated quiz from IBI Dashboard';
+        $quiz->introformat = FORMAT_HTML;
+        $quiz->timeopen = 0;
+        $quiz->timeclose = 0;
+        $quiz->timelimit = 0;
+        $quiz->overduehandling = 'autosubmit';
+        $quiz->graceperiod = 0;
+        $quiz->preferredbehaviour = 'deferredfeedback';
+        $quiz->attempts = 0;
+        $quiz->attemptonlast = 0;
+        $quiz->grademethod = 1; // QUIZ_GRADEHIGHEST
+        $quiz->decimalpoints = 2;
+        $quiz->questiondecimalpoints = -1;
+        $quiz->reviewattempt = 69888;
+        $quiz->reviewcorrectness = 4352;
+        $quiz->reviewmarks = 4352;
+        $quiz->reviewspecificfeedback = 4352;
+        $quiz->reviewgeneralfeedback = 4352;
+        $quiz->reviewrightanswer = 4352;
+        $quiz->reviewoverallfeedback = 4352;
+        $quiz->questionsperpage = 1;
+        $quiz->navmethod = 'free';
+        $quiz->shuffleanswers = 1;
+        $quiz->sumgrades = 0;
+        $quiz->grade = 100;
+        $quiz->timecreated = time();
+        $quiz->timemodified = time();
+        $quiz->password = '';
+        $quiz->subnet = '';
+        $quiz->browsersecurity = '-';
+        $quiz->delay1 = 0;
+        $quiz->delay2 = 0;
+        $quiz->showuserpicture = 0;
+        $quiz->showblocks = 0;
+        $quiz->completionattemptsexhausted = 0;
+        $quiz->completionpass = 0;
+
+        // Insertion en base
+        $quiz->id = $DB->insert_record('quiz', $quiz);
+
+        // Ajout au module de cours (pour qu'il soit visible)
+        $module = $DB->get_record('modules', array('name' => 'quiz'));
+
+        $cm = new stdClass();
+        $cm->course = $courseid;
+        $cm->module = $module->id;
+        $cm->instance = $quiz->id;
+        $cm->section = 0; // Section 0 (Général) par défaut
+        $cm->idnumber = '';
+        $cm->added = time();
+        $cm->visible = 1;
+
+        $cm->id = add_course_module($cm);
+
+        // Placer dans la section 0
+        $section = $DB->get_record('course_sections', array('course' => $courseid, 'section' => 0));
+        if ($section) {
+            $modorder = trim($section->sequence);
+            if ($modorder) {
+                $modorder .= ',' . $cm->id;
+            } else {
+                $modorder = $cm->id;
+            }
+            $DB->set_field('course_sections', 'sequence', $modorder, array('id' => $section->id));
+        }
+
+        // Reconstruire le cache du cours
+        rebuild_course_cache($courseid, true);
+
+        return array('status' => 'success', 'quizid' => $quiz->id);
+    }
+
+    public static function init_exam_returns()
+    {
+        return new external_single_structure(
+            array(
+                'status' => new external_value(PARAM_TEXT, 'Success or Error'),
+                'quizid' => new external_value(PARAM_INT, 'The created quiz ID', VALUE_OPTIONAL),
+                'error' => new external_value(PARAM_TEXT, 'Error message', VALUE_OPTIONAL)
+            )
+        );
+    }
+
+    /**
+     * Get all questions for a specific quiz.
+     */
+    public static function get_quiz_questions_parameters()
+    {
+        return new external_function_parameters(array(
+            'quizid' => new external_value(PARAM_INT, 'The quiz ID')
+        ));
+    }
+
+    public static function get_quiz_questions($quizid)
+    {
+        global $DB;
+
+        $slots = $DB->get_records('quiz_slots', array('quizid' => $quizid), 'slot ASC');
+        $questions = array();
+
+        foreach ($slots as $slot) {
+            // Moodle 4.x uses question_references
+            $ref = $DB->get_record('question_references', array(
+                'component' => 'mod_quiz',
+                'questionarea' => 'slot',
+                'itemid' => $slot->id
+            ));
+
+            if (!$ref)
+                continue;
+
+            $qv = $DB->get_record('question_versions', array('questionbankentryid' => $ref->questionbankentryid), '*', IGNORE_MISSING);
+            if (!$qv)
+                continue;
+
+            $q = $DB->get_record('question', array('id' => $qv->questionid), '*', IGNORE_MISSING);
+            if (!$q || $q->qtype !== 'multichoice')
+                continue;
+
+            $answers = $DB->get_records('question_answers', array('question' => $q->id), 'id ASC');
+            $options_arr = array();
+            $correct_idx = 0;
+            $idx = 0;
+            foreach ($answers as $ans) {
+                $options_arr[] = array(
+                    'text' => $ans->answer,
+                    'fraction' => (float) $ans->fraction
+                );
+                if ($ans->fraction >= 1.0) {
+                    $correct_idx = $idx;
+                }
+                $idx++;
+            }
+
+            $questions[] = array(
+                'id' => $q->id,
+                'name' => $q->name,
+                'questiontext' => strip_tags($q->questiontext),
+                'correct' => $correct_idx,
+                'answers' => $options_arr
+            );
+        }
+
+        return $questions;
+    }
+
+    public static function get_quiz_questions_returns()
+    {
+        return new external_multiple_structure(
+            new external_single_structure(array(
+                'id' => new external_value(PARAM_INT, 'Question ID'),
+                'name' => new external_value(PARAM_TEXT, 'Question name'),
+                'questiontext' => new external_value(PARAM_RAW, 'Question text'),
+                'correct' => new external_value(PARAM_INT, 'Index of correct answer'),
+                'answers' => new external_multiple_structure(
+                    new external_single_structure(array(
+                        'text' => new external_value(PARAM_RAW, 'Answer text'),
+                        'fraction' => new external_value(PARAM_FLOAT, 'Fraction')
+                    ))
+                )
+            ))
+        );
+    }
+
+    /**
+     * Get real dashboard data for a student.
+     */
+    public static function get_student_dashboard_data_parameters()
+    {
+        return new external_function_parameters(array(
+            'userid' => new external_value(PARAM_INT, 'User ID'),
+        ));
+    }
+
+    public static function get_student_dashboard_data($userid)
+    {
+        global $DB, $CFG;
+        require_once($CFG->dirroot . '/enrol/externallib.php');
+        require_once($CFG->dirroot . '/course/lib.php');
+
+        // 1. Plan
+        $user = $DB->get_record('user', array('id' => $userid), 'email', MUST_EXIST);
+        $app = $DB->get_record('local_skillsaint_apps', array('email' => $user->email), 'selected_plan');
+        $plan = $app ? $app->selected_plan : 'none';
+
+        // 2. Enrolled Courses
+        $courses_raw = enrol_get_users_courses($userid, true, 'id,fullname,shortname,summary,visible');
+        $enrolled_courses = array();
+
+        foreach ($courses_raw as $c) {
+            if ($c->id == 1)
+                continue;
+
+            $context = context_course::instance($c->id);
+            $fs = get_file_storage();
+            $files = $fs->get_area_files($context->id, 'course', 'overviewfiles', 0, 'itemid, filepath, filename', false);
+            $image_url = '';
+            if ($files) {
+                $file = reset($files);
+                $image_url = moodle_url::make_pluginfile_url($file->get_contextid(), $file->get_component(), $file->get_filearea(), $file->get_itemid(), $file->get_filepath(), $file->get_filename())->out(false);
+            }
+
+            $enrolled_courses[] = array(
+                'id' => (int) $c->id,
+                'fullname' => $c->fullname,
+                'shortname' => $c->shortname,
+                'summary' => strip_tags($c->summary),
+                'image_url' => $image_url,
+            );
+        }
+
+        // 3. Quizzes (Exams)
+        $exams = array();
+        if (!empty($enrolled_courses)) {
+            $course_ids = array_map(function ($c) {
+                return $c['id']; }, $enrolled_courses);
+            list($insql, $inparams) = $DB->get_in_or_equal($course_ids);
+            $quizzes = $DB->get_records_select('quiz', "course $insql", $inparams);
+
+            foreach ($quizzes as $q) {
+                $exams[] = array(
+                    'id' => (int) $q->id,
+                    'courseid' => (int) $q->course,
+                    'name' => $q->name,
+                    'timeLimit' => (int) $q->timelimit,
+                    'intro' => strip_tags($q->intro),
+                );
+            }
+        }
+
+        return array(
+            'plan' => $plan,
+            'courses' => $enrolled_courses,
+            'exams' => $exams,
+        );
+    }
+
+    public static function get_student_dashboard_data_returns()
+    {
+        return new external_single_structure(array(
+            'plan' => new external_value(PARAM_TEXT, 'User subscription plan'),
+            'courses' => new external_multiple_structure(
+                new external_single_structure(array(
+                    'id' => new external_value(PARAM_INT, 'Course ID'),
+                    'fullname' => new external_value(PARAM_TEXT, 'Full name'),
+                    'shortname' => new external_value(PARAM_TEXT, 'Short name'),
+                    'summary' => new external_value(PARAM_RAW, 'Summary'),
+                    'image_url' => new external_value(PARAM_RAW, 'Image URL'),
+                ))
+            ),
+            'exams' => new external_multiple_structure(
+                new external_single_structure(array(
+                    'id' => new external_value(PARAM_INT, 'Quiz ID'),
+                    'courseid' => new external_value(PARAM_INT, 'Course ID'),
+                    'name' => new external_value(PARAM_TEXT, 'Quiz name'),
+                    'timeLimit' => new external_value(PARAM_INT, 'Time limit in seconds'),
+                    'intro' => new external_value(PARAM_RAW, 'Intro text'),
+                ))
+            ),
         ));
     }
 }

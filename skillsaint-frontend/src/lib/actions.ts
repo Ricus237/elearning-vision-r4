@@ -284,3 +284,27 @@ export async function getQuizQuestionsAction(quizId: number) {
     return { error: "Erreur lors de la récupération du quiz." };
   }
 }
+
+/**
+ * Récupère les données réelles du dashboard étudiant.
+ */
+export async function getStudentDashboardAction() {
+  const cookieStore = await cookies();
+  const userId = cookieStore.get('moodle_user_id')?.value;
+  if (!userId) return null;
+
+  try {
+    const data = await fetchMoodle('local_skillsaint_get_student_dashboard_data', { userid: parseInt(userId) });
+    if (data && !data.error) {
+      return {
+        plan: data.plan || 'none',
+        courses: data.courses || [],
+        exams: data.exams || []
+      };
+    }
+    return null;
+  } catch (_err) {
+    console.error("Dashboard data fetch error:", _err);
+    return null;
+  }
+}

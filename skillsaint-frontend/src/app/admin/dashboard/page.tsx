@@ -7,7 +7,6 @@ import {
   PlusCircle,
   CheckCircle,
   Clock,
-  XCircle,
   ShieldCheck,
   ShieldAlert,
 } from "lucide-react";
@@ -64,216 +63,221 @@ const AdminDashboardPage = async () => {
 
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-white flex flex-col md:flex-row relative">
       <AdminSidebar />
 
-      <main className="flex-1 p-6 md:p-8 lg:p-10">
-        <div className="max-w-6xl mx-auto">
+      <main className="flex-1 min-h-screen">
+        <div className="h-full pt-24 md:pt-0 p-6 md:p-10 lg:p-12">
+          <div className="max-w-7xl mx-auto">
 
-          {/* Header */}
-          <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Christian Education Dashboard</h1>
-              <p className="text-gray-500 mt-1">Live data from Moodle — no static content.</p>
-            </div>
-            <div className="flex gap-3">
-              <Link
-                href="/admin/courses"
-                className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-xl font-medium hover:bg-gray-50 transition-colors shadow-sm"
-              >
-                <PlusCircle className="w-4 h-4" /> Add Course
-              </Link>
-              <Link
-                href="/admin/exams"
-                className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2.5 rounded-xl font-medium hover:bg-purple-700 transition-colors shadow-sm"
-              >
-                <FileQuestion className="w-4 h-4" /> Add Exam
-              </Link>
-            </div>
-          </header>
-
-          {/* API Error Banner */}
-          {statsError && (
-            <div className="mb-8 bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-3 text-amber-800">
-              <ShieldAlert className="w-5 h-5 shrink-0" />
-              <div>
-                <p className="font-medium text-sm">Could not load live stats from Moodle.</p>
-                <p className="text-xs mt-0.5">Make sure the plugin is updated and the <code>local_skillsaint_get_admin_dashboard_stats</code> function is registered.</p>
+            {/* Header Section */}
+            <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+              <div className="animate-in slide-in-from-left duration-700">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-1 rounded-full bg-purple-600" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-600">Operations Control</span>
+                </div>
+                <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight leading-none mb-4">
+                  IBI <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">Terminal</span>
+                </h1>
+                <p className="text-gray-400 font-medium max-w-md text-sm">
+                  Strategic management for the International Bible Institute.
+                </p>
               </div>
-            </div>
-          )}
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-            <StatCard
-              label="Total Students"
-              value={totalStudents}
-              sub={`↑ +${newThisMonth} this month`}
-              subColor="text-green-600"
-              icon={<Users className="w-6 h-6" />}
-              iconBg="bg-blue-50 text-blue-600"
-            />
-            <StatCard
-              label="Active Courses"
-              value={activeCourses}
-              sub="Live in Moodle"
-              subColor="text-gray-500"
-              icon={<BookOpen className="w-6 h-6" />}
-              iconBg="bg-purple-50 text-purple-600"
-            />
-            <StatCard
-              label="Paid Enrollments"
-              value={totalPaid}
-              sub={`+${newThisMonth} this month`}
-              subColor="text-green-600"
-              icon={<TrendingUp className="w-6 h-6" />}
-              iconBg="bg-emerald-50 text-emerald-600"
-            />
-            <StatCard
-              label="Exams / Quizzes"
-              value={totalQuizzes}
-              sub="Configured in Moodle"
-              subColor="text-orange-600"
-              icon={<FileQuestion className="w-6 h-6" />}
-              iconBg="bg-orange-50 text-orange-600"
-            />
-          </div>
-
-          {/* Recent Students Table */}
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden mb-8">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-900">Recent Students</h2>
-              <Link href="/admin/students" className="text-purple-600 text-sm font-medium hover:text-purple-700">
-                View All
-              </Link>
-            </div>
-
-            {recentStudents.length === 0 ? (
-              <div className="p-12 text-center text-gray-400">
-                <Users className="w-10 h-10 mx-auto mb-3 opacity-40" />
-                <p className="text-sm">No students registered yet.</p>
+              
+              <div className="flex gap-4 animate-in fade-in duration-1000 delay-300">
+                <Link
+                  href="/admin/courses"
+                  className="group flex items-center gap-3 bg-white border-2 border-gray-900 text-gray-900 px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-gray-900 hover:text-white transition-all duration-300 shadow-xl shadow-gray-100"
+                >
+                  <PlusCircle className="w-4 h-4" /> Add Course
+                </Link>
+                <Link
+                  href="/admin/exams"
+                  className="group flex items-center gap-3 bg-purple-600 text-white px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-purple-700 transition-all duration-300 shadow-xl shadow-purple-200 hover:-translate-y-1 active:translate-y-0"
+                >
+                  <FileQuestion className="w-4 h-4 group-hover:rotate-12 transition-transform" /> Add Exam
+                </Link>
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-gray-50 text-gray-600 text-sm border-b border-gray-200">
-                      <th className="p-4 font-medium">Name</th>
-                      <th className="p-4 font-medium">Email</th>
-                      <th className="p-4 font-medium">Plan</th>
-                      <th className="p-4 font-medium">Courses</th>
-                      <th className="p-4 font-medium">Payment</th>
-                      <th className="p-4 font-medium">Activated</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {recentStudents.map((student: Student) => (
+            </header>
 
-                      <tr key={student.id} className="hover:bg-gray-50/50 transition-colors">
-                        <td className="p-4 font-medium text-gray-900">{student.name || "—"}</td>
-                        <td className="p-4 text-gray-500 text-sm">{student.email}</td>
-                        <td className="p-4">
-                          <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${
-                            student.plan === "executive"
-                              ? "bg-purple-100 text-purple-700"
-                              : student.plan === "premium"
-                              ? "bg-blue-100 text-blue-700"
-                              : student.plan === "N/A"
-                              ? "bg-gray-100 text-gray-500"
-                              : "bg-green-100 text-green-700"
-                          }`}>
-                            {student.plan === "N/A" ? "Not applied" : student.plan}
-                          </span>
-                        </td>
-                        <td className="p-4 text-center">
-                          <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold">
-                            {student.enrolled_count}
-                          </span>
-                        </td>
-                        <td className="p-4">
-                          {student.payment_status === "paid" ? (
-                            <span className="inline-flex items-center gap-1 text-green-600 text-xs font-semibold">
-                              <CheckCircle className="w-4 h-4" /> Paid
-                            </span>
-                          ) : student.payment_status === "pending" ? (
-                            <span className="inline-flex items-center gap-1 text-yellow-600 text-xs font-semibold">
-                              <Clock className="w-4 h-4" /> Pending
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-gray-400 text-xs font-semibold">
-                              <XCircle className="w-4 h-4" /> N/A
-                            </span>
-                          )}
-                        </td>
-                        <td className="p-4">
-                          {student.is_activated ? (
-                            <span className="inline-flex items-center gap-1 text-green-600 text-xs font-semibold">
-                              <ShieldCheck className="w-4 h-4" /> Active
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-red-500 text-xs font-semibold">
-                              <ShieldAlert className="w-4 h-4" /> Locked
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            {/* API Error Banner - Premium Style */}
+            {statsError && (
+              <div className="mb-12 bg-orange-50/50 border border-orange-100 rounded-[2.5rem] p-8 flex items-center gap-6 text-orange-800 animate-in zoom-in duration-500">
+                <div className="w-16 h-16 rounded-3xl bg-white flex items-center justify-center shadow-sm text-orange-500">
+                  <ShieldAlert className="w-8 h-8" />
+                </div>
+                <div>
+                  <p className="font-black text-lg tracking-tight">Moodle Synchronization Issue</p>
+                  <p className="text-sm opacity-70">The system cannot reach the specialized Moodle Plugin functions. Please verify your token and plugin installation.</p>
+                </div>
               </div>
             )}
-          </div>
 
-          {/* Exam CTA Banner */}
-          <div className="bg-indigo-50 border border-indigo-100 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Comprehensive Exam System</h3>
-              <p className="text-indigo-800 text-sm max-w-xl">
-                Create and manage multiple-choice exams for your Christian courses. Build fair assessments that evaluate student comprehension of Scripture and theology.
-              </p>
+            {/* Stats Dashboard Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16 animate-in fade-in duration-1000 slide-in-from-bottom-5">
+              <StatCard
+                label="Registered Students"
+                value={totalStudents}
+                sub={`↑ +${newThisMonth} new arrivals`}
+                subColor="text-emerald-600"
+                icon={<Users className="w-8 h-8" />}
+                iconBg="bg-blue-50 text-blue-600"
+                hoverColor="hover:shadow-blue-500/5 hover:border-blue-100"
+              />
+              <StatCard
+                label="Masterclasses"
+                value={activeCourses}
+                sub="Live in Catalog"
+                subColor="text-gray-400"
+                icon={<BookOpen className="w-8 h-8" />}
+                iconBg="bg-purple-50 text-purple-600"
+                hoverColor="hover:shadow-purple-500/5 hover:border-purple-100"
+              />
+              <StatCard
+                label="Enrollments"
+                value={totalPaid}
+                sub={`Growth +${newThisMonth}%`}
+                subColor="text-emerald-600"
+                icon={<TrendingUp className="w-8 h-8" />}
+                iconBg="bg-emerald-50 text-emerald-600"
+                hoverColor="hover:shadow-emerald-500/5 hover:border-emerald-100"
+              />
+              <StatCard
+                label="Assessments"
+                value={totalQuizzes}
+                sub="Active Exams"
+                subColor="text-orange-600"
+                icon={<FileQuestion className="w-8 h-8" />}
+                iconBg="bg-orange-50 text-orange-600"
+                hoverColor="hover:shadow-orange-500/5 hover:border-orange-100"
+              />
             </div>
-            <Link
-              href="/admin/exams"
-              className="shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors shadow-sm"
-            >
-              Create Assessment
-            </Link>
-          </div>
 
+            {/* Main Data Section */}
+            <div className="bg-white rounded-[3rem] shadow-sm border border-gray-100 overflow-hidden mb-20 animate-in fade-in duration-1000 delay-500">
+              <div className="p-10 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
+                <div>
+                  <h2 className="text-2xl font-black text-gray-900 tracking-tight">Recent <span className="text-purple-600">Student</span> Activities</h2>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Live Feed</p>
+                </div>
+                <Link href="/admin/students" className="px-6 py-3 bg-white border border-gray-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-purple-600 hover:border-purple-100 transition-all shadow-sm">
+                  Full Archives
+                </Link>
+              </div>
+
+              {recentStudents.length === 0 ? (
+                <div className="p-24 text-center">
+                  <div className="w-20 h-20 rounded-[2rem] bg-gray-50 flex items-center justify-center text-gray-200 mx-auto mb-6">
+                    <Users className="w-10 h-10" />
+                  </div>
+                  <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">Waiting for initial registrations...</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="text-gray-400 font-black text-[10px] uppercase tracking-[0.2em] border-b border-gray-50">
+                        <th className="px-10 py-6">Identity</th>
+                        <th className="px-10 py-6">Experience Plan</th>
+                        <th className="px-10 py-6 text-center">Courses</th>
+                        <th className="px-10 py-6">Payment Status</th>
+                        <th className="px-10 py-6">Access</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {recentStudents.map((student: Student) => (
+                        <tr key={student.id} className="group hover:bg-purple-50/20 transition-all duration-300">
+                          <td className="px-10 py-8">
+                            <div>
+                              <p className="font-black text-gray-900 text-lg group-hover:text-purple-600 transition-colors">{student.name || "Anonymous Master"}</p>
+                              <p className="text-xs font-bold text-gray-400 mt-0.5">{student.email}</p>
+                            </div>
+                          </td>
+                          <td className="px-10 py-8">
+                            <span className={`inline-flex px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest ${
+                              student.plan === "executive"
+                                ? "bg-purple-50 text-purple-600 border border-purple-100"
+                                : student.plan === "premium"
+                                ? "bg-blue-50 text-blue-600 border border-blue-100"
+                                : "bg-gray-50 text-gray-400 border border-gray-100"
+                            }`}>
+                              {student.plan === "N/A" ? "Standard" : student.plan}
+                            </span>
+                          </td>
+                          <td className="px-10 py-8 text-center">
+                            <span className="inline-flex items-center justify-center w-10 h-10 rounded-2xl bg-gray-50 text-gray-900 text-sm font-black group-hover:bg-purple-600 group-hover:text-white transition-all shadow-sm">
+                              {student.enrolled_count}
+                            </span>
+                          </td>
+                          <td className="px-10 py-8">
+                            {student.payment_status === "paid" ? (
+                              <div className="flex items-center gap-2 text-emerald-600">
+                                <CheckCircle className="w-4 h-4" />
+                                <span className="text-[10px] font-black uppercase tracking-widest">Verified</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 text-gray-400">
+                                <Clock className="w-4 h-4" />
+                                <span className="text-[10px] font-black uppercase tracking-widest">Awaiting</span>
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-10 py-8">
+                            {student.is_activated ? (
+                              <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50/50 px-4 py-2 rounded-xl w-fit">
+                                <ShieldCheck className="w-4 h-4" />
+                                <span className="text-[10px] font-black uppercase tracking-widest">Granted</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 text-red-500 bg-red-50/50 px-4 py-2 rounded-xl w-fit">
+                                <ShieldAlert className="w-4 h-4" />
+                                <span className="text-[10px] font-black uppercase tracking-widest">Restricted</span>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+          </div>
         </div>
       </main>
     </div>
   );
 };
 
-// Reusable stat card component
-function StatCard({
-  label,
-  value,
-  sub,
-  subColor,
-  icon,
-  iconBg,
-}: {
+interface StatCardProps {
   label: string;
   value: number;
   sub: string;
   subColor: string;
   icon: React.ReactNode;
   iconBg: string;
-}) {
+  hoverColor: string;
+}
+
+function StatCard({ label, value, sub, subColor, icon, iconBg, hoverColor }: StatCardProps) {
   return (
-    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-      <div className="flex items-center gap-4 mb-4">
-        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${iconBg}`}>
+    <div className={`group bg-white p-10 rounded-[2.5rem] shadow-sm border border-gray-100 transition-all duration-500 ${hoverColor}`}>
+      <div className="flex items-start justify-between mb-8">
+        <div className={`w-16 h-16 rounded-[2rem] flex items-center justify-center shadow-sm transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 ${iconBg}`}>
           {icon}
         </div>
-        <div>
-          <p className="text-sm font-medium text-gray-500">{label}</p>
-          <h3 className="text-2xl font-bold text-gray-900">{value.toLocaleString()}</h3>
+        <div className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-md bg-gray-50 ${subColor}`}>
+          {sub}
         </div>
       </div>
-      <div className={`text-sm font-medium ${subColor}`}>{sub}</div>
+      <div>
+        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">{label}</p>
+        <h3 className="text-4xl font-black text-gray-900 tracking-tight leading-none">
+          {value.toLocaleString()}
+        </h3>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Camera, Mail, MapPin, Calendar, BookOpen, Award } from "lucide-react";
+import { Camera, Mail, MapPin, Calendar, BookOpen, Award, CheckCircle, Save, Edit3, User } from "lucide-react";
 import StudentSidebar from "@/components/dashboard/StudentSidebar";
 import Image from "next/image";
 import { getProfileDataAction, updateProfileDataAction } from "@/lib/actions";
@@ -18,7 +18,6 @@ const ProfilePage = () => {
     examsPassed: 0,
     firstaccess: Date.now() / 1000
   });
-
 
   const [isSaving, setIsSaving] = useState(false);
   const [userProfileUrl, setUserProfileUrl] = useState<string | null>(null);
@@ -64,7 +63,7 @@ const ProfilePage = () => {
         bio: formData.bio
       });
       if (result && result.error) {
-        alert("Erreur lors de la mise à jour : " + result.error);
+        alert("Error while updating profile: " + result.error);
       } else {
         setIsEditing(false);
       }
@@ -76,173 +75,222 @@ const ProfilePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-white flex flex-col md:flex-row relative">
       <StudentSidebar />
 
-      <main className="flex-1 p-6 md:p-8 lg:p-10 pb-20 md:pb-20 lg:pb-20">
-        <div className="max-w-4xl mx-auto">
-          <header className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
-            <p className="text-secondary mt-1">Manage your personal information.</p>
-          </header>
-
-          {/* Profile Header Card */}
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden mb-8">
-            <div className="h-32 bg-gradient-to-r from-purple-500 to-indigo-600 relative"></div>
-            <div className="px-8 pb-8">
-              <div className="flex flex-col sm:flex-row items-start sm:items-end gap-6 -mt-12">
-                <div className="relative">
-                  <div className="w-24 h-24 rounded-2xl overflow-hidden border-4 border-white shadow-lg bg-gray-100 flex items-center justify-center">
-                    {userProfileUrl ? (
-                      <Image
-                        width={96}
-                        height={96}
-                        src={userProfileUrl}
-                        alt={formData.name}
-                        className="w-full h-full object-cover"
-                        unoptimized
-                      />
-                    ) : (
-                      <span className="text-3xl text-gray-400 font-bold">{formData.name.charAt(0)}</span>
-                    )}
-                  </div>
-                  <button className="absolute -bottom-1 -right-1 w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center hover:bg-purple-700 transition-colors shadow-sm">
-                    <Camera className="w-4 h-4" />
-                  </button>
-                </div>
-                <div className="flex-1 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-1">
+      <main className="flex-1 min-h-screen">
+        <div className="pt-24 md:pt-0 p-6 md:p-10 lg:p-12">
+          <div className="max-w-4xl mx-auto space-y-10">
+            
+            {/* Header Section */}
+            <header className="animate-in slide-in-from-left duration-700">
+               <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-1 rounded-full bg-purple-600" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-600">Identity</span>
+               </div>
+               <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900">{formData.name}</h2>
-                    <p className="text-gray-500 text-sm mt-0.5">
-                      Student
+                    <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight leading-none mb-4">
+                      My <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">Profile</span>
+                    </h1>
+                    <p className="text-gray-400 font-medium max-w-xl text-sm">
+                      Personalize your identity and academic presence in the IBI community.
                     </p>
                   </div>
-                   <button
+                  <button
                     onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
                     disabled={isSaving}
-                    className={`px-5 py-2.5 rounded-xl font-medium text-sm transition-colors ${
-                      isEditing
-                        ? "bg-green-600 text-white hover:bg-green-700 disabled:bg-green-400"
-                        : "bg-purple-50 text-purple-700 hover:bg-purple-100"
-                    } flex items-center gap-2`}
+                    className={`group flex items-center gap-3 px-8 py-4 rounded-3xl font-black uppercase tracking-widest text-[10px] shadow-xl transition-all duration-300 ${isEditing ? "bg-emerald-600 text-white shadow-emerald-100" : "bg-gray-900 text-white shadow-gray-200"}`}
                   >
-                    {isEditing ? (isSaving ? "Saving..." : "Save Changes") : "Edit Profile"}
+                    {isEditing ? (isSaving ? <span className="animate-pulse">Saving...</span> : <><Save size={16} /> Finish Editing</>) : <><Edit3 size={16} /> Update Info</>}
                   </button>
-                </div>
-              </div>
+               </div>
+            </header>
+
+            {/* Profile Hero Card */}
+            <div className="relative animate-in fade-in duration-1000 slide-in-from-bottom-5">
+               <div className="h-48 md:h-64 bg-gradient-to-br from-purple-600 to-indigo-700 rounded-[3rem] shadow-2xl overflow-hidden relative">
+                  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20" />
+                  <div className="absolute -right-20 -top-20 w-80 h-80 bg-white/10 rounded-full blur-3xl" />
+                  <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl" />
+               </div>
+               
+               <div className="px-10 -mt-20 relative z-10 flex flex-col md:flex-row items-end gap-8 pb-4">
+                  <div className="relative group">
+                    <div className="w-40 h-40 rounded-[2.5rem] overflow-hidden border-8 border-white bg-gray-50 shadow-2xl flex items-center justify-center transition-transform duration-500 group-hover:scale-[1.02]">
+                       {userProfileUrl ? (
+                         <Image width={160} height={160} src={userProfileUrl} alt={formData.name} className="w-full h-full object-cover" unoptimized />
+                       ) : (
+                         <div className="text-5xl font-black text-gray-200 uppercase">{formData.name.charAt(0)}</div>
+                       )}
+                    </div>
+                    <button className="absolute bottom-2 right-2 w-12 h-12 bg-white border border-gray-100 text-purple-600 rounded-2xl flex items-center justify-center shadow-xl hover:bg-purple-600 hover:text-white transition-all transform hover:rotate-6">
+                       <Camera size={20} />
+                    </button>
+                  </div>
+
+                  <div className="flex-1 pt-2">
+                     <div className="flex items-center gap-3 mb-2">
+                        <h2 className="text-3xl font-black text-gray-900 tracking-tight leading-none">{formData.name}</h2>
+                        <div className="bg-emerald-50 text-emerald-600 p-1.5 rounded-full">
+                           <CheckCircle size={14} />
+                        </div>
+                     </div>
+                     <div className="flex flex-wrap items-center gap-6 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                        <div className="flex items-center gap-2">
+                           <Mail size={12} className="text-purple-500" />
+                           {formData.email}
+                        </div>
+                        <div className="flex items-center gap-2">
+                           <Calendar size={12} className="text-purple-500" />
+                           Enrolled {new Date(stats.firstaccess * 1000).toLocaleDateString("en-US", { month: 'short', year: 'numeric' })}
+                        </div>
+                     </div>
+                  </div>
+               </div>
             </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+               
+               {/* Information Forms */}
+               <div className="lg:col-span-2 space-y-8 animate-in fade-in duration-1000 delay-300">
+                  <section className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-10 space-y-10">
+                    <div className="flex items-center gap-4 border-b border-gray-50 pb-6">
+                       <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-900">
+                          <User size={18} />
+                       </div>
+                       <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">Personal Information</h3>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                       <Field 
+                          label="Full Display Name" 
+                          name="name" 
+                          value={formData.name} 
+                          isEditing={isEditing} 
+                          onChange={handleChange} 
+                          className="md:col-span-1"
+                       />
+                       <Field 
+                          label="Student Email" 
+                          name="email" 
+                          value={formData.email} 
+                          type="email" 
+                          isEditing={isEditing} 
+                          onChange={handleChange} 
+                          className="md:col-span-1"
+                          disabled
+                       />
+                       <Field 
+                          label="Primary Address" 
+                          name="address" 
+                          value={formData.address} 
+                          isEditing={isEditing} 
+                          onChange={handleChange} 
+                          className="md:col-span-2"
+                       />
+                       <div className="md:col-span-2 space-y-4">
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-1">Personal Bio / Philosophy</label>
+                          {isEditing ? (
+                             <textarea
+                                name="bio"
+                                value={formData.bio}
+                                onChange={handleChange}
+                                rows={4}
+                                className="w-full px-6 py-4 bg-gray-50 border border-transparent rounded-[1.5rem] text-sm font-medium focus:ring-4 focus:ring-purple-50 focus:bg-white outline-none resize-none transition-all"
+                             />
+                          ) : (
+                             <div className="p-8 bg-purple-50 rounded-[2rem] border-2 border-dashed border-purple-100">
+                                <p className="text-sm font-medium text-purple-900 leading-relaxed italic opacity-80 decoration-purple-200">&quot;{formData.bio}&quot;</p>
+                             </div>
+                          )}
+                       </div>
+                    </div>
+                  </section>
+               </div>
+
+               {/* Stats Sidebar */}
+               <div className="space-y-6 animate-in fade-in duration-1000 delay-500">
+                  <div className="bg-gray-900 rounded-[2.5rem] border border-gray-900 p-8 text-white shadow-2xl shadow-gray-200 overflow-hidden relative">
+                     <div className="relative z-10 flex flex-col items-center text-center">
+                        <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center mb-6">
+                           <Award size={28} className="text-purple-400" />
+                        </div>
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-purple-400 mb-8">Academic Standing</h4>
+                        
+                        <div className="grid grid-cols-1 w-full gap-6">
+                           <StatItem icon={<BookOpen size={16} />} label="Enrolled Units" value={stats.enrolledCoursesCount} />
+                           <StatItem icon={<MapPin size={16} />} label="Location" value={formData.address === "Not specified" ? "Remote Student" : formData.address} />
+                           <StatItem icon={<Award size={16} />} label="Assessments" value={`${stats.examsPassed} Passed`} />
+                        </div>
+                     </div>
+                     {/* Decorative background circle */}
+                     <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-purple-600/20 rounded-full blur-[60px]" />
+                  </div>
+
+                  <div className="p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100 flex flex-col items-center text-center">
+                     <p className="text-[9px] font-black text-gray-300 uppercase tracking-[0.2em] mb-4">Account Integrity</p>
+                     <p className="text-xs font-semibold text-gray-500 mb-6 leading-relaxed">Your data is synced with the International Bible Institute central registry.</p>
+                     <button className="text-[10px] font-black text-purple-600 uppercase tracking-widest hover:scale-105 transition-transform">Privacy Settings →</button>
+                  </div>
+               </div>
+
+            </div>
+
           </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left: Info */}
-            <div className="lg:col-span-2 space-y-8">
-              {/* Personal Info */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-6">Personal Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500 mb-2">Full Name</label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400"
-                      />
-                    ) : (
-                      <p className="text-gray-900 font-medium">{formData.name}</p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500 mb-2">Email Address</label>
-                    {isEditing ? (
-                      <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400"
-                      />
-                    ) : (
-                      <p className="text-gray-900 font-medium flex items-center gap-2"><Mail className="w-4 h-4 text-gray-400" />{formData.email}</p>
-                    )}
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-500 mb-2">Address</label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        name="address"
-                        value={formData.address}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400"
-                      />
-                    ) : (
-                      <p className="text-gray-900 font-medium flex items-center gap-2"><MapPin className="w-4 h-4 text-gray-400" />{formData.address}</p>
-                    )}
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-500 mb-2">Bio</label>
-                    {isEditing ? (
-                      <textarea
-                        name="bio"
-                        value={formData.bio}
-                        onChange={handleChange}
-                        rows={3}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400 resize-none"
-                      />
-                    ) : (
-                      <p className="text-gray-700 text-sm leading-relaxed">{formData.bio}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right: Quick Stats */}
-            <div className="space-y-6">
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Stats</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
-                      <BookOpen className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Enrolled Courses</p>
-                      <p className="font-bold text-gray-900">{stats.enrolledCoursesCount}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-green-600">
-                      <Award className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Exams Passed</p>
-                      <p className="font-bold text-gray-900">{stats.examsPassed}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
-                      <Calendar className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Member Since</p>
-                      <p className="font-bold text-gray-900">
-                        {new Date(stats.firstaccess * 1000).toLocaleDateString("en-US", { year: "numeric", month: "short" })}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
         </div>
       </main>
     </div>
   );
 };
+
+interface FieldProps {
+  label: string;
+  name: string;
+  value: string;
+  type?: string;
+  isEditing: boolean;
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  className?: string;
+  disabled?: boolean;
+}
+
+const Field = ({ label, name, value, type = "text", isEditing, onChange, className = "", disabled = false }: FieldProps) => (
+  <div className={`space-y-4 ${className}`}>
+    <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-1">{label}</label>
+    {isEditing ? (
+      <input
+        type={type}
+        name={name}
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+        className={`w-full px-6 py-4 bg-gray-50 border border-transparent rounded-2xl text-sm font-medium focus:ring-4 focus:ring-purple-50 focus:bg-white outline-none transition-all ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+      />
+    ) : (
+      <div className="px-6 py-4 bg-white border border-gray-50 rounded-2xl text-sm font-black text-gray-900 shadow-sm flex items-center justify-between">
+         {value}
+      </div>
+    )}
+  </div>
+);
+
+interface StatItemProps {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+}
+
+const StatItem = ({ icon, label, value }: StatItemProps) => (
+  <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 text-left">
+     <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-purple-400">
+        {icon}
+     </div>
+     <div className="flex-1">
+        <p className="text-[8px] font-black text-white/40 uppercase tracking-widest">{label}</p>
+        <p className="text-sm font-black text-white">{value}</p>
+     </div>
+  </div>
+);
 
 export default ProfilePage;

@@ -5,7 +5,25 @@ const MOODLE_TOKEN = process.env.MOODLE_TOKEN;
  * Fonction de base pour appeler les Web Services de Moodle.
  */
 export async function fetchMoodle(wsFunction: string, params: Record<string, unknown> = {}, userToken?: string) {
+  // Si on est côté client (navigateur), on passe par notre proxy API
+  if (typeof window !== 'undefined') {
+    try {
+      const response = await fetch('/api/moodle', {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ function: wsFunction, params }),
+      });
+      if (!response.ok) return null;
+      return await response.json();
+    } catch (error) {
+      console.error("Client Moodle Fetch Error:", error);
+      return null;
+    }
+  }
 
+  // Logique serveur (existante)
   const token = userToken || MOODLE_TOKEN;
   if (!MOODLE_URL || !token) {
     return null;
@@ -44,7 +62,12 @@ export async function fetchMoodle(wsFunction: string, params: Record<string, unk
   flattenParams(params);
 
   try {
-    const response = await fetch(`${MOODLE_URL}/webservice/rest/server.php?${query.toString()}`, {
+    const response = await fetch(`${MOODLE_URL}/webservice/rest/server.php`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: query.toString(),
       next: { revalidate: 0 },
     });
     
@@ -433,4 +456,38 @@ export function processMoodleHtml(html: string): string {
   }
 
   return processedHtml;
+}
+
+/**
+ * Récupère tous les examens (quiz) avec les métadonnées IBI.
+ */
+export async function getExamsFull() {
+  return await fetchMoodle('local_skillsaint_get_exams');
+}
+
+/**
+ * Crée une question QCM de manière programmatique dans un quiz Moodle.
+ */
+export async function createQuestion(params: {
+  courseid: number,
+  quizid: number,
+  name: string,
+  text: string,
+  answers: Array<{ text: string, fraction: number }>
+}) {
+  return await fetchMoodle('local_skillsaint_create_question', params);
+}
+
+/**
+ * Initialise un nouvel examen (Quiz) dans un cours Moodle.
+ */
+export async function initExam(courseId: number, name: string = "Final Assessment") {
+  return await fetchMoodle('local_skillsaint_init_exam', { courseid: courseId, name });
+}
+
+/**
+ * Récupère toutes les questions d'un quiz Moodle.
+ */
+export async function getQuizQuestions(quizId: number) {
+  return await fetchMoodle('local_skillsaint_get_quiz_questions', { quizid: quizId });
 }

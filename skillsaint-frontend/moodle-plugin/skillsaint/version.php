@@ -2,7 +2,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_skillsaint';
-$plugin->version   = 2024040121; // Incremented to register new WS parameters
+$plugin->version   = 2024041040; // Add student dashboard API
 $plugin->requires  = 2020041300;
-$plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '1.19';
+$plugin->maturity  = 200; // MATURITY_STABLE
+$plugin->release   = '1.28';

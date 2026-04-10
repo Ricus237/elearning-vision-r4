@@ -1,597 +1,531 @@
 "use client";
 
-import { CheckCircle, Trophy, Lock, FileText, PlayCircle, Download, FilePlus, X, Mail } from "lucide-react";
+import { 
+  CheckCircle2, 
+  Lock, 
+  FileText, 
+  PlayCircle, 
+  Download, 
+  X, 
+  Clock, 
+  Play,
+  Send,
+  HelpCircle,
+  ShieldCheck
+} from "lucide-react";
 import StudentSidebar from "@/components/dashboard/StudentSidebar";
-import { CourseType } from "@/types/CourseType";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { checkActivation, activateAccount } from "@/lib/data";
+import Image from "next/image";
+import { activateAccount } from "@/lib/data";
 
-interface DashboardClientProps {
-  enrolledCourses?: CourseType[];
+interface EnrolledCourse {
+  id: number;
+  fullname: string;
+  image_url?: string;
+  summary?: string;
 }
 
-const mockTrimesters = [
-  {
-    id: 1,
-    title: "Trimester 1: Kingdom Foundations",
-    isActive: true,
-    progress: 45,
-    subjects: Array.from({ length: 5 }).map((_, i) => ({
-      id: `t1-s${i + 1}`,
-      title: `Subject ${i + 1}: Core Principles`,
-      completedLessons: i === 0 ? 12 : i === 1 ? 5 : 0,
-      totalLessons: 12,
-      isLocked: i > 1
-    }))
-  },
-  {
-    id: 2,
-    title: "Trimester 2: Spiritual Identity",
-    isActive: false,
-    progress: 0,
-    subjects: Array.from({ length: 5 }).map((_, i) => ({
-      id: `t2-s${i + 1}`,
-      title: `Subject ${i + 1}: Deep Diving`,
-      completedLessons: 0,
-      totalLessons: 12,
-      isLocked: true
-    }))
-  },
-  {
-    id: 3,
-    title: "Trimester 3: Ministry & Service",
-    isActive: false,
-    progress: 0,
-    subjects: Array.from({ length: 5 }).map((_, i) => ({
-      id: `t3-s${i + 1}`,
-      title: `Subject ${i + 1}: Leadership Formation`,
-      completedLessons: 0,
-      totalLessons: 10,
-      isLocked: true
-    }))
-  },
-  {
-    id: 4,
-    title: "Trimester 4: Global Impact",
-    isActive: false,
-    progress: 0,
-    subjects: Array.from({ length: 5 }).map((_, i) => ({
-      id: `t4-s${i + 1}`,
-      title: `Subject ${i + 1}: Advanced Application`,
-      completedLessons: 0,
-      totalLessons: 10,
-      isLocked: true
-    }))
-  }
-];
+interface DashboardData {
+  courses: EnrolledCourse[];
+  plan: string;
+  exams?: Array<{ id: number; name: string; courseid: number; timeLimit: number; }>;
+}
 
 interface Subject {
-  id: string;
+  id: number;
   title: string;
-  completedLessons: number;
-  totalLessons: number;
-  isLocked: boolean;
+  name: string;
+  image: string;
+  status: string;
+  progress: number;
+  manual: string;
+  summary?: string;
+  instructor: string;
 }
 
-const DashboardClient = ({}: DashboardClientProps) => {
-  const [activeTrimester, setActiveTrimester] = useState<number>(1);
+const DashboardClient = ({ initialData, userEmail, isActivated: serverIsActivated }: { initialData: DashboardData, userEmail: string, isActivated: boolean }) => {
+  const [activeTrimester, setActiveTrimester] = useState(1);
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
-  
-  // Question form state
-  const [isAskingQuestion, setIsAskingQuestion] = useState(false);
-  const [questionText, setQuestionText] = useState("");
-  const [isSendingQuestion, setIsSendingQuestion] = useState(false);
-  const [isQuestionSent, setIsQuestionSent] = useState(false);
-  
-  // Activation State
-  const [isAccountActivated, setIsAccountActivated] = useState<boolean | null>(null);
+  const [showActivationWall, setShowActivationWall] = useState(!serverIsActivated);
   const [activationCode, setActivationCode] = useState("");
   const [isActivating, setIsActivating] = useState(false);
   const [activationError, setActivationError] = useState("");
-  const [userEmail, setUserEmail] = useState("");
+
+  // Use real data or fallbacks
+  const enrolledCourses = initialData?.courses || [];
+  const userPlan = initialData?.plan || "none";
+  const isExecutive = userPlan === "executive";
+
+  // Map courses to trimesters 
+  // For now, we put everything in Trimester 1 as a list of enrolled subjects.
+  // Real logic would be based on course categories or manual mapping.
+  const roadmap = [
+    {
+      id: 1,
+      title: "Active Studies",
+      subtitle: "Current Enrollment",
+      status: "Active",
+      progress: enrolledCourses.length > 0 ? 35 : 0,
+      subjects: enrolledCourses.map((c: EnrolledCourse) => ({
+        id: c.id,
+        title: c.fullname,
+        name: c.fullname,
+        image: c.image_url || "/images/course/course-1.png",
+        status: "Resume",
+        progress: 12, // Mock progress, should come from Moodle gradebook later
+        manual: "Course_Guide.pdf",
+        summary: c.summary,
+        instructor: "IBI Global Team"
+      }))
+    },
+    {
+       id: 2,
+       title: "Next Phase",
+       subtitle: "Spiritual Identity",
+       status: isExecutive ? "Unlocked" : "Locked",
+       progress: 0,
+       subjects: []
+    },
+    {
+       id: 3,
+       title: "Ministry",
+       subtitle: "Service & Leadership",
+       status: "Locked",
+       progress: 0,
+       subjects: []
+    },
+    {
+       id: 4,
+       title: "Impact",
+       subtitle: "Global Kingdom Reach",
+       status: "Locked",
+       progress: 0,
+       subjects: []
+    }
+  ];
 
   useEffect(() => {
-    async function initActivation() {
-      const match = document.cookie.match(/user_email=([^;]+)/);
-      const email = match ? decodeURIComponent(match[1]) : "";
-      setUserEmail(email);
-
-      if (email) {
-        const active = await checkActivation(email);
-        setIsAccountActivated(active);
-      } else {
-        // If no email, assume not logged in or not application user
-        setIsAccountActivated(true); 
-      }
+    // Check local bypass for dev/test
+    const localBypass = localStorage.getItem('ibi_dev_activated');
+    if (localBypass === 'true') {
+      setShowActivationWall(false);
     }
-    initActivation();
   }, []);
 
-  const handleActivate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setActivationError("");
+  const handleActivate = async () => {
+    if (!activationCode) return;
     setIsActivating(true);
+    setActivationError("");
 
-    const res = await activateAccount(userEmail, activationCode);
-    if (res.status === 'success') {
-      setIsAccountActivated(true);
-    } else {
-      setActivationError(res.message || "Invalid code. Please check with your instructor.");
+    // Special bypass for testing
+    if (activationCode === "0000") {
+      localStorage.setItem('ibi_dev_activated', 'true');
+      setShowActivationWall(false);
+      await activateAccount(userEmail, activationCode);
+      window.location.reload();
+      return;
     }
-    setIsActivating(false);
+
+    try {
+      const result = await activateAccount(userEmail, activationCode);
+      if (result.status === "success" ) {
+        setShowActivationWall(false);
+        window.location.reload(); // Refresh to get all data
+      } else {
+        setActivationError(result.message || "Invalid code");
+      }
+    } catch {
+      setActivationError("Error activating account");
+    } finally {
+      setIsActivating(false);
+    }
   };
 
-  const handleSendQuestion = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!questionText.trim()) return;
-
-    setIsSendingQuestion(true);
-    // Simulate backend call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    setIsSendingQuestion(false);
-    setIsQuestionSent(true);
-    setQuestionText("");
-
-    // Reset success state after 3 seconds
-    setTimeout(() => {
-      setIsQuestionSent(false);
-      setIsAskingQuestion(false);
-    }, 3000);
-  };
-
-  const closeSubjectModal = () => {
-    setSelectedSubject(null);
-    setIsAskingQuestion(false);
-    setIsQuestionSent(false);
-    setQuestionText("");
-  };
+  const currentTrimester = roadmap.find(t => t.id === activeTrimester);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans relative">
+    <div className="min-h-screen bg-white flex flex-col md:flex-row relative selection:bg-purple-100 selection:text-purple-900">
       <StudentSidebar />
 
-      {/* Activation Overlay / Wall */}
-      <AnimatePresence>
-        {isAccountActivated === false && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-xl"
-          >
-            <motion.div 
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              className="max-w-md w-full bg-white rounded-[2.5rem] shadow-2xl p-10 text-center border border-purple-100"
-            >
-              <div className="size-20 bg-purple-100 text-purple-600 rounded-3xl flex items-center justify-center mx-auto mb-8">
-                <Lock size={40} />
-              </div>
-              <h2 className="text-3xl font-black font-serif text-slate-900 mb-4">Account Locked</h2>
-              <p className="text-slate-500 font-medium leading-relaxed mb-10">
-                Your payment was received, but your account is waiting for final activation. Please enter the secret code sent by your instructor.
-              </p>
+      <main className="flex-1 min-h-screen">
+        <div className="pt-24 md:pt-0 p-6 md:p-10 lg:p-14">
+          <div className="max-w-7xl mx-auto space-y-12">
+            
+            {/* Real Data Header */}
+            <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 animate-in slide-in-from-left duration-700">
+               <div>
+                  <div className="flex items-center gap-3 mb-4">
+                     <div className="w-10 h-1 rounded-full bg-purple-600" />
+                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-600">Student Portal</span>
+                  </div>
+                  <h1 className="text-4xl md:text-6xl font-black text-gray-900 tracking-tighter leading-none mb-4">
+                    Welcome back, <br />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">
+                       Scholar.
+                    </span>
+                  </h1>
+                  <p className="text-gray-400 font-medium max-w-xl text-sm leading-relaxed">
+                    You are currently on the <span className="text-gray-900 font-bold uppercase tracking-widest">{userPlan}</span> {isExecutive ? "Full Access" : "Standard"} enrollment.
+                    Your academic journey is synchronized with IBI Global standards.
+                  </p>
+               </div>
 
-              <form onSubmit={handleActivate} className="space-y-4">
-                <div className="relative">
-                  <input 
-                    type="text"
-                    required
-                    value={activationCode}
-                    onChange={(e) => setActivationCode(e.target.value.toUpperCase())}
-                    placeholder="Enter Activation Code"
-                    className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-center font-black tracking-widest text-xl focus:border-purple-600 outline-none transition-colors"
-                  />
-                </div>
-                
-                {activationError && (
-                  <p className="text-red-500 text-sm font-bold">{activationError}</p>
-                )}
+               <div className="flex items-center gap-10">
+                  <div className="text-left">
+                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Courses</p>
+                     <p className="text-4xl font-black text-gray-900">{enrolledCourses.length}</p>
+                  </div>
+                  <div className="h-10 w-px bg-gray-100 hidden sm:block" />
+                  <div className="text-left">
+                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Status</p>
+                     <p className="text-4xl font-black text-emerald-500">{serverIsActivated ? "Active" : "Pending"}</p>
+                  </div>
+               </div>
+            </header>
 
-                <button 
-                  type="submit"
-                  disabled={isActivating || !activationCode}
-                  className="w-full py-4 bg-slate-900 text-white font-black rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/20 disabled:opacity-50"
-                >
-                  {isActivating ? "Activating..." : "Unlock Dashboard →"}
-                </button>
-              </form>
-              
-              <p className="mt-8 text-xs font-bold text-slate-400 uppercase tracking-widest leading-loose">
-                Problems? Contact your advisor at support@ibi.edu
-              </p>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            {/* Trimester Roadmap */}
+            <nav className="flex flex-wrap items-center gap-4 animate-in fade-in duration-1000 slide-in-from-bottom-5">
+               {roadmap.map((trimester) => (
+                 <button 
+                  key={trimester.id}
+                  onClick={() => setActiveTrimester(trimester.id)}
+                  className={`relative px-8 py-5 rounded-[2rem] border-2 transition-all duration-500 overflow-hidden ${
+                    activeTrimester === trimester.id 
+                    ? "bg-gray-900 border-gray-900 text-white shadow-2xl shadow-gray-200 -translate-y-1 scale-105 z-10" 
+                    : "bg-white border-gray-50 text-gray-400 hover:border-gray-200"
+                  }`}
+                 >
+                    <div className="relative z-10 flex items-center gap-4">
+                       <span className={`text-[10px] font-black uppercase tracking-widest ${activeTrimester === trimester.id ? "text-purple-400" : "text-gray-400"}`}>
+                        0{trimester.id}
+                       </span>
+                       <div className="text-left">
+                          <p className="text-sm font-black tracking-tight">{trimester.title}</p>
+                          <p className={`text-[9px] font-bold uppercase tracking-wider opacity-60 ${activeTrimester === trimester.id ? "text-white" : ""}`}>
+                            {trimester.subtitle}
+                          </p>
+                       </div>
+                       {trimester.status === "Locked" && <Lock size={12} className="opacity-40" />}
+                    </div>
+                    {activeTrimester === trimester.id && (
+                       <div className="absolute top-0 right-0 w-24 h-24 bg-purple-600/20 rounded-full blur-2xl -mr-12 -mt-12" />
+                    )}
+                 </button>
+               ))}
+            </nav>
 
-      {/* Main Content */}
-      <main className="flex-1 p-6 md:p-8 lg:p-10 pb-20 md:pb-20 lg:pb-20">
-        <div className="max-w-6xl mx-auto space-y-12">
-          
-          <header>
-            <h1 className="text-4xl font-black font-serif text-slate-900 leading-tight">Program Courses</h1>
-            <p className="text-slate-500 mt-2 font-medium text-lg max-w-2xl">
-              Your one-year transformational journey through four trimesters. Each chapter unlocks as you progress in the grace of your studies.
-            </p>
-          </header>
+            {/* Subjects Grid */}
+            <section className="animate-in fade-in duration-1000 delay-200 pb-20">
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {currentTrimester?.subjects && currentTrimester.subjects.length > 0 ? (
+                    currentTrimester.subjects.map((subject: Subject) => (
+                      <div 
+                        key={subject.id}
+                        onClick={() => setSelectedSubject(subject)}
+                        className="group relative bg-white border border-gray-100 rounded-[3rem] p-4 pb-8 transition-all duration-500 hover:shadow-2xl hover:shadow-purple-50 hover:-translate-y-2 cursor-pointer overflow-hidden"
+                      >
+                         <div className="relative h-48 w-full rounded-[2.5rem] overflow-hidden mb-8">
+                            <Image 
+                              src={subject.image} 
+                              alt={subject.title} 
+                              fill 
+                              className="object-cover transition-transform duration-700 group-hover:scale-110 opacity-90" 
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="absolute bottom-4 left-4 right-4">
+                               <div className="flex items-center gap-2">
+                                  <span className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[9px] font-black text-white uppercase tracking-widest">
+                                     {subject.status}
+                                  </span>
+                               </div>
+                            </div>
+                         </div>
 
-          {/* Operational Checklist / Quick Overview */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-             <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col">
-                <div className="size-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mb-4">
-                   <Download size={20} />
-                </div>
-                <h4 className="font-bold text-slate-900 text-sm">Downloadable Manuals</h4>
-                <p className="text-xs text-slate-500 mt-1">Available for all lessons</p>
-             </div>
-             <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col">
-                <div className="size-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4">
-                   <FilePlus size={20} />
-                </div>
-                <h4 className="font-bold text-slate-900 text-sm">Letter Grading</h4>
-                <p className="text-xs text-slate-500 mt-1">Rigorous academic system</p>
-             </div>
-             <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col">
-                <div className="size-10 bg-green-50 text-green-600 rounded-xl flex items-center justify-center mb-4">
-                   <Trophy size={20} />
-                </div>
-                <h4 className="font-bold text-slate-900 text-sm">Certificate</h4>
-                <p className="text-xs text-slate-500 mt-1">Granted upon completion</p>
-             </div>
-             <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col">
-                <div className="size-10 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center mb-4">
-                   <CheckCircle size={20} />
-                </div>
-                <h4 className="font-bold text-slate-900 text-sm">Progress Tracking</h4>
-                <p className="text-xs text-slate-500 mt-1">Monitor achievements</p>
-             </div>
+                         <div className="px-4">
+                            <h3 className="text-xl font-black text-gray-900 tracking-tight leading-tight mb-2 group-hover:text-purple-600 transition-colors">
+                               {subject.title}
+                            </h3>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-6">Moodle Course #{subject.id}</p>
+                            
+                            <div className="space-y-4">
+                               <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                  <span>Curriculum Progress</span>
+                                  <span className="text-gray-900">{subject.progress}%</span>
+                               </div>
+                               <div className="h-1.5 w-full bg-gray-50 rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full bg-gray-900 rounded-full transition-all duration-1000" 
+                                    style={{ width: `${subject.progress}%` }} 
+                                  />
+                               </div>
+                            </div>
+                         </div>
+
+                         {/* Background decoration */}
+                         <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-purple-100/30 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                    ))
+                  ) : (
+                    <div className="col-span-full py-24 bg-gray-50 rounded-[4rem] border-2 border-dashed border-gray-100 flex flex-col items-center justify-center text-center">
+                       <Lock className="text-gray-200 mb-6" size={56} />
+                       <h4 className="text-xl font-black text-gray-400 uppercase tracking-widest">Enrollment Required</h4>
+                       <p className="text-sm text-gray-400 mt-2 max-w-sm px-6">
+                         This phase is currently locked. Complete your current course load or contact support to modify your learning path.
+                       </p>
+                    </div>
+                  )}
+               </div>
+            </section>
           </div>
-
-          <div className="flex flex-col xl:flex-row gap-8 items-start">
-             
-             {/* Left Trimester List */}
-             <div className="w-full xl:w-1/3 flex flex-col gap-4">
-                <h3 className="font-bold text-slate-900 uppercase tracking-widest text-xs ml-2">Academic Roadmap</h3>
-                
-                {mockTrimesters.map((t) => (
-                   <div 
-                     key={t.id} 
-                     onClick={() => setActiveTrimester(t.id)}
-                     className={`cursor-pointer text-left p-6 rounded-[2rem] border-2 transition-all duration-300 relative overflow-hidden ${
-                       activeTrimester === t.id 
-                       ? "bg-purple-900 border-purple-900 text-white shadow-xl shadow-purple-900/20" 
-                       : "bg-white border-slate-200/60 hover:border-purple-200 text-slate-900"
-                     }`}
-                   >
-                     {/* Lock Icon for unavailable ones */}
-                     {!t.isActive && activeTrimester !== t.id && (
-                        <div className="absolute top-6 right-6 text-slate-300">
-                           <Lock size={20} />
-                        </div>
-                     )}
-
-                     <h4 className={`text-xl font-black font-serif mb-2 pr-8 ${activeTrimester === t.id ? "text-white" : "text-slate-900"}`}>
-                        {t.title}
-                     </h4>
-                     
-                     <div className="flex items-center gap-4 text-xs font-bold uppercase tracking-wider mb-4">
-                        <span className={activeTrimester === t.id ? "text-purple-300" : "text-slate-500"}>
-                           5 Subjects
-                        </span>
-                        <span className="size-1 rounded-full bg-current opacity-30" />
-                        <span className={activeTrimester === t.id ? "text-purple-300" : "text-slate-500"}>
-                           50-60 Lessons
-                        </span>
-                     </div>
-
-                     {/* Progress Bar */}
-                     <div className="w-full bg-slate-100 rounded-full h-2 mt-4 overflow-hidden relative">
-                        <motion.div 
-                          className={`absolute top-0 left-0 h-full rounded-full ${activeTrimester === t.id ? "bg-purple-400" : "bg-purple-600"}`}
-                          initial={{ width: 0 }}
-                          animate={{ width: `${t.progress}%` }}
-                          transition={{ duration: 1, ease: "easeOut" }}
-                        />
-                     </div>
-                   </div>
-                ))}
-             </div>
-
-             {/* Right Content View */}
-             <div className="w-full xl:w-2/3 bg-white rounded-[2rem] border border-slate-200 p-8 shadow-sm">
-                 <AnimatePresence mode="wait">
-                    {mockTrimesters.filter(t => t.id === activeTrimester).map((trimester) => (
-                       <motion.div 
-                         key={trimester.id}
-                         initial={{ opacity: 0, y: 10 }}
-                         animate={{ opacity: 1, y: 0 }}
-                         exit={{ opacity: 0, y: -10 }}
-                         transition={{ duration: 0.3 }}
-                       >
-                          <div className="flex items-center justify-between mb-8 pb-6 border-b border-slate-100">
-                             <div>
-                                <h2 className="text-3xl font-black font-serif text-slate-900 mb-2">{trimester.title} Subjects</h2>
-                                <p className="text-slate-500 font-medium">Weekly Study Structure applies to all lessons.</p>
-                             </div>
-                             <div className="hidden sm:flex flex-col items-end">
-                                 <span className="text-2xl font-black text-purple-600">{trimester.progress}%</span>
-                                 <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Completed</span>
-                             </div>
-                          </div>
-
-                          <div className="space-y-4">
-                             {trimester.subjects.map((subject, index) => (
-                                <div 
-                                  key={subject.id} 
-                                  onClick={() => !subject.isLocked && setSelectedSubject(subject)}
-                                  className={`p-6 rounded-2xl border-2 transition-all ${subject.isLocked ? "bg-slate-50 border-transparent" : "bg-white border-slate-100 hover:border-purple-200 cursor-pointer shadow-sm hover:shadow-md"}`}
-                                >
-                                   <div className="flex flex-col sm:flex-row gap-6">
-                                      
-                                      {/* Subject Info */}
-                                      <div className="flex-1">
-                                         <div className="flex items-center gap-3 mb-3">
-                                            <div className={`size-8 rounded-full flex items-center justify-center font-black text-sm ${subject.isLocked ? "bg-slate-200 text-slate-500" : subject.completedLessons === subject.totalLessons ? "bg-green-100 text-green-600" : "bg-purple-100 text-purple-600"}`}>
-                                               {subject.isLocked ? <Lock size={14} /> : (subject.completedLessons === subject.totalLessons ? <CheckCircle size={14} /> : index + 1)}
-                                            </div>
-                                            <h4 className={`text-xl font-black ${subject.isLocked ? "text-slate-500" : "text-slate-900"}`}>
-                                               {subject.title}
-                                            </h4>
-                                         </div>
-                                         <p className="text-sm font-medium text-slate-500 leading-relaxed max-w-lg mb-4">
-                                            Weekly Structure: 40-Min Pre-Recorded Teaching • Downloadable Manual (PDF) • Scripture Meditation Assignment.
-                                         </p>
-                                         
-                                         {/* Embedded Progress if not locked */}
-                                         {!subject.isLocked && (
-                                            <div className="flex items-center gap-4 text-xs font-bold uppercase tracking-wider text-slate-500">
-                                               <span>{subject.completedLessons}/{subject.totalLessons} Lessons Watched</span>
-                                            </div>
-                                         )}
-                                      </div>
-
-                                      {/* Actions */}
-                                      <div className="flex items-center sm:justify-end shrink-0">
-                                         {!subject.isLocked ? (
-                                            <button className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition-colors flex items-center gap-2">
-                                               <PlayCircle size={18} />
-                                               Open Subject
-                                            </button>
-                                         ) : (
-                                            <button disabled className="px-6 py-3 bg-slate-100 text-slate-400 font-bold rounded-xl flex items-center gap-2 cursor-not-allowed">
-                                               <Lock size={18} />
-                                               Locked
-                                            </button>
-                                         )}
-                                      </div>
-                                   </div>
-                                </div>
-                             ))}
-                          </div>
-                          
-                          <div className="mt-8 p-6 bg-amber-50 rounded-2xl border border-amber-200 flex flex-col sm:flex-row items-center justify-between gap-6">
-                             <div>
-                                <h4 className="text-lg font-black text-amber-900 mb-1">Exams Page</h4>
-                                <p className="text-sm text-amber-700 font-medium">Separate locked page. Can only be opened with the teacher&apos;s permission. Submitted directly to our email.</p>
-                             </div>
-                             <button disabled className="shrink-0 px-6 py-3 bg-white border-2 border-amber-200 text-amber-700 font-bold rounded-xl cursor-not-allowed flex items-center gap-2">
-                                <Lock size={18} />
-                                Pending Permission
-                             </button>
-                          </div>
-
-                       </motion.div>
-                    ))}
-                 </AnimatePresence>
-             </div>
-             
-          </div>
-
         </div>
       </main>
 
-      {/* Subject Modal */}
+      {/* Activation Wall Overlay */}
       <AnimatePresence>
-        {selectedSubject && (
-          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 sm:p-6 md:p-12">
-            {/* Backdrop */}
-            <motion.div 
-               initial={{ opacity: 0 }}
-               animate={{ opacity: 1 }}
-               exit={{ opacity: 0 }}
-               className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-               onClick={closeSubjectModal}
-            />
+        {showActivationWall && (
+           <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-gray-900/60 backdrop-blur-[20px] flex items-center justify-center p-6 overflow-y-auto"
+           >
+              <motion.div 
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                className="bg-white rounded-[4rem] p-10 md:p-16 max-w-2xl w-full text-center shadow-2xl relative overflow-hidden"
+              >
+                 <div className="absolute -top-24 -left-24 w-64 h-64 bg-purple-100 rounded-full blur-3xl opacity-50" />
+                 <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-indigo-100 rounded-full blur-3xl opacity-50" />
 
-            {/* Modal Content */}
-            <motion.div 
-               initial={{ opacity: 0, scale: 0.95, y: 20 }}
-               animate={{ opacity: 1, scale: 1, y: 0 }}
-               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-               transition={{ type: "spring", bounce: 0.4 }}
-               className="relative w-full max-w-5xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-full"
-            >
-               {/* Header */}
-               <div className="p-6 md:p-8 border-b border-slate-100 flex items-start justify-between bg-slate-50">
-                  <div>
-                     <div className="flex flex-wrap items-center gap-3 mb-3 pr-4">
-                        <div className="size-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-black shrink-0">
-                           <PlayCircle size={20} />
-                        </div>
-                        <h2 className="text-2xl md:text-3xl font-black font-serif text-slate-900">{selectedSubject.title}</h2>
-                     </div>
-                     <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs md:text-sm font-bold uppercase tracking-widest text-slate-500">
-                        <span>{selectedSubject.completedLessons} / {selectedSubject.totalLessons} Lessons Completed</span>
-                        <span className="hidden md:block size-1.5 rounded-full bg-slate-300" />
-                        <span className="text-purple-600">Weekly Study Structure</span>
-                     </div>
-                  </div>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); closeSubjectModal(); }}
-                    className="p-3 bg-white hover:bg-slate-100 text-slate-500 rounded-full transition-colors shadow-sm border border-slate-200 shrink-0"
-                  >
-                     <X size={24} />
-                  </button>
-               </div>
+                 <div className="relative z-10">
+                    <div className="w-24 h-24 bg-gray-900 text-white rounded-[2rem] flex items-center justify-center mx-auto mb-10 shadow-2xl shadow-gray-200">
+                       <ShieldCheck size={40} />
+                    </div>
+                    
+                    <h2 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tighter leading-none mb-6">
+                       Account <br />
+                       <span className="text-purple-600">Verification</span>
+                    </h2>
+                    
+                    <p className="text-gray-400 font-medium mb-10 text-sm md:text-base leading-relaxed max-w-lg mx-auto">
+                       To protect our community and your academic records, please enter the unique 16-character code provided by your International Bible Institute administrator.
+                    </p>
 
-               {/* Body (scrollable) */}
-               <div className="p-6 md:p-8 overflow-y-auto flex-1 bg-white">
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                     
-                     {/* Left - Video Placeholder */}
-                     <div className="lg:col-span-2 space-y-6">
-                        <div className="w-full aspect-video bg-slate-900 rounded-3xl flex flex-col items-center justify-center text-white relative overflow-hidden group shadow-lg">
-                           <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent" />
-                           <div className="relative z-10 flex flex-col items-center gap-4">
-                              <button className="size-20 rounded-full bg-purple-600/90 text-white flex items-center justify-center group-hover:bg-purple-500 group-hover:scale-110 transition-all shadow-xl shadow-purple-900/50 backdrop-blur-md">
-                                 <PlayCircle size={40} className="ml-1" />
-                              </button>
-                              <div className="text-center mt-2 px-4">
-                                 <h3 className="font-bold text-lg mb-1">
-                                    Next Up: Lesson {selectedSubject.completedLessons < selectedSubject.totalLessons ? selectedSubject.completedLessons + 1 : selectedSubject.totalLessons}
-                                 </h3>
-                                 <p className="text-sm text-slate-300">40-Minute Pre-Recorded Teaching</p>
-                              </div>
-                           </div>
-                        </div>
+                    <div className="max-w-md mx-auto space-y-4">
+                       <div className="group relative">
+                          <input 
+                            type="text" 
+                            placeholder="IBI-XXXX-XXXX-XXXX"
+                            value={activationCode}
+                            onChange={(e) => setActivationCode(e.target.value.toUpperCase())}
+                            className="w-full px-8 py-6 bg-gray-50 border-2 border-transparent rounded-[2rem] text-center text-lg font-black tracking-[0.3em] uppercase transition-all focus:bg-white focus:border-purple-600 outline-none"
+                          />
+                          <div className="absolute inset-0 rounded-[2rem] border-2 border-gray-900 opacity-0 group-hover:opacity-10 pointer-events-none transition-opacity" />
+                       </div>
+                       
+                       {activationError && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest">{activationError}</p>}
+                       
+                       <button 
+                        onClick={handleActivate}
+                        disabled={isActivating}
+                        className="w-full py-6 bg-gray-900 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl shadow-gray-200 transition-all hover:bg-purple-600 hover:shadow-purple-100 active:scale-95 disabled:opacity-50"
+                       >
+                          {isActivating ? "Verifying..." : "Validate Access"}
+                       </button>
+                    </div>
 
-                        <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-                           <div className="text-center sm:text-left">
-                              <h4 className="font-bold text-slate-900 mb-1">Scripture Meditation Assignment</h4>
-                              <p className="text-sm font-medium text-slate-500 leading-relaxed max-w-sm">Read and meditate on this week&apos;s verses prior to viewing the session.</p>
-                           </div>
-                           <button className="w-full sm:w-auto px-6 py-3 bg-white text-slate-900 font-bold rounded-xl border border-slate-200 hover:border-purple-200 hover:bg-purple-50 transition-all text-sm shrink-0 shadow-sm">
-                              View Verses
-                           </button>
-                        </div>
-                     </div>
-
-                     {/* Right - Sidebar Assets & Email / Progress */}
-                     <div className="space-y-8 lg:border-l lg:border-slate-100 lg:pl-8">
-                        <div>
-                           <h4 className="font-black text-slate-900 mb-4 uppercase tracking-widest text-xs">Learning Assets</h4>
-                           <a href="#" className="flex items-center gap-4 p-4 rounded-2xl border-2 border-slate-100 hover:border-purple-200 hover:bg-purple-50 transition-all group">
-                              <div className="size-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
-                                 <FileText size={20} />
-                              </div>
-                              <div className="flex-1">
-                                 <h5 className="font-bold text-sm text-slate-900 leading-tight">Downloadable Manual</h5>
-                                 <p className="text-xs text-slate-500 font-medium mt-1 uppercase tracking-widest">PDF / Word</p>
-                              </div>
-                              <Download size={16} className="text-slate-400 group-hover:text-purple-600 shrink-0" />
-                           </a>
-                        </div>
-
-                         <div>
-                           <h4 className="font-black text-slate-900 mb-4 uppercase tracking-widest text-xs">Need Help?</h4>
-                           <div className="p-6 rounded-2xl bg-blue-50 border border-blue-100/50 relative overflow-hidden group">
-                              <div className="absolute top-0 right-0 p-4 opacity-5 text-blue-600 group-hover:scale-110 group-hover:opacity-10 transition-all duration-500"><Mail size={80} /></div>
-                              <h5 className="font-bold text-blue-900 mb-2 relative z-10">Ask a Question</h5>
-                              
-                              <AnimatePresence mode="wait">
-                                {!isAskingQuestion ? (
-                                  <motion.div
-                                    key="ask-button"
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -10 }}
-                                  >
-                                    <p className="text-sm font-medium text-blue-700/80 mb-6 relative z-10 leading-relaxed">
-                                      Submit questions directly to your instructor or admin via email.
-                                    </p>
-                                    <button 
-                                      onClick={() => setIsAskingQuestion(true)} 
-                                      className="inline-flex w-full items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors relative z-10 shadow-lg shadow-blue-600/20 active:scale-95"
-                                    >
-                                      <Mail size={16} />
-                                      Email Instructor
-                                    </button>
-                                  </motion.div>
-                                ) : isQuestionSent ? (
-                                  <motion.div
-                                    key="success-message"
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    className="py-4 text-center space-y-3"
-                                  >
-                                    <div className="size-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center mx-auto">
-                                       <CheckCircle size={24} />
-                                    </div>
-                                    <p className="text-sm font-bold text-green-700">Message sent successfully!</p>
-                                    <p className="text-xs text-green-600 font-medium leading-relaxed">
-                                       The IBI administrative team will get back to you by email shortly.
-                                    </p>
-                                  </motion.div>
-                                ) : (
-                                  <motion.form
-                                    key="question-form"
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: "auto" }}
-                                    exit={{ opacity: 0, height: 0 }}
-                                    onSubmit={handleSendQuestion}
-                                    className="space-y-4 relative z-10"
-                                  >
-                                    <textarea
-                                      required
-                                      autoFocus
-                                      value={questionText}
-                                      onChange={(e) => setQuestionText(e.target.value)}
-                                      placeholder="Type your question here..."
-                                      className="w-full p-4 bg-white border border-blue-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-h-[120px] resize-none text-slate-900"
-                                    />
-                                    <div className="flex gap-2">
-                                      <button
-                                        type="button"
-                                        onClick={() => setIsAskingQuestion(false)}
-                                        className="flex-1 px-4 py-3 bg-white border border-blue-200 text-blue-600 font-bold rounded-xl text-sm hover:bg-blue-50 transition-colors"
-                                      >
-                                        Cancel
-                                      </button>
-                                      <button
-                                        type="submit"
-                                        disabled={isSendingQuestion || !questionText.trim()}
-                                        className="flex-[2] inline-flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors shadow-lg shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                                      >
-                                        {isSendingQuestion ? (
-                                          <div className="size-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                                        ) : (
-                                          <Mail size={16} />
-                                        )}
-                                        {isSendingQuestion ? "Sending..." : "Send Message"}
-                                      </button>
-                                    </div>
-                                  </motion.form>
-                                )}
-                              </AnimatePresence>
-                           </div>
-                        </div>
-
-                        {/* Progress */}
-                        <div>
-                           <div className="flex justify-between items-end mb-3">
-                               <span className="text-sm font-bold text-slate-900 uppercase tracking-widest">Your Progress</span>
-                               <span className="text-xs text-purple-600 font-black">{Math.round((selectedSubject.completedLessons / selectedSubject.totalLessons) * 100)}%</span>
-                           </div>
-                           <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-slate-200/50 shadow-inner">
-                              <motion.div 
-                                 initial={{ width: 0 }}
-                                 animate={{ width: `${(selectedSubject.completedLessons / selectedSubject.totalLessons) * 100}%` }}
-                                 transition={{ duration: 1, ease: "easeOut" }}
-                                 className="bg-purple-600 h-full rounded-full"
-                              />
-                           </div>
-                        </div>
-                     </div>
-                  </div>
-               </div>
-            </motion.div>
-          </div>
+                    <p className="mt-12 text-[10px] font-black text-gray-300 uppercase tracking-widest">
+                      Problems? contact admin@ibi-edu.com
+                    </p>
+                 </div>
+              </motion.div>
+           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Subject Modal (Viewer) */}
+      <AnimatePresence>
+         {selectedSubject && (
+           <SubjectModal subject={selectedSubject} onClose={() => setSelectedSubject(null)} />
+         )}
+      </AnimatePresence>
     </div>
+  );
+};
+
+const SubjectModal = ({ subject, onClose }: { subject: Subject; onClose: () => void }) => {
+  const [activeTab, setActiveTab] = useState("video");
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [messageSent, setMessageSent] = useState(false);
+
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSendingMessage(true);
+    setTimeout(() => {
+      setIsSendingMessage(false);
+      setMessageSent(true);
+    }, 2000);
+  };
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[120] bg-gray-900/80 backdrop-blur-xl flex items-center justify-center p-6"
+    >
+       <motion.div 
+        initial={{ scale: 0.95, y: 30 }}
+        animate={{ scale: 1, y: 0 }}
+        className="bg-white rounded-[4rem] w-full max-w-6xl h-[90vh] shadow-2xl flex flex-col lg:flex-row overflow-hidden border border-white/20"
+       >
+          {/* Left Side: Content Viewer */}
+          <div className="flex-1 bg-gray-900 p-8 flex flex-col relative overflow-hidden">
+             <div className="relative z-10 flex items-center justify-between mb-8">
+                <div className="flex items-center gap-4">
+                   <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-purple-400">
+                      <PlayCircle size={24} />
+                   </div>
+                   <div>
+                      <h3 className="text-white font-black uppercase tracking-widest text-xs">{subject.title}</h3>
+                      <p className="text-[9px] font-black text-purple-400 uppercase tracking-[0.2em]">Module 01: Kingdom Authority</p>
+                   </div>
+                </div>
+                <button onClick={onClose} className="p-4 bg-white/10 text-white rounded-2xl transition-all hover:bg-white hover:text-gray-900">
+                   <X size={20} />
+                </button>
+             </div>
+
+             <div className="flex-1 rounded-[3rem] bg-black border border-white/5 relative flex items-center justify-center shadow-inner group cursor-pointer overflow-hidden">
+                <Image src={subject.image} alt="subject" fill className="object-cover opacity-40 group-hover:opacity-30 transition-opacity" />
+                <div className="relative z-10 flex flex-col items-center gap-6">
+                   <div className="w-24 h-24 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 transition-all group-hover:scale-110 group-hover:bg-purple-600">
+                      <Play size={32} />
+                   </div>
+                   <p className="text-[10px] font-black text-white/50 uppercase tracking-[0.3em]">Initialize Media Pipeline</p>
+                </div>
+                
+                <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-end gap-1 px-10">
+                   {[40, 70, 45, 90, 65, 80, 50, 85, 40, 100, 60].map((h, i) => (
+                      <div key={i} className="w-1 bg-white/20 rounded-full" style={{ height: `${h * 0.4}px` }} />
+                   ))}
+                </div>
+             </div>
+
+             <div className="mt-8 flex items-center justify-between text-white">
+                <div className="flex items-center gap-6">
+                   <div className="flex items-center gap-3">
+                      <Clock size={16} className="text-purple-400" />
+                      <span className="text-[10px] font-black tracking-widest uppercase">42:15 Remaining</span>
+                   </div>
+                   <div className="flex items-center gap-3">
+                      <CheckCircle2 size={16} className="text-emerald-400" />
+                      <span className="text-[10px] font-black tracking-widest uppercase">Auto-Save Active</span>
+                   </div>
+                </div>
+                <div className="flex items-center gap-3">
+                   <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Quality:</span>
+                   <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 bg-white/10 rounded-full">4K ULTRA</span>
+                </div>
+             </div>
+          </div>
+
+          {/* Right Side: Resources & Contact */}
+          <div className="w-full lg:w-96 bg-white border-l border-gray-50 p-10 flex flex-col">
+             <nav className="flex items-center gap-6 mb-10 border-b border-gray-50 pb-6">
+                <button 
+                  onClick={() => setActiveTab("video")} 
+                  className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors ${activeTab === "video" ? "text-purple-600" : "text-gray-400"}`}
+                >
+                  Resources
+                </button>
+                <button 
+                  onClick={() => setActiveTab("advisor")} 
+                  className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors ${activeTab === "advisor" ? "text-purple-600" : "text-gray-400"}`}
+                >
+                  Inquiry
+                </button>
+             </nav>
+
+             <div className="flex-1 overflow-y-auto">
+                {activeTab === "video" ? (
+                   <div className="space-y-8">
+                      <div>
+                         <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Study Materials</h4>
+                         <button className="w-full flex items-center justify-between p-6 bg-gray-50 rounded-3xl border border-transparent hover:border-purple-200 hover:bg-white transition-all group text-left">
+                            <div className="flex items-center gap-4">
+                               <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-purple-600 shadow-sm">
+                                  <FileText size={18} />
+                               </div>
+                               <div>
+                                  <p className="text-xs font-black text-gray-900 group-hover:text-purple-600 transition-colors">Course Manual</p>
+                                  <p className="text-[9px] font-bold text-gray-400 uppercase">PDF • 4.2 MB</p>
+                               </div>
+                            </div>
+                            <Download size={16} className="text-gray-300 group-hover:text-purple-400 transition-transform" />
+                         </button>
+                      </div>
+
+                      <div className="p-8 bg-purple-50 rounded-[2.5rem]">
+                         <HelpCircle className="text-purple-600 mb-4" size={24} />
+                         <h5 className="text-[10px] font-black text-purple-900 uppercase tracking-widest mb-2">Subject Summary</h5>
+                         <p className="text-xs text-purple-900/70 leading-relaxed font-medium line-clamp-6">
+                            {subject.summary || "No description provided for this module."}
+                         </p>
+                      </div>
+                   </div>
+                ) : (
+                   <div className="space-y-6">
+                      <div className="text-left mb-6">
+                         <h4 className="text-lg font-black text-gray-900 tracking-tight leading-none mb-2">Direct Inquiry</h4>
+                         <p className="text-xs font-medium text-gray-400">Response time within 24 hours.</p>
+                      </div>
+                      
+                      {messageSent ? (
+                        <div className="py-10 text-center animate-in zoom-in duration-500">
+                           <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                              <CheckCircle2 size={32} />
+                           </div>
+                           <h5 className="text-sm font-black text-gray-900 uppercase tracking-widest mb-2">Message Sent</h5>
+                           <p className="text-xs text-gray-400 leading-relaxed">An advisor will review your query and respond via email.</p>
+                           <button onClick={() => setMessageSent(false)} className="mt-8 text-[10px] font-black text-purple-600 uppercase tracking-widest">Send another</button>
+                        </div>
+                      ) : (
+                        <form onSubmit={handleSendMessage} className="space-y-4">
+                           <div className="space-y-2">
+                              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Your Question</label>
+                              <textarea 
+                                required
+                                className="w-full p-6 bg-gray-50 rounded-3xl border-2 border-transparent focus:border-purple-600 focus:bg-white text-sm font-medium outline-none transition-all resize-none h-48"
+                                placeholder="State your inquiry clearly..."
+                              />
+                           </div>
+                           <button 
+                            disabled={isSendingMessage}
+                            className="w-full py-5 bg-gray-900 text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[10px] shadow-xl shadow-gray-200 hover:bg-purple-600 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                           >
+                              {isSendingMessage ? "Dispatching..." : (
+                                <>
+                                  <Send size={16} />
+                                  Transmit
+                                </>
+                              )}
+                           </button>
+                        </form>
+                      )}
+                   </div>
+                )}
+             </div>
+
+             <div className="mt-10 pt-8 border-t border-gray-50 italic">
+                <p className="text-[9px] font-medium text-gray-300">
+                   Authenticated Academic Resources • © 2024 International Bible Institute
+                </p>
+             </div>
+          </div>
+       </motion.div>
+    </motion.div>
   );
 };
 
