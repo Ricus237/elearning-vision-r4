@@ -46,5 +46,48 @@ function xmldb_local_skillsaint_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2024040114, 'local', 'skillsaint');
     }
 
+    if ($oldversion < 2024041050) {
+        $table = new xmldb_table('local_skillsaint_inquiries');
+
+        if (!$dbman->table_exists($table)) {
+            $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+            $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('subject', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null);
+            $table->add_field('message', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL, null, null);
+            $table->add_field('admin_reply', XMLDB_TYPE_TEXT, null, null, null, null, null);
+            $table->add_field('status', XMLDB_TYPE_CHAR, '20', null, XMLDB_NOTNULL, null, 'open');
+            $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+            $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+
+            $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+            $table->add_index('userid_idx', XMLDB_INDEX_NOTUNIQUE, array('userid'));
+            $table->add_index('courseid_idx', XMLDB_INDEX_NOTUNIQUE, array('courseid'));
+
+            $dbman->create_table($table);
+        }
+
+        upgrade_plugin_savepoint(true, 2024041050, 'local', 'skillsaint');
+    }
+
+    if ($oldversion < 2024041060) {
+        $table = new xmldb_table('local_skillsaint_messages');
+
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('inquiry_id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('message', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL, null, null);
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+        $table->add_key('inquiry_fk', XMLDB_KEY_FOREIGN, array('inquiry_id'), 'local_skillsaint_inquiries', array('id'));
+
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        upgrade_plugin_savepoint(true, 2024041060, 'local', 'skillsaint');
+    }
+
     return true;
 }

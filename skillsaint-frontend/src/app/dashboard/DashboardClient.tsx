@@ -16,6 +16,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { activateAccount } from "@/lib/data";
+import { sendInquiryAction } from "@/lib/actions";
 
 interface EnrolledCourse {
   id: number;
@@ -146,11 +147,11 @@ const DashboardClient = ({ initialData, userEmail, isActivated: serverIsActivate
   const currentTrimester = roadmap.find(t => t.id === activeTrimester);
 
   return (
-    <div className="min-h-screen bg-white flex flex-col md:flex-row relative selection:bg-purple-100 selection:text-purple-900">
+    <div className="min-h-screen bg-[#f0f2f5] flex flex-col md:flex-row relative selection:bg-purple-100 selection:text-purple-900">
       <StudentSidebar />
 
       <main className="flex-1 min-h-screen">
-        <div className="pt-24 md:pt-0 p-6 md:p-10 lg:p-14">
+        <div className="p-6 md:p-10 lg:p-14 pt-8 md:pt-10">
           <div className="max-w-7xl mx-auto space-y-12">
             
             <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 animate-in slide-in-from-left duration-700">
@@ -259,7 +260,7 @@ const DashboardClient = ({ initialData, userEmail, isActivated: serverIsActivate
               <motion.div 
                 initial={{ scale: 0.9, y: 20 }}
                 animate={{ scale: 1, y: 0 }}
-                className="bg-white rounded-[4rem] p-10 md:p-16 max-w-2xl w-full text-center shadow-2xl relative overflow-hidden"
+                className="bg-white rounded-[2.5rem] md:rounded-[4rem] p-8 md:p-16 max-w-2xl w-full text-center shadow-2xl relative overflow-hidden my-auto"
               >
                  <div className="absolute -top-24 -left-24 w-64 h-64 bg-purple-100 rounded-full blur-3xl opacity-50" />
                  <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-indigo-100 rounded-full blur-3xl opacity-50" />
@@ -348,6 +349,7 @@ const SubjectModal = ({ subject, onClose, moodleToken }: { subject: Subject; onC
   const [isLoading, setIsLoading] = useState(true);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [messageSent, setMessageSent] = useState(false);
+  const [inquiryMessage, setInquiryMessage] = useState("");
 
   useEffect(() => {
     const fetchContents = async () => {
@@ -433,13 +435,30 @@ const SubjectModal = ({ subject, onClose, moodleToken }: { subject: Subject; onC
     });
   };
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!inquiryMessage.trim()) return;
+    
     setIsSendingMessage(true);
-    setTimeout(() => {
+    try {
+      const result = await sendInquiryAction({
+        courseid: subject.id,
+        subject: `Question regarding ${subject.title}`,
+        message: inquiryMessage
+      });
+      
+      if (result.success) {
+        setMessageSent(true);
+        setInquiryMessage("");
+      } else {
+        alert(result.error || "Failed to transmit inquiry.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error transmitting inquiry.");
+    } finally {
       setIsSendingMessage(false);
-      setMessageSent(true);
-    }, 2000);
+    }
   };
 
   return (
@@ -447,18 +466,18 @@ const SubjectModal = ({ subject, onClose, moodleToken }: { subject: Subject; onC
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[120] bg-gray-900/80 backdrop-blur-xl flex items-center justify-center p-6"
+      className="fixed inset-0 z-[120] bg-gray-900/80 backdrop-blur-xl flex items-center justify-center p-2 md:p-6"
       onClick={onClose}
     >
        <motion.div 
         initial={{ scale: 0.95, y: 30 }}
         animate={{ scale: 1, y: 0 }}
-        className="bg-white rounded-[4rem] w-full max-w-6xl h-[90vh] shadow-2xl flex flex-col lg:flex-row overflow-hidden border border-white/20"
+        className="bg-white rounded-[2rem] md:rounded-[4rem] w-full max-w-6xl h-[95vh] md:h-[90vh] shadow-2xl flex flex-col lg:flex-row overflow-hidden border border-white/20"
         onClick={(e) => e.stopPropagation()}
        >
           {/* Left Side: Content Viewer */}
-          <div className="flex-1 bg-gray-900 p-8 flex flex-col relative overflow-hidden">
-             <div className="relative z-10 flex items-center justify-between mb-8">
+          <div className="flex-[2] bg-gray-900 p-4 md:p-8 flex flex-col relative overflow-hidden">
+             <div className="relative z-10 flex items-center justify-between mb-4 md:mb-8">
                 <div className="flex items-center gap-4">
                    <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-purple-400">
                       {activeModule?.modname === "video" ? <PlayCircle size={24} /> : <FileText size={24} />}
@@ -473,7 +492,7 @@ const SubjectModal = ({ subject, onClose, moodleToken }: { subject: Subject; onC
                 </button>
              </div>
 
-             <div className="flex-1 rounded-[3rem] bg-white border border-white/5 relative flex flex-col shadow-inner overflow-hidden">
+             <div className="flex-1 rounded-[1.5rem] md:rounded-[3rem] bg-white border border-white/5 relative flex flex-col shadow-inner overflow-hidden">
                 {isLoading ? (
                   <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-4">
                     <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
@@ -619,8 +638,8 @@ const SubjectModal = ({ subject, onClose, moodleToken }: { subject: Subject; onC
           </div>
 
           {/* Right Side: Resources & Contact */}
-          <div className="w-full lg:w-96 bg-white border-l border-gray-50 p-10 flex flex-col">
-             <nav className="flex items-center gap-6 mb-10 border-b border-gray-50 pb-6">
+          <div className="flex-1 lg:w-96 bg-white border-t lg:border-t-0 lg:border-l border-gray-100 p-4 md:p-10 flex flex-col min-h-[30vh]">
+             <nav className="flex items-center gap-6 mb-6 md:mb-10 border-b border-gray-50 pb-4 md:pb-6">
                 <button 
                   onClick={() => setActiveTab("curriculum")} 
                   className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors ${activeTab === "curriculum" ? "text-purple-600" : "text-gray-400"}`}
@@ -690,6 +709,8 @@ const SubjectModal = ({ subject, onClose, moodleToken }: { subject: Subject; onC
                            <div className="space-y-2">
                               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Your Question</label>
                               <textarea 
+                                value={inquiryMessage}
+                                onChange={(e) => setInquiryMessage(e.target.value)}
                                 required
                                 className="w-full p-6 bg-gray-50 rounded-3xl border-2 border-transparent focus:border-purple-600 focus:bg-white text-sm font-medium outline-none transition-all resize-none h-48"
                                 placeholder="State your inquiry clearly..."

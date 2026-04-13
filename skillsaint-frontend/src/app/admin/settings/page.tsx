@@ -4,11 +4,11 @@ import {
   User, Mail, Phone, Lock, Moon, Sun, Monitor,
   Shield, FileText, ScrollText, Trash2, ChevronRight,
   Camera, CheckCircle2, Loader2, AlertTriangle, X, Eye, EyeOff,
-  LogOut, Bell, Globe
+  LogOut, Globe
 } from "lucide-react";
 import AdminSidebar from "@/components/dashboard/AdminSidebar";
 import Image from "next/image";
-import { logoutAction } from "@/lib/actions";
+import { logoutAction, updateAvatarAction, changePasswordAction } from "@/lib/actions";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Theme = "light" | "dark" | "system";
@@ -117,12 +117,7 @@ export default function SettingsPage() {
   const [passwords, setPasswords] = useState({ current: "", newPwd: "", confirm: "" });
   const [pwdSaving, setPwdSaving] = useState(false);
   const [pwdSaved, setPwdSaved] = useState(false);
-  const [notifications, setNotifications] = useState({
-    newStudents: true,
-    examResults: true,
-    systemAlerts: true,
-    weeklyReport: false,
-  });
+ 
 
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -133,11 +128,22 @@ export default function SettingsPage() {
     else root.classList.remove("dark");
   }, [theme]);
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => setProfile((p) => ({ ...p, avatar: ev.target?.result as string }));
+    reader.onload = async (ev) => {
+      const base64 = ev.target?.result as string;
+      setProfile((p) => ({ ...p, avatar: base64 }));
+      try {
+        const result = await updateAvatarAction(base64);
+        if (result?.error) {
+          console.warn('Avatar not saved to Moodle:', result.error);
+        }
+      } catch (err) {
+        console.error('Avatar upload error:', err);
+      }
+    };
     reader.readAsDataURL(file);
   };
 
@@ -159,28 +165,37 @@ export default function SettingsPage() {
       return;
     }
     setPwdSaving(true);
-    await new Promise((r) => setTimeout(r, 900));
-    setPwdSaving(false);
-    setPwdSaved(true);
-    setPasswords({ current: "", newPwd: "", confirm: "" });
-    setTimeout(() => setPwdSaved(false), 3000);
+    try {
+      const result = await changePasswordAction(passwords.current, passwords.newPwd);
+      if (result.error) {
+        alert(result.error);
+      } else {
+        setPwdSaved(true);
+        setPasswords({ current: "", newPwd: "", confirm: "" });
+        setTimeout(() => setPwdSaved(false), 3000);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("An unexpected error occurred.");
+    } finally {
+      setPwdSaving(false);
+    }
   };
 
   const navItems = [
     { id: "profile", label: "Profile", icon: User },
     { id: "password", label: "Password", icon: Lock },
     { id: "appearance", label: "Appearance", icon: Monitor },
-    { id: "notifications", label: "Notifications", icon: Bell },
     { id: "policies", label: "Policies & Legal", icon: Shield },
     { id: "danger", label: "Danger Zone", icon: Trash2 },
   ];
 
   return (
-    <div className="min-h-screen bg-white flex flex-col md:flex-row">
+    <div className="min-h-screen bg-white dark:bg-[#0b1120] flex flex-col md:flex-row relative">
       <AdminSidebar />
 
       <main className="flex-1 min-h-screen">
-        <div className="pt-24 md:pt-0 p-6 md:p-10 lg:p-12">
+        <div className="pt-24 md:pt-0 p-6 md:p-10 lg:p-12 bg-[#f0f2f5] dark:bg-[#0b1120]">
           <div className="max-w-5xl mx-auto">
 
             {/* Header */}
@@ -189,7 +204,7 @@ export default function SettingsPage() {
                 <div className="w-10 h-1 rounded-full bg-purple-600" />
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-600">Account Settings</span>
               </div>
-              <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight leading-none">
+              <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight leading-none">
                 Settings
               </h1>
             </header>
@@ -198,7 +213,7 @@ export default function SettingsPage() {
 
               {/* Left Nav */}
               <nav className="lg:w-64 shrink-0">
-                <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-3 lg:sticky lg:top-8">
+                <div className="bg-white dark:bg-[#1e293b] rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm p-3 lg:sticky lg:top-8">
                   {navItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = activeSection === item.id;
@@ -209,11 +224,11 @@ export default function SettingsPage() {
                         className={`w-full flex items-center gap-3 px-4 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all duration-200 mb-1 ${
                           isActive
                             ? item.id === "danger"
-                              ? "bg-red-600 text-white shadow-lg shadow-red-100"
-                              : "bg-gray-900 text-white shadow-lg shadow-gray-100"
+                              ? "bg-red-600 text-white shadow-lg shadow-red-100 dark:shadow-none"
+                              : "bg-gray-900 dark:bg-purple-600 text-white shadow-lg shadow-gray-100 dark:shadow-none"
                             : item.id === "danger"
-                            ? "text-red-400 hover:bg-red-50 hover:text-red-600"
-                            : "text-gray-400 hover:bg-gray-50 hover:text-gray-900"
+                            ? "text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 hover:text-red-600"
+                            : "text-gray-400 dark:text-slate-500 hover:bg-gray-50 dark:hover:bg-slate-800/50 hover:text-gray-900 dark:hover:text-white"
                         }`}
                       >
                         <Icon className="w-4 h-4 shrink-0" />
@@ -229,13 +244,13 @@ export default function SettingsPage() {
 
                 {/* ── PROFILE ──────────────────────────────────────────── */}
                 {activeSection === "profile" && (
-                  <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-8 animate-in fade-in duration-300">
-                    <h2 className="text-xl font-black text-gray-900 mb-8">Profile Information</h2>
+                  <div className="bg-white dark:bg-[#1e293b] rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm p-8 animate-in fade-in duration-300">
+                    <h2 className="text-xl font-black text-gray-900 dark:text-white mb-8">Profile Information</h2>
 
                     {/* Avatar */}
                     <div className="flex items-center gap-6 mb-10">
                       <div className="relative group">
-                        <div className="w-24 h-24 rounded-[1.5rem] bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white text-3xl font-black shadow-xl shadow-purple-200 overflow-hidden">
+                        <div className="w-24 h-24 rounded-[1.5rem] bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white text-3xl font-black shadow-xl shadow-purple-200 dark:shadow-none overflow-hidden">
                           {profile.avatar ? (
                             <Image src={profile.avatar} alt="avatar" width={96} height={96} className="w-full h-full object-cover" unoptimized />
                           ) : (
@@ -273,9 +288,9 @@ export default function SettingsPage() {
                         const Icon = field.icon;
                         return (
                           <div key={field.key} className="space-y-2">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{field.label}</label>
+                            <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">{field.label}</label>
                             <div className="relative">
-                              <Icon className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+                              <Icon className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 dark:text-slate-600" />
                               <input
                                 type={field.type}
                                 value={profile[field.key as keyof Profile]}
@@ -303,9 +318,9 @@ export default function SettingsPage() {
 
                 {/* ── PASSWORD ─────────────────────────────────────────── */}
                 {activeSection === "password" && (
-                  <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-8 animate-in fade-in duration-300">
-                    <h2 className="text-xl font-black text-gray-900 mb-2">Change Password</h2>
-                    <p className="text-sm text-gray-400 mb-8">Minimum 8 characters. Use a mix of letters, numbers, and symbols.</p>
+                  <div className="bg-white dark:bg-[#1e293b] rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm p-8 animate-in fade-in duration-300">
+                    <h2 className="text-xl font-black text-gray-900 dark:text-white mb-2">Change Password</h2>
+                    <p className="text-sm text-gray-400 dark:text-slate-500 mb-8">Minimum 8 characters. Use a mix of letters, numbers, and symbols.</p>
 
                     <div className="space-y-5 max-w-md">
                       {[
@@ -314,16 +329,16 @@ export default function SettingsPage() {
                         { key: "confirm", label: "Confirm New Password", show: showNewPwd, toggle: () => setShowNewPwd(!showNewPwd) },
                       ].map((f) => (
                         <div key={f.key} className="space-y-2">
-                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{f.label}</label>
+                          <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">{f.label}</label>
                           <div className="relative">
-                            <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+                            <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 dark:text-slate-600" />
                             <input
                               type={f.show ? "text" : "password"}
                               value={passwords[f.key as keyof typeof passwords]}
                               onChange={(e) => setPasswords((p) => ({ ...p, [f.key]: e.target.value }))}
-                              className="w-full pl-12 pr-14 h-14 bg-gray-50 border-none rounded-2xl text-sm font-bold text-gray-900 focus:ring-4 focus:ring-purple-100 transition-all"
+                              className="w-full pl-12 pr-14 h-14 bg-gray-50 dark:bg-slate-800 border-none rounded-2xl text-sm font-bold text-gray-900 dark:text-white focus:ring-4 focus:ring-purple-100 dark:focus:ring-purple-900/20 transition-all"
                             />
-                            <button onClick={f.toggle} className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-600">
+                            <button onClick={f.toggle} className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-300 dark:text-slate-600 hover:text-gray-600 dark:hover:text-slate-400">
                               {f.show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                             </button>
                           </div>
@@ -346,11 +361,11 @@ export default function SettingsPage() {
 
                 {/* ── APPEARANCE ───────────────────────────────────────── */}
                 {activeSection === "appearance" && (
-                  <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-8 animate-in fade-in duration-300">
-                    <h2 className="text-xl font-black text-gray-900 mb-2">Appearance</h2>
-                    <p className="text-sm text-gray-400 mb-8">Choose how the dashboard looks on your device.</p>
+                  <div className="bg-white dark:bg-[#1e293b] rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm p-8 animate-in fade-in duration-300">
+                    <h2 className="text-xl font-black text-gray-900 dark:text-white mb-2">Appearance</h2>
+                    <p className="text-sm text-gray-400 dark:text-slate-500 mb-8">Choose how the dashboard looks on your device.</p>
 
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       {([
                         { id: "light", label: "Light", icon: Sun, preview: "bg-white border-gray-200", text: "text-gray-900" },
                         { id: "dark", label: "Dark", icon: Moon, preview: "bg-gray-900 border-gray-700", text: "text-white" },
@@ -362,12 +377,12 @@ export default function SettingsPage() {
                           <button
                             key={t.id}
                             onClick={() => setTheme(t.id)}
-                            className={`relative rounded-2xl border-2 p-6 flex flex-col items-center gap-4 transition-all ${isActive ? "border-purple-600 shadow-xl shadow-purple-100 -translate-y-1" : "border-gray-100 hover:border-gray-200"}`}
+                            className={`relative rounded-2xl border-2 p-6 flex flex-col items-center gap-4 transition-all ${isActive ? "border-purple-600 shadow-xl shadow-purple-100 dark:shadow-none -translate-y-1" : "border-gray-100 dark:border-slate-800 hover:border-gray-200 dark:hover:border-slate-700"}`}
                           >
                             <div className={`w-full aspect-video rounded-xl border ${t.preview} flex items-center justify-center`}>
                               <Icon className={`w-6 h-6 ${t.text}`} />
                             </div>
-                            <span className="text-[10px] font-black text-gray-700 uppercase tracking-widest">{t.label}</span>
+                            <span className="text-[10px] font-black text-gray-700 dark:text-slate-300 uppercase tracking-widest">{t.label}</span>
                             {isActive && (
                               <div className="absolute top-3 right-3 w-5 h-5 bg-purple-600 rounded-full flex items-center justify-center">
                                 <CheckCircle2 className="w-3 h-3 text-white" />
@@ -380,36 +395,7 @@ export default function SettingsPage() {
                   </div>
                 )}
 
-                {/* ── NOTIFICATIONS ────────────────────────────────────── */}
-                {activeSection === "notifications" && (
-                  <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-8 animate-in fade-in duration-300">
-                    <h2 className="text-xl font-black text-gray-900 mb-2">Notifications</h2>
-                    <p className="text-sm text-gray-400 mb-8">Manage what alerts you receive from the platform.</p>
-
-                    <div className="divide-y divide-gray-50">
-                      {[
-                        { key: "newStudents", label: "New Student Applications", desc: "Get notified when a new student applies." },
-                        { key: "examResults", label: "Exam Results Ready", desc: "Alert when quiz results are ready for review." },
-                        { key: "systemAlerts", label: "System Alerts", desc: "Critical platform notifications and errors." },
-                        { key: "weeklyReport", label: "Weekly Summary Report", desc: "Receive a weekly dashboard digest every Monday." },
-                      ].map((n) => (
-                        <div key={n.key} className="flex items-center justify-between py-5 gap-4">
-                          <div>
-                            <p className="text-sm font-black text-gray-900">{n.label}</p>
-                            <p className="text-xs text-gray-400 mt-0.5">{n.desc}</p>
-                          </div>
-                          <button
-                            onClick={() => setNotifications((prev) => ({ ...prev, [n.key]: !prev[n.key as keyof typeof prev] }))}
-                            className={`relative w-12 h-6 rounded-full transition-all duration-300 shrink-0 ${notifications[n.key as keyof typeof notifications] ? "bg-purple-600" : "bg-gray-200"}`}
-                          >
-                            <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-md transition-all duration-300 ${notifications[n.key as keyof typeof notifications] ? "left-7" : "left-1"}`} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
+                
                 {/* ── POLICIES ─────────────────────────────────────────── */}
                 {activeSection === "policies" && (
                   <div className="space-y-4 animate-in fade-in duration-300">
@@ -419,16 +405,16 @@ export default function SettingsPage() {
                         <button
                           key={policy.id}
                           onClick={() => setOpenPolicy(policy)}
-                          className="w-full bg-white rounded-[2rem] border border-gray-100 shadow-sm p-7 flex items-center gap-5 hover:shadow-md hover:-translate-y-0.5 transition-all text-left"
+                          className="w-full bg-white dark:bg-[#1e293b] rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm p-7 flex items-center gap-5 hover:shadow-md hover:-translate-y-0.5 transition-all text-left"
                         >
-                          <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-700 shrink-0">
+                          <div className="w-14 h-14 rounded-2xl bg-gray-50 dark:bg-slate-800 flex items-center justify-center text-gray-700 dark:text-slate-300 shrink-0">
                             <Icon className="w-7 h-7" />
                           </div>
                           <div className="flex-1">
-                            <p className="text-base font-black text-gray-900">{policy.title}</p>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Last updated: {policy.lastUpdated}</p>
+                            <p className="text-base font-black text-gray-900 dark:text-white">{policy.title}</p>
+                            <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mt-1">Last updated: {policy.lastUpdated}</p>
                           </div>
-                          <ChevronRight className="w-5 h-5 text-gray-300" />
+                          <ChevronRight className="w-5 h-5 text-gray-300 dark:text-slate-600" />
                         </button>
                       );
                     })}
@@ -437,16 +423,16 @@ export default function SettingsPage() {
                     <form action={logoutAction} className="mt-4">
                       <button
                         type="submit"
-                        className="w-full bg-white rounded-[2rem] border border-gray-100 shadow-sm p-7 flex items-center gap-5 hover:bg-red-50 hover:border-red-100 hover:shadow-md transition-all"
+                        className="w-full bg-white dark:bg-[#1e293b] rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm p-7 flex items-center gap-5 hover:bg-red-50 dark:hover:bg-red-900/10 hover:border-red-100 dark:hover:border-red-900/20 hover:shadow-md transition-all cursor-pointer"
                       >
-                        <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center text-red-500 shrink-0">
+                        <div className="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-500 shrink-0">
                           <LogOut className="w-7 h-7" />
                         </div>
                         <div className="flex-1 text-left">
                           <p className="text-base font-black text-red-500">Sign Out</p>
-                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">End your current session</p>
+                          <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mt-1">End your current session</p>
                         </div>
-                        <ChevronRight className="w-5 h-5 text-gray-300" />
+                        <ChevronRight className="w-5 h-5 text-gray-300 dark:text-slate-600" />
                       </button>
                     </form>
                   </div>
@@ -455,7 +441,7 @@ export default function SettingsPage() {
                 {/* ── DANGER ZONE ──────────────────────────────────────── */}
                 {activeSection === "danger" && (
                   <div className="animate-in fade-in duration-300 space-y-5">
-                    <div className="bg-red-50 border-2 border-red-100 rounded-[2rem] p-8">
+                    <div className="bg-red-50 dark:bg-red-900/10 border-2 border-red-100 dark:border-red-900/20 rounded-[2rem] p-8">
                       <div className="flex items-center gap-3 mb-4">
                         <AlertTriangle className="w-6 h-6 text-red-500" />
                         <h2 className="text-xl font-black text-red-600">Danger Zone</h2>
@@ -465,10 +451,10 @@ export default function SettingsPage() {
                       </p>
 
                       <div className="space-y-4">
-                        <div className="bg-white rounded-2xl p-6 flex items-center justify-between gap-6 border border-red-100">
+                        <div className="bg-white dark:bg-[#1e293b] rounded-2xl p-6 flex items-center justify-between gap-6 border border-red-100 dark:border-red-900/10">
                           <div>
-                            <p className="font-black text-gray-900">Delete My Account Permanently</p>
-                            <p className="text-xs text-gray-400 mt-1 max-w-sm">
+                            <p className="font-black text-gray-900 dark:text-white">Delete My Account Permanently</p>
+                            <p className="text-xs text-gray-400 dark:text-slate-500 mt-1 max-w-sm">
                               All your personal data, preferences, and access rights will be permanently erased. This cannot be undone.
                             </p>
                           </div>
@@ -495,39 +481,39 @@ export default function SettingsPage() {
       {openPolicy && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setOpenPolicy(null)}>
           <div
-            className="bg-white rounded-[2.5rem] shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300"
+            className="bg-white dark:bg-[#1e293b] rounded-[2.5rem] shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-8 border-b border-gray-50 flex items-center justify-between shrink-0">
+            <div className="p-8 border-b border-gray-50 dark:border-slate-800 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center">
-                  <openPolicy.icon className="w-6 h-6 text-gray-700" />
+                <div className="w-12 h-12 bg-gray-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center">
+                  <openPolicy.icon className="w-6 h-6 text-gray-700 dark:text-slate-300" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-gray-900">{openPolicy.title}</h3>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Last updated: {openPolicy.lastUpdated}</p>
+                  <h3 className="text-lg font-black text-gray-900 dark:text-white">{openPolicy.title}</h3>
+                  <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">Last updated: {openPolicy.lastUpdated}</p>
                 </div>
               </div>
-              <button onClick={() => setOpenPolicy(null)} className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-800 hover:bg-gray-200 transition-all">
+              <button onClick={() => setOpenPolicy(null)} className="w-10 h-10 bg-gray-100 dark:bg-slate-800 rounded-xl flex items-center justify-center text-gray-400 dark:text-slate-500 hover:text-gray-800 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-slate-700 transition-all">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="p-8 overflow-y-auto">
-              <div className="prose prose-sm prose-slate max-w-none">
+              <div className="prose prose-sm prose-slate dark:prose-invert max-w-none">
                 {openPolicy.content.split("\n\n").map((block, i) => {
                   if (block.startsWith("**") && block.endsWith("**")) {
-                    return <h4 key={i} className="font-black text-gray-900 text-base mt-6 mb-2">{block.replace(/\*\*/g, "")}</h4>;
+                    return <h4 key={i} className="font-black text-gray-900 dark:text-white text-base mt-6 mb-2">{block.replace(/\*\*/g, "")}</h4>;
                   }
                   if (block.includes("**")) {
                     return (
-                      <p key={i} className="text-gray-600 leading-relaxed mb-3">
+                      <p key={i} className="text-gray-600 dark:text-slate-400 leading-relaxed mb-3">
                         {block.split(/(\*\*[^*]+\*\*)/).map((part, j) =>
-                          part.startsWith("**") ? <strong key={j} className="text-gray-900">{part.replace(/\*\*/g, "")}</strong> : part
+                          part.startsWith("**") ? <strong key={j} className="text-gray-900 dark:text-white">{part.replace(/\*\*/g, "")}</strong> : part
                         )}
                       </p>
                     );
                   }
-                  return <p key={i} className="text-gray-600 leading-relaxed mb-3">{block}</p>;
+                  return <p key={i} className="text-gray-600 dark:text-slate-400 leading-relaxed mb-3">{block}</p>;
                 })}
               </div>
             </div>
@@ -538,23 +524,23 @@ export default function SettingsPage() {
       {/* ── Delete Confirm Modal ──────────────────────────────────────────────── */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-8 animate-in zoom-in-95 duration-300">
-            <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+          <div className="bg-white dark:bg-[#1e293b] rounded-[2.5rem] shadow-2xl max-w-md w-full p-8 animate-in zoom-in-95 duration-300 border border-red-100 dark:border-red-900/20">
+            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
               <Trash2 className="w-8 h-8 text-red-600" />
             </div>
-            <h3 className="text-2xl font-black text-gray-900 text-center mb-3">Delete Account?</h3>
-            <p className="text-center text-gray-500 text-sm mb-6">
-              This action is <strong className="text-gray-900">permanent and irreversible</strong>. All your data will be immediately deleted.
+            <h3 className="text-2xl font-black text-gray-900 dark:text-white text-center mb-3">Delete Account?</h3>
+            <p className="text-center text-gray-500 dark:text-slate-400 text-sm mb-6">
+              This action is <strong className="text-gray-900 dark:text-white">permanent and irreversible</strong>. All your data will be immediately deleted.
             </p>
             <div className="space-y-3 mb-6">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+              <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">
                 Type <span className="text-red-600 font-black">DELETE</span> to confirm
               </label>
               <input
                 type="text"
                 value={deleteInput}
                 onChange={(e) => setDeleteInput(e.target.value)}
-                className="w-full px-6 h-14 bg-gray-50 border-none rounded-2xl text-sm font-bold text-gray-900 focus:ring-4 focus:ring-red-100 transition-all"
+                className="w-full px-6 h-14 bg-gray-50 dark:bg-slate-800 border-none rounded-2xl text-sm font-bold text-gray-900 dark:text-white focus:ring-4 focus:ring-red-100 dark:focus:ring-red-900/20 transition-all"
                 placeholder="Type DELETE here"
               />
             </div>

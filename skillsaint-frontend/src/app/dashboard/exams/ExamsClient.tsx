@@ -8,7 +8,8 @@ import {
   AlertCircle, 
   CheckCircle2,
   Trophy,
-  ArrowRight
+  ArrowRight,
+  ArrowLeft
 } from "lucide-react";
 import Link from "next/link";
 
@@ -24,9 +25,15 @@ const ExamsClient = ({ initialExams }: { initialExams: Exam[] }) => {
   return (
     <div className="pt-24 md:pt-0 p-6 md:p-10 lg:p-14">
       <div className="max-w-6xl mx-auto space-y-12">
+        <div className="animate-in fade-in duration-500">
+          <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-purple-600 transition-all bg-white px-5 py-3 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:-translate-x-1">
+            <ArrowLeft size={16} />
+            Back to Dashboard
+          </Link>
+        </div>
         
         {/* Header */}
-        <header className="animate-in slide-in-from-left duration-700">
+        <header className="animate-in slide-in-from-left duration-700 -mt-4">
            <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-1 rounded-full bg-purple-600" />
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-600">Academic Assessment</span>

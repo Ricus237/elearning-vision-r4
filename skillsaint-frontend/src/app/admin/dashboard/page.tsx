@@ -63,11 +63,11 @@ const AdminDashboardPage = async () => {
 
 
   return (
-    <div className="min-h-screen bg-white flex flex-col md:flex-row relative">
+    <div className="min-h-screen bg-white dark:bg-[#0b1120] flex flex-col md:flex-row relative">
       <AdminSidebar />
 
       <main className="flex-1 min-h-screen">
-        <div className="h-full pt-24 md:pt-0 p-6 md:p-10 lg:p-12">
+        <div className="h-full pt-24 md:pt-0 p-6 md:p-10 lg:p-12 bg-[#f0f2f5] dark:bg-[#0b1120]">
           <div className="max-w-7xl mx-auto">
 
             {/* Header Section */}
@@ -77,7 +77,7 @@ const AdminDashboardPage = async () => {
                   <div className="w-10 h-1 rounded-full bg-purple-600" />
                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-600">Operations Control</span>
                 </div>
-                <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight leading-none mb-4">
+                <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight leading-none mb-4">
                   IBI <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">Terminal</span>
                 </h1>
                 <p className="text-gray-400 font-medium max-w-md text-sm">
@@ -88,13 +88,13 @@ const AdminDashboardPage = async () => {
               <div className="flex gap-4 animate-in fade-in duration-1000 delay-300">
                 <Link
                   href="/admin/courses"
-                  className="group flex items-center gap-3 bg-white border-2 border-gray-900 text-gray-900 px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-gray-900 hover:text-white transition-all duration-300 shadow-xl shadow-gray-100"
+                  className="group flex items-center gap-3 bg-white dark:bg-slate-800 border-2 border-gray-900 dark:border-slate-700 text-gray-900 dark:text-white px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-gray-900 dark:hover:bg-purple-600 hover:text-white transition-all duration-300 shadow-xl shadow-gray-100 dark:shadow-none"
                 >
                   <PlusCircle className="w-4 h-4" /> Add Course
                 </Link>
                 <Link
                   href="/admin/exams"
-                  className="group flex items-center gap-3 bg-purple-600 text-white px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-purple-700 transition-all duration-300 shadow-xl shadow-purple-200 hover:-translate-y-1 active:translate-y-0"
+                  className="group flex items-center gap-3 bg-purple-600 text-white px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-purple-700 transition-all duration-300 shadow-xl shadow-purple-200 dark:shadow-none hover:-translate-y-1 active:translate-y-0"
                 >
                   <FileQuestion className="w-4 h-4 group-hover:rotate-12 transition-transform" /> Add Exam
                 </Link>
@@ -155,13 +155,13 @@ const AdminDashboardPage = async () => {
             </div>
 
             {/* Main Data Section */}
-            <div className="bg-white rounded-[3rem] shadow-sm border border-gray-100 overflow-hidden mb-20 animate-in fade-in duration-1000 delay-500">
-              <div className="p-10 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
+            <div className="bg-white dark:bg-[#1e293b] rounded-[3rem] shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden mb-20 animate-in fade-in duration-1000 delay-500">
+              <div className="p-10 border-b border-gray-50 dark:border-slate-800 flex justify-between items-center bg-gray-50/30 dark:bg-slate-800/10">
                 <div>
-                  <h2 className="text-2xl font-black text-gray-900 tracking-tight">Recent <span className="text-purple-600">Student</span> Activities</h2>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Live Feed</p>
+                  <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Recent <span className="text-purple-600 dark:text-purple-400">Student</span> Activities</h2>
+                  <p className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest mt-1">Live Feed</p>
                 </div>
-                <Link href="/admin/students" className="px-6 py-3 bg-white border border-gray-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-purple-600 hover:border-purple-100 transition-all shadow-sm">
+                <Link href="/admin/students" className="px-6 py-3 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 hover:border-purple-100 dark:hover:border-purple-500 transition-all shadow-sm">
                   Full Archives
                 </Link>
               </div>
@@ -177,7 +177,7 @@ const AdminDashboardPage = async () => {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="text-gray-400 font-black text-[10px] uppercase tracking-[0.2em] border-b border-gray-50">
+                      <tr className="text-gray-400 dark:text-slate-500 font-black text-[10px] uppercase tracking-[0.2em] border-b border-gray-50 dark:border-slate-800">
                         <th className="px-10 py-6">Identity</th>
                         <th className="px-10 py-6">Experience Plan</th>
                         <th className="px-10 py-6 text-center">Courses</th>
@@ -185,13 +185,13 @@ const AdminDashboardPage = async () => {
                         <th className="px-10 py-6">Access</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-50">
+                    <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
                       {recentStudents.map((student: Student) => (
-                        <tr key={student.id} className="group hover:bg-purple-50/20 transition-all duration-300">
+                        <tr key={student.id} className="group hover:bg-purple-50/20 dark:hover:bg-purple-900/10 transition-all duration-300">
                           <td className="px-10 py-8">
                             <div>
-                              <p className="font-black text-gray-900 text-lg group-hover:text-purple-600 transition-colors">{student.name || "Anonymous Master"}</p>
-                              <p className="text-xs font-bold text-gray-400 mt-0.5">{student.email}</p>
+                              <p className="font-black text-gray-900 dark:text-white text-lg group-hover:text-purple-600 transition-colors">{student.name || "Anonymous Master"}</p>
+                              <p className="text-xs font-bold text-gray-400 dark:text-slate-500 mt-0.5">{student.email}</p>
                             </div>
                           </td>
                           <td className="px-10 py-8">
@@ -206,7 +206,7 @@ const AdminDashboardPage = async () => {
                             </span>
                           </td>
                           <td className="px-10 py-8 text-center">
-                            <span className="inline-flex items-center justify-center w-10 h-10 rounded-2xl bg-gray-50 text-gray-900 text-sm font-black group-hover:bg-purple-600 group-hover:text-white transition-all shadow-sm">
+                            <span className="inline-flex items-center justify-center w-10 h-10 rounded-2xl bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white text-sm font-black group-hover:bg-purple-600 group-hover:text-white transition-all shadow-sm">
                               {student.enrolled_count}
                             </span>
                           </td>
@@ -263,18 +263,18 @@ interface StatCardProps {
 
 function StatCard({ label, value, sub, subColor, icon, iconBg, hoverColor }: StatCardProps) {
   return (
-    <div className={`group bg-white p-10 rounded-[2.5rem] shadow-sm border border-gray-100 transition-all duration-500 ${hoverColor}`}>
+    <div className={`group bg-white dark:bg-[#1e293b] p-10 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-slate-800 transition-all duration-500 ${hoverColor} dark:hover:border-slate-700`}>
       <div className="flex items-start justify-between mb-8">
-        <div className={`w-16 h-16 rounded-[2rem] flex items-center justify-center shadow-sm transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 ${iconBg}`}>
+        <div className={`w-16 h-16 rounded-[2rem] flex items-center justify-center shadow-sm transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 ${iconBg} dark:bg-slate-800`}>
           {icon}
         </div>
-        <div className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-md bg-gray-50 ${subColor}`}>
+        <div className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-md bg-gray-50 dark:bg-slate-800/50 ${subColor}`}>
           {sub}
         </div>
       </div>
       <div>
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">{label}</p>
-        <h3 className="text-4xl font-black text-gray-900 tracking-tight leading-none">
+        <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-2">{label}</p>
+        <h3 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight leading-none">
           {value.toLocaleString()}
         </h3>
       </div>

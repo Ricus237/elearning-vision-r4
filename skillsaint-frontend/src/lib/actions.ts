@@ -166,9 +166,9 @@ export async function getProfileDataAction() {
   if (!Array.isArray(users) || users.length === 0) return null;
   const user = users[0];
 
-  // 2. Fetch enrolled courses
-  const courses = await fetchMoodle('core_enrol_get_users_courses', { userid: parseInt(userId) });
-  const enrolledCount = Array.isArray(courses) ? courses.length : 0;
+  // 2. Fetch enrolled courses and extra profile data from local systems
+  const dashboardData = await fetchMoodle('local_skillsaint_get_student_dashboard_data', { userid: parseInt(userId) });
+  const enrolledCount = dashboardData?.courses ? dashboardData.courses.length : 0;
   
   // Clean description html tags if any
   const cleanBio = user.description ? user.description.replace(/<[^>]*>?/gm, '') : "Moodle user enrolled in our eLearning platform.";
@@ -180,7 +180,10 @@ export async function getProfileDataAction() {
     lastname: user.lastname,
     username: user.username,
     email: user.email,
-    address: user.city || "Not specified",
+    address: dashboardData?.address || user.city || "Not specified",
+    phone: dashboardData?.phone || "",
+    motivation: dashboardData?.motivation || "",
+    spiritual_bg: dashboardData?.spiritual_bg || "",
     bio: cleanBio,
     userpictureurl: user.profileimageurl || user.profileimageurlsmall,
     firstaccess: user.firstaccess || user.timecreated, // Timestamp in seconds
@@ -192,11 +195,20 @@ export async function getProfileDataAction() {
 /**
  * Met à jour le profil utilisateur via Moodle.
  */
-export async function updateProfileDataAction(data: { name?: string, email?: string, address?: string, bio?: string }) {
+export async function updateProfileDataAction(data: { 
+  name?: string, 
+  email?: string, 
+  address?: string, 
+  bio?: string,
+  phone?: string,
+  motivation?: string,
+  spiritual_bg?: string
+}) {
   const cookieStore = await cookies();
   const userId = cookieStore.get('moodle_user_id')?.value;
   if (!userId) return { error: "Non connecté" };
 
+  // 1. Update Core Moodle fields
   // Split name into firstname and lastname
   let firstname = data.name;
   let lastname = " ";
@@ -216,17 +228,26 @@ export async function updateProfileDataAction(data: { name?: string, email?: str
   if (data.address) userUpdatePayload.city = data.address;
   if (data.bio) userUpdatePayload.description = data.bio;
 
-  const params = {
-    users: {
-      "0": userUpdatePayload
-    }
-  };
-
-  const result = await fetchMoodle('core_user_update_users', params);
+  const coreResult = await fetchMoodle('core_user_update_users', {
+    users: { "0": userUpdatePayload }
+  });
   
-  if (result && result.error) {
-    return { error: result.error };
+  if (coreResult && coreResult.error) {
+    return { error: coreResult.error };
   }
+
+  // 2. Update Skillsaint custom fields
+  const customResult = await updateStudentProfileAction({
+    phone: data.phone || "",
+    address: data.address || "",
+    motivation: data.motivation || "",
+    spiritual_bg: data.spiritual_bg || "",
+  });
+
+  if (customResult?.error) {
+    return { error: customResult.error };
+  }
+
   return { success: true };
 }
 
@@ -311,8 +332,20 @@ export async function getStudentDashboardAction() {
     intro: string;
   }
 
-  const dashboardData: { plan: string, courses: DashboardCourse[], exams: DashboardExam[] } = {
+  const dashboardData: { 
+    plan: string, 
+    phone: string,
+    address: string,
+    motivation: string,
+    spiritual_bg: string,
+    courses: DashboardCourse[], 
+    exams: DashboardExam[] 
+  } = {
     plan: 'none',
+    phone: '',
+    address: '',
+    motivation: '',
+    spiritual_bg: '',
     courses: [],
     exams: []
   };
@@ -321,6 +354,10 @@ export async function getStudentDashboardAction() {
     const data = await fetchMoodle('local_skillsaint_get_student_dashboard_data', { userid: parseInt(userId) });
     if (data && !data.error) {
       dashboardData.plan = data.plan || 'none';
+      dashboardData.phone = data.phone || '';
+      dashboardData.address = data.address || '';
+      dashboardData.motivation = data.motivation || '';
+      dashboardData.spiritual_bg = data.spiritual_bg || '';
       dashboardData.courses = data.courses || [];
       dashboardData.exams = data.exams || [];
     }
@@ -381,3 +418,171 @@ export async function getStudentDashboardAction() {
 
   return dashboardData;
 }
+
+/**
+ * Student sends a support inquiry about a course.
+ */
+export async function sendInquiryAction(data: { courseid: number; subject: string; message: string }) {
+  const cookieStore = await cookies();
+  const userId = cookieStore.get('moodle_user_id')?.value;
+  if (!userId) return { error: 'Not authenticated' };
+
+  const result = await fetchMoodle('local_skillsaint_send_inquiry', {
+    userid: parseInt(userId),
+    courseid: data.courseid,
+    subject: data.subject,
+    message: data.message,
+  });
+
+  if (result?.error) return { error: result.error };
+  return { success: true, inquiry_id: result?.inquiry_id };
+}
+
+/**
+ * Student retrieves their own inquiries (with admin replies).
+ */
+export async function getStudentInquiriesAction() {
+  const cookieStore = await cookies();
+  const userId = cookieStore.get('moodle_user_id')?.value;
+  if (!userId) return [];
+
+  const result = await fetchMoodle('local_skillsaint_get_student_inquiries', {
+    userid: parseInt(userId),
+  });
+  return Array.isArray(result) ? result : [];
+}
+
+/**
+ * Admin: get all inquiries with optional status filter.
+ */
+export async function getAdminInquiriesAction(statusFilter: string = 'all') {
+  const result = await fetchMoodle('local_skillsaint_get_all_inquiries', {
+    status_filter: statusFilter,
+  });
+  return Array.isArray(result) ? result : [];
+}
+
+/**
+ * Admin: reply to an inquiry and update its status.
+ */
+export async function replyInquiryAction(data: { inquiry_id: number; reply: string; status: string }) {
+  const result = await fetchMoodle('local_skillsaint_reply_inquiry', {
+    inquiry_id: data.inquiry_id,
+    reply: data.reply,
+    status: data.status,
+  });
+  if (result?.error) return { error: result.error };
+  return { success: true };
+}
+
+/**
+ * Upload avatar image as base64 to Moodle.
+ */
+export async function updateAvatarAction(imageBase64: string) {
+  const cookieStore = await cookies();
+  const userId = cookieStore.get('moodle_user_id')?.value;
+  if (!userId) return { error: 'Not authenticated' };
+
+  const result = await fetchMoodle('local_skillsaint_update_avatar', {
+    userid: parseInt(userId),
+    imagebase64: imageBase64,
+  });
+
+  if (result?.error || result?.status === 'error') {
+    return { error: result?.message || 'Avatar update failed' };
+  }
+  return { success: true };
+}
+
+/**
+ * Add a message to an existing support thread (Student or Admin).
+ */
+export async function addInquiryMessageAction(data: { inquiry_id: number; message: string }) {
+  const cookieStore = await cookies();
+  const userId = cookieStore.get('moodle_user_id')?.value;
+  if (!userId) return { error: 'Not authenticated' };
+
+  const result = await fetchMoodle('local_skillsaint_add_inquiry_message', {
+    inquiry_id: data.inquiry_id,
+    userid: parseInt(userId),
+    message: data.message,
+  });
+
+  if (result?.error || result?.status === 'error') {
+    return { error: result?.message || 'Failed to add message' };
+  }
+  return { success: true };
+}
+
+/**
+ * Delete a student's own support inquiry and its messages.
+ */
+export async function deleteInquiryAction(inquiryId: number) {
+  const cookieStore = await cookies();
+  const userId = cookieStore.get('moodle_user_id')?.value;
+  if (!userId) return { error: 'Not authenticated' };
+
+  const result = await fetchMoodle('local_skillsaint_delete_inquiry', {
+    inquiry_id: inquiryId,
+    userid: parseInt(userId),
+  });
+
+  if (result?.error || result?.status === 'error') {
+    return { error: result?.message || 'Failed to delete inquiry' };
+  }
+  return { success: true };
+}
+
+/**
+ * Update a student's personal/spiritual profile.
+ */
+export async function updateStudentProfileAction(data: {
+  phone: string;
+  address: string;
+  motivation: string;
+  spiritual_bg: string;
+}) {
+  const cookieStore = await cookies();
+  const userId = cookieStore.get('moodle_user_id')?.value;
+  if (!userId) return { error: 'Not authenticated' };
+
+  const result = await fetchMoodle('local_skillsaint_update_student_profile', {
+    userid: parseInt(userId),
+    phone: data.phone,
+    address: data.address,
+    motivation: data.motivation,
+    spiritual_bg: data.spiritual_bg,
+  });
+
+  if (result?.error || result?.status === 'error') {
+    return { error: result?.message || 'Failed to update profile' };
+  }
+  return { success: true };
+}
+
+/**
+ * Changes student password
+ */
+export async function changePasswordAction(current: string, newPass: string) {
+  const cookieStore = await cookies();
+  const userId = cookieStore.get('moodle_user_id')?.value;
+  if (!userId) return { error: 'Not authenticated' };
+
+  try {
+    const result = await fetchMoodle('local_skillsaint_change_password', {
+      userid: parseInt(userId),
+      currentpassword: current,
+      newpassword: newPass
+    });
+
+    if (result?.status === 'error') {
+      return { error: result.message };
+    }
+
+    return { success: true, message: result?.message || 'Password updated' };
+  } catch (err) {
+    console.error("Change password error:", err);
+    return { error: "Moodle connection error" };
+  }
+}
+

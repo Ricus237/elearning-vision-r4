@@ -155,11 +155,11 @@ const sections: Section[] = [
 ];
 
 const colorVariants: Record<string, { icon: string; ring: string; saved: string }> = {
-  purple: { icon: "bg-purple-600 text-white", ring: "ring-purple-100", saved: "text-purple-600 bg-purple-50" },
-  indigo: { icon: "bg-indigo-600 text-white", ring: "ring-indigo-100", saved: "text-indigo-600 bg-indigo-50" },
-  emerald: { icon: "bg-emerald-500 text-white", ring: "ring-emerald-100", saved: "text-emerald-600 bg-emerald-50" },
-  orange: { icon: "bg-orange-500 text-white", ring: "ring-orange-100", saved: "text-orange-600 bg-orange-50" },
-  rose: { icon: "bg-rose-500 text-white", ring: "ring-rose-100", saved: "text-rose-600 bg-rose-50" },
+  purple: { icon: "bg-purple-600 text-white", ring: "ring-purple-100 dark:ring-purple-900/20", saved: "text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20" },
+  indigo: { icon: "bg-indigo-600 text-white", ring: "ring-indigo-100 dark:ring-indigo-900/20", saved: "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20" },
+  emerald: { icon: "bg-emerald-500 text-white", ring: "ring-emerald-100 dark:ring-emerald-900/20", saved: "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20" },
+  orange: { icon: "bg-orange-500 text-white", ring: "ring-orange-100 dark:ring-orange-900/20", saved: "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20" },
+  rose: { icon: "bg-rose-500 text-white", ring: "ring-rose-100 dark:ring-rose-900/20", saved: "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/20" },
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -224,7 +224,7 @@ export default function SiteContentPage() {
       setOriginal({ ...data });
       setSaved((prev) => new Set(prev).add(sectionId));
     } catch {
-      alert("Failed to save. Check your Moodle connection.");
+      alert("Failed to save. Check your database connection.");
     } finally {
       setSaving(null);
     }
@@ -246,11 +246,11 @@ export default function SiteContentPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col md:flex-row">
+    <div className="min-h-screen bg-white dark:bg-[#0b1120] flex flex-col md:flex-row relative">
       <AdminSidebar />
 
       <main className="flex-1 min-h-screen">
-        <div className="pt-24 md:pt-0 p-6 md:p-10 lg:p-12">
+        <div className="pt-24 md:pt-0 p-6 md:p-10 lg:p-12 bg-[#f0f2f5] dark:bg-[#0b1120]">
           <div className="max-w-4xl mx-auto">
 
             {/* Header */}
@@ -259,10 +259,10 @@ export default function SiteContentPage() {
                 <div className="w-10 h-1 rounded-full bg-purple-600" />
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-600">CMS — Content Management</span>
               </div>
-              <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight leading-none mb-4">
+              <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight leading-none mb-4">
                 Site <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">Content</span>
               </h1>
-              <p className="text-gray-400 font-medium max-w-xl">
+              <p className="text-gray-400 dark:text-slate-500 font-medium max-w-xl">
                 Edit every text that appears on your public website — mapped exactly to each page. Changes are pushed directly to Moodle.
               </p>
             </header>
@@ -270,7 +270,7 @@ export default function SiteContentPage() {
             {loading ? (
               <div className="flex flex-col items-center justify-center py-32">
                 <div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mb-4" />
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">Loading from Moodle...</p>
+                <p className="text-[10px] font-black text-gray-400 dark:text-slate-600 uppercase tracking-[0.3em]">Loading from Moodle...</p>
               </div>
             ) : (
               <div className="space-y-5 pb-24">
@@ -285,11 +285,11 @@ export default function SiteContentPage() {
                   return (
                     <div
                       key={section.id}
-                      className={`bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden transition-all duration-300 ${isOpen ? `ring-2 ${cv.ring} shadow-xl` : "hover:shadow-md hover:-translate-y-0.5"}`}
+                      className={`bg-white dark:bg-[#1e293b] rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden transition-all duration-300 ${isOpen ? `ring-2 ${cv.ring} shadow-xl` : "hover:shadow-md hover:-translate-y-0.5"}`}
                     >
                       {/* Section Header */}
                       <div
-                        className={`p-8 flex items-center justify-between cursor-pointer transition-colors ${isOpen ? "bg-gray-50/50" : ""}`}
+                        className={`p-8 flex items-center justify-between cursor-pointer transition-colors ${isOpen ? "bg-gray-50/50 dark:bg-slate-800/50" : ""}`}
                         onClick={() => setExpanded(isOpen ? null : section.id)}
                       >
                         <div className="flex items-center gap-5">
@@ -297,13 +297,13 @@ export default function SiteContentPage() {
                             <Icon className="w-7 h-7" />
                           </div>
                           <div>
-                            <h2 className="text-lg font-black text-gray-900">{section.label}</h2>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">{section.subtitle}</p>
+                            <h2 className="text-lg font-black text-gray-900 dark:text-white">{section.label}</h2>
+                            <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">{section.subtitle}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
                           {dirty && !isSaved && (
-                            <span className="text-[9px] font-black text-orange-500 bg-orange-50 px-3 py-1 rounded-full uppercase tracking-widest">
+                            <span className="text-[9px] font-black text-orange-500 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 px-3 py-1 rounded-full uppercase tracking-widest">
                               Unsaved changes
                             </span>
                           )}
@@ -312,7 +312,7 @@ export default function SiteContentPage() {
                               <CheckCircle2 className="w-3 h-3" /> Saved
                             </span>
                           )}
-                          <div className={`p-2 rounded-full bg-gray-50 text-gray-400 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}>
+                          <div className={`p-2 rounded-full bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-slate-600 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}>
                             <ChevronDown className="w-5 h-5" />
                           </div>
                         </div>
@@ -320,14 +320,14 @@ export default function SiteContentPage() {
 
                       {/* Fields */}
                       {isOpen && (
-                        <div className="border-t border-gray-50 p-8 pt-6" onClick={(e) => e.stopPropagation()}>
+                        <div className="border-t border-gray-50 dark:border-slate-800 p-8 pt-6" onClick={(e) => e.stopPropagation()}>
                           <div className="space-y-6">
                             {section.fields.map((field) => (
                               <div key={field.key} className="space-y-2">
                                 <div className="flex items-center justify-between ml-1">
-                                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{field.label}</label>
+                                  <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">{field.label}</label>
                                   {field.hint && (
-                                    <span className="text-[9px] text-gray-300 font-medium max-w-xs text-right">{field.hint}</span>
+                                    <span className="text-[9px] text-gray-300 dark:text-slate-600 font-medium max-w-xs text-right">{field.hint}</span>
                                   )}
                                 </div>
 
@@ -345,7 +345,7 @@ export default function SiteContentPage() {
                                             items[idx] = e.target.value;
                                             handleChange("core_program_items", items.join("\n"));
                                           }}
-                                          className="flex-1 px-5 h-12 bg-gray-50 border-none rounded-xl text-sm font-bold text-gray-900 focus:ring-4 focus:ring-purple-100 transition-all"
+                                          className="flex-1 px-5 h-12 bg-gray-50 dark:bg-slate-900 border-none rounded-xl text-sm font-bold text-gray-900 dark:text-white focus:ring-4 focus:ring-purple-100 dark:focus:ring-purple-900/20 transition-all"
                                           placeholder={`Lesson item ${idx + 1}`}
                                         />
                                         {data.core_program_items.split("\n").length > 1 && (
@@ -354,7 +354,7 @@ export default function SiteContentPage() {
                                               const items = data.core_program_items.split("\n").filter((_, i) => i !== idx);
                                               handleChange("core_program_items", items.join("\n"));
                                             }}
-                                            className="opacity-0 group-hover:opacity-100 p-2 text-gray-300 hover:text-red-500 transition-all"
+                                            className="opacity-0 group-hover:opacity-100 p-2 text-gray-300 dark:text-slate-700 hover:text-red-500 transition-all"
                                           >
                                             <Trash2 className="w-4 h-4" />
                                           </button>
@@ -373,14 +373,14 @@ export default function SiteContentPage() {
                                     rows={field.key === "founder_content" ? 6 : 3}
                                     value={data[field.key]}
                                     onChange={(e) => handleChange(field.key, e.target.value)}
-                                    className="w-full px-6 py-4 bg-gray-50 border-none rounded-2xl text-sm font-bold text-gray-900 focus:ring-4 focus:ring-purple-100 transition-all resize-none leading-relaxed"
+                                    className="w-full px-6 py-4 bg-gray-50 dark:bg-slate-900 border-none rounded-2xl text-sm font-bold text-gray-900 dark:text-white focus:ring-4 focus:ring-purple-100 dark:focus:ring-purple-900/20 transition-all resize-none leading-relaxed"
                                   />
                                 ) : (
                                   <input
                                     type={field.type}
                                     value={data[field.key]}
                                     onChange={(e) => handleChange(field.key, e.target.value)}
-                                    className="w-full px-6 h-14 bg-gray-50 border-none rounded-2xl text-sm font-bold text-gray-900 focus:ring-4 focus:ring-purple-100 transition-all"
+                                    className="w-full px-6 h-14 bg-gray-50 dark:bg-slate-900 border-none rounded-2xl text-sm font-bold text-gray-900 dark:text-white focus:ring-4 focus:ring-purple-100 dark:focus:ring-purple-900/20 transition-all"
                                   />
                                 )}
                               </div>
@@ -388,20 +388,20 @@ export default function SiteContentPage() {
                           </div>
 
                           {/* Section Footer */}
-                          <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-50">
+                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between mt-8 pt-6 border-t border-gray-50 dark:border-slate-800 gap-4">
                             <button
                               onClick={() => handleReset(section.id)}
-                              className="flex items-center gap-2 text-[10px] font-black text-gray-300 hover:text-gray-600 uppercase tracking-widest transition-all"
+                              className="flex items-center justify-center sm:justify-start gap-2 text-[10px] font-black text-gray-300 dark:text-slate-600 hover:text-gray-600 dark:hover:text-slate-400 uppercase tracking-widest transition-all py-2"
                             >
                               <RefreshCw className="w-3.5 h-3.5" /> Reset to Default
                             </button>
                             <button
                               onClick={() => handleSave(section.id)}
                               disabled={isSaving}
-                              className={`flex items-center gap-2 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-60 shadow-lg ${
+                              className={`flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-60 shadow-lg ${
                                 isSaved
-                                  ? "bg-emerald-500 text-white shadow-emerald-100"
-                                  : "bg-gray-900 text-white hover:bg-purple-600 shadow-gray-100"
+                                  ? "bg-emerald-500 text-white shadow-emerald-100 dark:shadow-none"
+                                  : "bg-gray-900 dark:bg-purple-600 text-white hover:bg-purple-600 dark:hover:bg-purple-700 shadow-gray-100 dark:shadow-none"
                               }`}
                             >
                               {isSaving ? (

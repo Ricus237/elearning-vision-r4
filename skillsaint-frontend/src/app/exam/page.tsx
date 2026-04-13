@@ -2,9 +2,9 @@
 import { useState, useEffect, Suspense } from "react";
 import Button from "@/components/ui/button";
 import Link from "next/link";
-import { CheckCircle, Loader2 } from "lucide-react";
+import { CheckCircle, Loader2, ArrowLeft, AlertTriangle } from "lucide-react";
 import { examQuestions } from "@/data/curriculum";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { getQuizQuestionsAction } from "@/lib/actions";
 
 // Use the first course's exam questions as default fallback
@@ -44,6 +44,8 @@ const ExamContent = () => {
   const [isLoading, setIsLoading] = useState(!!quizIdStr);
   const [error, setError] = useState<string | null>(null);
   const [quizName, setQuizName] = useState("Course Final Examination");
+  const [showExitWarning, setShowExitWarning] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     async function loadQuiz() {
@@ -124,24 +126,49 @@ const ExamContent = () => {
 
   if (isLoading) {
     return (
-      <div className="fixed inset-0 z-[1000] bg-gray-50 flex flex-col items-center justify-center p-4">
-        <Loader2 className="w-12 h-12 text-purple-600 animate-spin mb-4" />
-        <p className="text-gray-500 font-medium tracking-wide">Fetching your examination from Moodle...</p>
-      </div>
+      <>
+        {/* Simple return button freely available while loading */}
+        <div className="fixed top-6 left-6 md:top-10 md:left-10 z-[1050]">
+          <button 
+            onClick={() => router.push("/dashboard/exams")}
+            className="flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-gray-900 transition-all bg-white px-5 py-3 rounded-[1.25rem] shadow-sm border border-gray-100 hover:shadow-md hover:-translate-x-1"
+          >
+            <ArrowLeft size={18} />
+            <span className="hidden md:inline uppercase tracking-widest text-[10px] mt-0.5">Return</span>
+            <span className="md:hidden uppercase tracking-widest text-[10px] mt-0.5">Return</span>
+          </button>
+        </div>
+        <div className="fixed inset-0 z-[1000] bg-gray-50 flex flex-col items-center justify-center p-4">
+          <Loader2 className="w-12 h-12 text-purple-600 animate-spin mb-4" />
+          <p className="text-gray-500 font-medium tracking-wide">Fetching your examination from Moodle...</p>
+        </div>
+      </>
     );
   }
 
   if (error) {
     return (
-      <div className="fixed inset-0 z-[1000] bg-gray-50 flex flex-col items-center justify-center p-4">
-        <div className="bg-white p-8 rounded-3xl shadow-card max-w-lg w-full text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-2">Examination Error</h2>
-          <p className="text-gray-600 mb-8">{error}</p>
-          <Button asChild className="w-full">
-            <Link href="/courses">Return to Courses</Link>
-          </Button>
+      <>
+        <div className="fixed top-6 left-6 md:top-10 md:left-10 z-[1050]">
+          <button 
+            onClick={() => router.push("/dashboard/exams")}
+            className="flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-gray-900 transition-all bg-white px-5 py-3 rounded-[1.25rem] shadow-sm border border-gray-100 hover:shadow-md hover:-translate-x-1"
+          >
+            <ArrowLeft size={18} />
+            <span className="hidden md:inline uppercase tracking-widest text-[10px] mt-0.5">Return</span>
+            <span className="md:hidden uppercase tracking-widest text-[10px] mt-0.5">Return</span>
+          </button>
         </div>
-      </div>
+        <div className="fixed inset-0 z-[1000] bg-gray-50 flex flex-col items-center justify-center p-4">
+          <div className="bg-white p-8 rounded-3xl shadow-card max-w-lg w-full text-center">
+            <h2 className="text-2xl font-bold text-red-600 mb-2">Examination Error</h2>
+            <p className="text-gray-600 mb-8">{error}</p>
+            <Button asChild className="w-full">
+              <Link href="/dashboard/exams">Return to Assessments</Link>
+            </Button>
+          </div>
+        </div>
+      </>
     );
   }
 
@@ -174,8 +201,21 @@ const ExamContent = () => {
   const question = questions[currentQuestion];
 
   return (
-    <div className="fixed inset-0 z-[1000] bg-gray-50 flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-3xl">
+    <>
+      {/* Top-left absolute return button */}
+      <div className="fixed top-6 left-6 md:top-10 md:left-10 z-[1050]">
+        <button 
+          onClick={() => setShowExitWarning(true)}
+          className="flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-red-600 transition-all bg-white px-5 py-3 rounded-[1.25rem] shadow-sm border border-gray-100 hover:shadow-md hover:-translate-x-1"
+        >
+          <ArrowLeft size={18} />
+          <span className="hidden md:inline uppercase tracking-widest text-[10px] mt-0.5">Cancel Session</span>
+          <span className="md:hidden uppercase tracking-widest text-[10px] mt-0.5">Quit</span>
+        </button>
+      </div>
+
+      <div className="fixed inset-0 z-[1000] bg-gray-50 flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-3xl">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900">{quizName}</h1>
           <span className="text-sm font-medium bg-purple-100 text-purple-800 px-4 py-1.5 rounded-full">
@@ -252,9 +292,39 @@ const ExamContent = () => {
               </Button>
             )}
           </div>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Exit Warning Modal */}
+      {showExitWarning && (
+        <div className="fixed inset-0 z-[1100] bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center animate-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertTriangle size={32} />
+            </div>
+            <h3 className="text-2xl font-black text-gray-900 mb-2">Warning!</h3>
+            <p className="text-gray-500 font-medium mb-8">
+              Are you sure you want to quit this exam session? Your progress will not be saved and your current attempt will be considered abandoned.
+            </p>
+            <div className="flex gap-4">
+              <button 
+                onClick={() => setShowExitWarning(false)}
+                className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-2xl transition-colors"
+              >
+                Resume Exam
+              </button>
+              <button 
+                onClick={() => router.push("/dashboard/exams")}
+                className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl transition-colors shadow-lg shadow-red-200"
+              >
+                Yes, Quit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

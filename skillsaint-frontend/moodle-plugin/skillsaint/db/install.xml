@@ -29,5 +29,37 @@
         <INDEX NAME="email_idx" UNIQUE="false" FIELDS="email" COMMENT="Search index for user email"/>
       </INDEXES>
     </TABLE>
+    <TABLE NAME="local_skillsaint_inquiries" COMMENT="Student support inquiries linked to courses">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Moodle user ID of the student"/>
+        <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="The course this inquiry is about"/>
+        <FIELD NAME="subject" TYPE="char" LENGTH="255" NOTNULL="true" COMMENT="Short subject/title"/>
+        <FIELD NAME="message" TYPE="text" NOTNULL="true" COMMENT="Student message content"/>
+        <FIELD NAME="admin_reply" TYPE="text" NOTNULL="false" COMMENT="Admin reply to the student"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="open" COMMENT="open, replied, or resolved"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="userid_idx" UNIQUE="false" FIELDS="userid"/>
+        <INDEX NAME="courseid_idx" UNIQUE="false" FIELDS="courseid"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_skillsaint_messages" COMMENT="Individual messages within an inquiry thread">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="inquiry_id" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Link to local_skillsaint_inquiries"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Sender user ID"/>
+        <FIELD NAME="message" TYPE="text" NOTNULL="true"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+    </TABLE>
   </TABLES>
 </XMLDB>

@@ -211,3 +211,99 @@ input[type="number"] {
 .animate-light-rays {
   animation: light-rays 20s ease-in-out infinite;
 }
+
+/* ============================================================
+   GLOBAL DARK MODE OVERRIDES (Themed appearance)
+   This applies when the 'dark' class is present on <html>
+============================================================ */
+.dark body,
+.dark .min-h-screen,
+.dark .bg-\[\#f0f2f5\] {
+  background-color: #0b1120 !important; /* Very deep slate */
+  color: #f8fafc !important;
+}
+
+.dark .bg-white,
+.dark .bg-gray-50,
+.dark .bg-\[\#f8f9fc\],
+.dark .bg-\[\#fafafa\] {
+  background-color: #1e293b !important; /* Slightly lighter slate for cards */
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+.dark .text-gray-900,
+.dark .text-gray-800 {
+  color: #ffffff !important;
+}
+
+.dark .text-gray-600,
+.dark .text-gray-500,
+.dark .text-gray-400 {
+  color: #94a3b8 !important; /* Slate 400 */
+}
+
+.dark .border-gray-50,
+.dark .border-gray-100,
+.dark .border-gray-200 {
+  border-color: #334155 !important; 
+}
+
+/* Invert input elements for dark mode */
+.dark input:not(.bg-transparent), 
+.dark textarea:not(.bg-transparent) {
+  background-color: #0b1120 !important;
+  color: #ffffff !important;
+  border-color: #334155 !important;
+}
+
+.dark .bg-transparent {
+  background-color: transparent !important;
+  color: #f8fafc !important;
+}
+
+/* Fix CSS matching for Tailwind pseudo-classes on hover */
+.dark .hover\:bg-gray-50:hover {
+  background-color: #1e293b !important;
+}
+.dark .hover\:bg-gray-100:hover {
+  background-color: #334155 !important;
+  color: #ffffff !important;
+}
+
+/* Important: Fix button inversions (Solid Dark Buttons naturally invert to Solid Light) */
+.dark .bg-gray-900 {
+  background-color: #ffffff !important;
+  color: #0b1120 !important;
+}
+.dark .bg-gray-900 * {
+  color: #0b1120 !important;
+}
+.dark .bg-gray-900.text-white {
+  color: #0b1120 !important;
+}
+
+/* Fix shadows to prevent "glowing" effect in dark mode */
+.dark .shadow-sm,
+.dark .shadow-md,
+.dark .shadow-lg,
+.dark .shadow-xl,
+.dark .shadow-2xl,
+.dark .shadow-card {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Maintain special purple branding */
+.dark .text-purple-600 {
+  color: #a855f7 !important; /* lighter purple */
+}
+.dark .text-purple-900 {
+  color: #d8b4fe !important;
+}
+.dark .bg-purple-50 {
+  background-color: #3b0764 !important; /* Very dark rich purple for active states */
+}
+.dark .border-purple-200 {
+  border-color: #6b21a8 !important;
+}
+

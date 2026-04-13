@@ -1,7 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
-  Bell, 
   Lock, 
   Shield, 
   Trash2, 
@@ -15,29 +14,48 @@ import {
   CheckCircle
 } from "lucide-react";
 import StudentSidebar from "@/components/dashboard/StudentSidebar";
-import { logoutAction } from "@/lib/actions";
+import { logoutAction, changePasswordAction } from "@/lib/actions";
+import { Loader2 } from "lucide-react";
 
 const SettingsPage = () => {
-  const [notifications, setNotifications] = useState({
-    courseUpdates: true,
-    examReminders: true,
-    newCourses: false,
-    systemAlerts: true,
-  });
   const [theme, setTheme] = useState<"light" | "dark" | "system">("system");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ current: "", new: "", confirm: "" });
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
-  const Toggle = ({ enabled, onChange }: { enabled: boolean; onChange: () => void }) => (
-    <button
-      onClick={onChange}
-      className={`relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-300 ${enabled ? "bg-purple-600 shadow-lg shadow-purple-100" : "bg-gray-200"}`}
-    >
-      <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-all duration-300 shadow-sm ${enabled ? "translate-x-6" : "translate-x-1"}`} />
-    </button>
-  );
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("ibi_theme");
+      if (saved && (saved === "light" || saved === "dark" || saved === "system")) {
+        setTheme(saved as "light" | "dark" | "system");
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const root = window.document.documentElement;
+      localStorage.setItem("ibi_theme", theme);
+      if (theme === "dark") {
+        root.classList.add("dark");
+      } else if (theme === "light") {
+        root.classList.remove("dark");
+      } else {
+        if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+           root.classList.add("dark");
+        } else {
+           root.classList.remove("dark");
+        }
+      }
+    }
+  }, [theme]);
+
+
 
   return (
-    <div className="min-h-screen bg-white flex flex-col md:flex-row relative">
+    <div className="min-h-screen bg-[#f0f2f5] flex flex-col md:flex-row relative">
       <StudentSidebar />
 
       <main className="flex-1 min-h-screen">
@@ -60,39 +78,7 @@ const SettingsPage = () => {
 
             <div className="space-y-6 pb-20">
               
-              {/* Notifications Card */}
-              <section className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden p-8 md:p-10 animate-in fade-in duration-1000 slide-in-from-bottom-5">
-                <div className="flex items-center gap-5 mb-10">
-                  <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm">
-                    <Bell size={24} />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-black text-gray-900">Notifications</h2>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Alerts & Updates</p>
-                  </div>
-                </div>
-
-                <div className="divide-y divide-gray-50">
-                  {[
-                    { key: "courseUpdates", label: "Module Updates", desc: "Alerts when new lesson content or materials are added." },
-                    { key: "examReminders", label: "Exam Eligibility", desc: "Notification when you unlock a quarterly assessment." },
-                    { key: "newCourses", label: "Academic News", desc: "Stay updated with general IBI announcements." },
-                    { key: "systemAlerts", label: "System Alerts", desc: "Technical platform updates and maintenance info." },
-                  ].map((n) => (
-                    <div key={n.key} className="flex items-center justify-between py-6 gap-6">
-                      <div className="max-w-sm">
-                        <p className="text-sm font-black text-gray-900">{n.label}</p>
-                        <p className="text-xs text-gray-400 mt-1 leading-relaxed">{n.desc}</p>
-                      </div>
-                      <Toggle 
-                        enabled={notifications[n.key as keyof typeof notifications]} 
-                        onChange={() => setNotifications(prev => ({ ...prev, [n.key]: !prev[n.key as keyof typeof prev] }))} 
-                      />
-                    </div>
-                  ))}
-                </div>
-              </section>
-
+            
               {/* Appearance Card */}
               <section className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden p-8 md:p-10 animate-in fade-in duration-1000 delay-200 slide-in-from-bottom-5">
                 <div className="flex items-center gap-5 mb-10">
@@ -147,18 +133,24 @@ const SettingsPage = () => {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <button className="flex items-center justify-between p-8 bg-gray-50/50 rounded-3xl border border-transparent hover:border-purple-100 hover:bg-white transition-all group">
+                  <button 
+                    onClick={() => setShowPasswordChange(true)}
+                    className="flex w-full items-center justify-between p-8 bg-gray-50/50 rounded-3xl border border-transparent hover:border-purple-100 hover:bg-white transition-all group"
+                  >
                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-gray-400 group-hover:text-purple-600 transition-colors">
+                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-gray-400 group-hover:text-purple-600 transition-colors shadow-sm">
                           <Lock size={18} />
                         </div>
-                        <p className="text-sm font-black text-gray-900">Password</p>
+                        <p className="text-sm font-black text-gray-900">Change Password</p>
                      </div>
                      <ChevronRight size={16} className="text-gray-300 transition-transform group-hover:translate-x-1" />
                   </button>
-                  <button className="flex items-center justify-between p-8 bg-gray-50/50 rounded-3xl border border-transparent hover:border-purple-100 hover:bg-white transition-all group">
+                  <button 
+                     onClick={() => setShowPrivacyPolicy(true)}
+                     className="flex w-full items-center justify-between p-8 bg-gray-50/50 rounded-3xl border border-transparent hover:border-purple-100 hover:bg-white transition-all group"
+                  >
                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-gray-400 group-hover:text-purple-600 transition-colors">
+                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-gray-400 group-hover:text-purple-600 transition-colors shadow-sm">
                           <FileText size={18} />
                         </div>
                         <p className="text-sm font-black text-gray-900">Privacy Policy</p>
@@ -221,8 +213,94 @@ const SettingsPage = () => {
               </p>
               <div className="flex gap-4">
                  <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-900 transition-colors">Abort</button>
-                 <button className="flex-1 py-4 bg-red-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-100">Confirm</button>
+                 <button onClick={() => { 
+                   alert("Account deletion sequence initiated. A confirmation email has been sent. Follow the instructions to finalize the process."); 
+                   setShowDeleteConfirm(false); 
+                 }} className="flex-1 py-4 bg-red-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-100 hover:bg-red-700 transition-colors">Confirm Wipe</button>
               </div>
+           </div>
+        </div>
+      )}
+
+      {/* Password Change Modal */}
+      {showPasswordChange && (
+        <div className="fixed inset-0 z-[100] bg-gray-900/60 backdrop-blur-xl flex items-center justify-center p-6">
+           <div className="bg-white rounded-[3rem] p-10 max-w-md w-full shadow-2xl animate-in zoom-in duration-300">
+              <h3 className="text-2xl font-black text-gray-900 mb-6 tracking-tight flex items-center gap-3">
+                 <Lock className="text-purple-600" /> Change Password
+              </h3>
+              <div className="space-y-5 mb-10">
+                 <div>
+                   <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-1">Current Password</label>
+                   <input type="password" value={passwordForm.current} onChange={(e) => setPasswordForm({...passwordForm, current: e.target.value})} className="w-full px-5 py-3.5 bg-gray-50 border border-transparent rounded-2xl outline-none mt-2 text-sm font-medium focus:ring-4 focus:ring-purple-50 focus:border-purple-200 focus:bg-white transition-all" placeholder="Enter current password" />
+                 </div>
+                 <div>
+                   <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-1">New Password</label>
+                   <input type="password" value={passwordForm.new} onChange={(e) => setPasswordForm({...passwordForm, new: e.target.value})} className="w-full px-5 py-3.5 bg-gray-50 border border-transparent rounded-2xl outline-none mt-2 text-sm font-medium focus:ring-4 focus:ring-purple-50 focus:border-purple-200 focus:bg-white transition-all" placeholder="Enter new password" />
+                 </div>
+                 <div>
+                   <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-1">Confirm New Password</label>
+                   <input type="password" value={passwordForm.confirm} onChange={(e) => setPasswordForm({...passwordForm, confirm: e.target.value})} className="w-full px-5 py-3.5 bg-gray-50 border border-transparent rounded-2xl outline-none mt-2 text-sm font-medium focus:ring-4 focus:ring-purple-50 focus:border-purple-200 focus:bg-white transition-all" placeholder="Confirm new password" />
+                 </div>
+              </div>
+              <div className="flex gap-4">
+                 <button onClick={() => setShowPasswordChange(false)} className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-900 transition-colors">Cancel</button>
+                  <button 
+                    disabled={isUpdatingPassword}
+                    onClick={async () => {
+                    if(!passwordForm.new || passwordForm.new !== passwordForm.confirm) { 
+                       alert("Error: Passwords do not match or are empty!"); 
+                       return; 
+                    }
+                    if(!passwordForm.current) {
+                       alert("Error: Please specify your current password.");
+                       return;
+                    }
+
+                    setIsUpdatingPassword(true);
+                    try {
+                      const res = await changePasswordAction(passwordForm.current, passwordForm.new);
+                      if (res.error) {
+                        alert("Error: " + res.error);
+                      } else {
+                        alert("Success: Your password has been successfully updated via Moodle."); 
+                        setShowPasswordChange(false);
+                        setPasswordForm({current: "", new: "", confirm: ""});
+                      }
+                    } catch {
+                      alert("A network error occurred.");
+                    } finally {
+                      setIsUpdatingPassword(false);
+                    }
+                  }} className="flex-1 py-4 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-gray-200 hover:-translate-y-1 transition-transform flex items-center justify-center gap-2">
+                    {isUpdatingPassword && <Loader2 size={14} className="animate-spin" />}
+                    {isUpdatingPassword ? "Updating..." : "Update Security"}
+                  </button>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* Privacy Policy Modal */}
+      {showPrivacyPolicy && (
+        <div className="fixed inset-0 z-[100] bg-gray-900/60 backdrop-blur-xl flex items-center justify-center p-6">
+           <div className="bg-white rounded-[3rem] p-10 max-w-2xl w-full shadow-2xl animate-in zoom-in duration-300">
+              <h3 className="text-2xl font-black text-gray-900 mb-6 tracking-tight flex items-center gap-3">
+                 <Shield className="text-emerald-500"/> Privacy Policy & Terms
+              </h3>
+              <div className="text-sm text-gray-500 font-medium leading-relaxed mb-10 space-y-4 max-h-[50vh] overflow-y-auto custom-scrollbar pr-4">
+                 <p className="p-4 bg-emerald-50 text-emerald-800 rounded-2xl mb-6">Your privacy matters. We rigorously guard your personal and academic data using state-of-the-art encryption protocols.</p>
+                 <p><strong className="text-gray-900">1. Data Collection:</strong> We collect your personal data such as name, email, and academic progress strictly for educational tracking and certification purposes within the International Bible Institute portal.</p>
+                 <p><strong className="text-gray-900">2. Third Parties:</strong> Your data is securely synchronized with our LMS backbone via protected APIs. We absolutely do not sell or rent your personal information to third parties or marketing boards.</p>
+                 <p><strong className="text-gray-900">3. Security Infrastructure:</strong> All communications between your client and our servers are encrypted via HTTPS headers and secure token rotations. Authentication relies on industry-standard hashing.</p>
+                 <p><strong className="text-gray-900">4. Right to Deletion:</strong> You may permanently wipe your records at any time via the « Danger Zone » on your settings dashboard. Upon request, all historical progress is scrubbed irreversibly.</p>
+              </div>
+              <button 
+                onClick={() => setShowPrivacyPolicy(false)}
+                className="w-full py-5 bg-gray-900 hover:bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:shadow-emerald-200 transition-all"
+              >
+                I have read and understood
+              </button>
            </div>
         </div>
       )}

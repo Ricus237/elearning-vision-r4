@@ -1569,10 +1569,15 @@ class local_skillsaint_external extends external_api
         require_once($CFG->dirroot . '/enrol/externallib.php');
         require_once($CFG->dirroot . '/course/lib.php');
 
-        // 1. Plan
+        // 1. Plan & Profile Info
         $user = $DB->get_record('user', array('id' => $userid), 'email', MUST_EXIST);
-        $app = $DB->get_record('local_skillsaint_apps', array('email' => $user->email), 'selected_plan');
+        $app = $DB->get_record('local_skillsaint_apps', array('email' => $user->email));
+        
         $plan = $app ? $app->selected_plan : 'none';
+        $phone = $app ? $app->phone : '';
+        $address = $app ? $app->address : '';
+        $motivation = $app ? $app->motivation : '';
+        $spiritual_bg = $app ? $app->spiritual_bg : '';
 
         // 2. Enrolled Courses
         $courses_raw = enrol_get_users_courses($userid, true, 'id,fullname,shortname,summary,visible');
@@ -1593,7 +1598,7 @@ class local_skillsaint_external extends external_api
 
             $enrolled_courses[] = array(
                 'id' => (int) $c->id,
-                'fullname' => $c->fullname,
+                'fullname' => $fullname = $c->fullname,
                 'shortname' => $c->shortname,
                 'summary' => strip_tags($c->summary),
                 'image_url' => $image_url,
@@ -1621,6 +1626,10 @@ class local_skillsaint_external extends external_api
 
         return array(
             'plan' => $plan,
+            'phone' => $phone,
+            'address' => $address,
+            'motivation' => $motivation,
+            'spiritual_bg' => $spiritual_bg,
             'courses' => $enrolled_courses,
             'exams' => $exams,
         );
@@ -1630,6 +1639,10 @@ class local_skillsaint_external extends external_api
     {
         return new external_single_structure(array(
             'plan' => new external_value(PARAM_TEXT, 'User subscription plan'),
+            'phone' => new external_value(PARAM_TEXT, 'User phone'),
+            'address' => new external_value(PARAM_TEXT, 'User address'),
+            'motivation' => new external_value(PARAM_TEXT, 'User motivation'),
+            'spiritual_bg' => new external_value(PARAM_TEXT, 'User spiritual background info'),
             'courses' => new external_multiple_structure(
                 new external_single_structure(array(
                     'id' => new external_value(PARAM_INT, 'Course ID'),
@@ -1650,4 +1663,549 @@ class local_skillsaint_external extends external_api
             ),
         ));
     }
+
+    // ============================================================
+    // INQUIRY / STUDENT SUPPORT SYSTEM
+    // ============================================================
+
+    /**
+     * Student sends an inquiry about a specific course.
+     */
+    public static function send_inquiry_parameters()
+    {
+        return new external_function_parameters(array(
+            'userid'   => new external_value(PARAM_INT, 'Moodle user ID'),
+            'courseid' => new external_value(PARAM_INT, 'Course this inquiry relates to'),
+            'subject'  => new external_value(PARAM_TEXT, 'Short inquiry subject'),
+            'message'  => new external_value(PARAM_RAW,  'Full message content'),
+        ));
+    }
+
+    public static function send_inquiry($userid, $courseid, $subject, $message)
+    {
+        global $DB;
+        $params = self::validate_parameters(self::send_inquiry_parameters(), array(
+            'userid'   => $userid,
+            'courseid' => $courseid,
+            'subject'  => $subject,
+            'message'  => $message,
+        ));
+
+        $record = new stdClass();
+        $record->userid      = $params['userid'];
+        $record->courseid    = $params['courseid'];
+        $record->subject     = $params['subject'];
+        $record->message     = $params['message'];
+        $record->admin_reply = null;
+        $record->status      = 'open';
+        $record->timecreated = time();
+        $record->timemodified = time();
+
+        $id = $DB->insert_record('local_skillsaint_inquiries', $record);
+
+        // Also insert into messages table for the first message
+        $msg = new stdClass();
+        $msg->inquiry_id  = $id;
+        $msg->userid      = $params['userid'];
+        $msg->message     = $params['message'];
+        $msg->timecreated = time();
+        $DB->insert_record('local_skillsaint_messages', $msg);
+
+        return array('status' => 'success', 'inquiry_id' => (int)$id);
+    }
+
+    public static function send_inquiry_returns()
+    {
+        return new external_single_structure(array(
+            'status'     => new external_value(PARAM_TEXT, 'success or error'),
+            'inquiry_id' => new external_value(PARAM_INT, 'ID of created inquiry'),
+        ));
+    }
+
+    /**
+     * Get all inquiries (admin view) with student + course info.
+     */
+    public static function get_all_inquiries_parameters()
+    {
+        return new external_function_parameters(array(
+            'status_filter' => new external_value(PARAM_TEXT, 'Filter: all, open, replied, resolved', VALUE_DEFAULT, 'all'),
+        ));
+    }
+
+    public static function get_all_inquiries($status_filter = 'all')
+    {
+        global $DB;
+        $params = self::validate_parameters(self::get_all_inquiries_parameters(), array(
+            'status_filter' => $status_filter,
+        ));
+
+        $where = '';
+        $sqlparams = array();
+        if ($params['status_filter'] !== 'all') {
+            $where = 'WHERE inq.status = ?';
+            $sqlparams[] = $params['status_filter'];
+        }
+
+        $sql = "
+            SELECT inq.id, inq.userid, inq.courseid, inq.subject, inq.message,
+                   inq.admin_reply, inq.status, inq.timecreated, inq.timemodified,
+                   u.firstname, u.lastname, u.email,
+                   c.fullname as coursename
+            FROM {local_skillsaint_inquiries} inq
+            JOIN {user} u ON u.id = inq.userid
+            LEFT JOIN {course} c ON c.id = inq.courseid
+            $where
+            ORDER BY inq.timecreated DESC
+        ";
+
+        $rows = $DB->get_records_sql($sql, $sqlparams);
+        $result = array();
+        foreach ($rows as $r) {
+            // Fetch messages for this inquiry
+            $messages_rows = $DB->get_records('local_skillsaint_messages', array('inquiry_id' => $r->id), 'timecreated ASC');
+            $messages = array();
+            foreach ($messages_rows as $m) {
+                $messages[] = array(
+                    'id'          => (int) $m->id,
+                    'userid'      => (int) $m->userid,
+                    'message'     => $m->message,
+                    'timecreated' => (int) $m->timecreated,
+                );
+            }
+
+            $result[] = array(
+                'id'           => (int) $r->id,
+                'userid'       => (int) $r->userid,
+                'student_name' => trim($r->firstname . ' ' . $r->lastname),
+                'student_email'=> $r->email,
+                'courseid'     => (int) $r->courseid,
+                'coursename'   => $r->coursename ?? 'General',
+                'subject'      => $r->subject,
+                'message'      => $r->message,
+                'admin_reply'  => $r->admin_reply ?? '',
+                'status'       => $r->status,
+                'timecreated'  => (int) $r->timecreated,
+                'timemodified' => (int) $r->timemodified,
+                'messages'     => $messages,
+            );
+        }
+        return $result;
+    }
+
+    public static function get_all_inquiries_returns()
+    {
+        return new external_multiple_structure(
+            new external_single_structure(array(
+                'id'            => new external_value(PARAM_INT,  'Inquiry ID'),
+                'userid'        => new external_value(PARAM_INT,  'Student user ID'),
+                'student_name'  => new external_value(PARAM_TEXT, 'Student full name'),
+                'student_email' => new external_value(PARAM_TEXT, 'Student email'),
+                'courseid'      => new external_value(PARAM_INT,  'Course ID'),
+                'coursename'    => new external_value(PARAM_TEXT, 'Course name'),
+                'subject'       => new external_value(PARAM_TEXT, 'Inquiry subject'),
+                'message'       => new external_value(PARAM_RAW,  'Student message'),
+                'admin_reply'   => new external_value(PARAM_RAW,  'Admin reply if any'),
+                'status'        => new external_value(PARAM_TEXT, 'open / replied / resolved'),
+                'timecreated'   => new external_value(PARAM_INT,  'Unix timestamp'),
+                'timemodified'  => new external_value(PARAM_INT,  'Unix timestamp'),
+                'messages'      => new external_multiple_structure(
+                    new external_single_structure(array(
+                        'id'          => new external_value(PARAM_INT, 'Message ID'),
+                        'userid'      => new external_value(PARAM_INT, 'Sender ID'),
+                        'message'     => new external_value(PARAM_RAW, 'Content'),
+                        'timecreated' => new external_value(PARAM_INT, 'Timestamp'),
+                    ))
+                ),
+            ))
+        );
+    }
+
+    /**
+     * Admin replies to a student inquiry.
+     */
+    public static function reply_inquiry_parameters()
+    {
+        return new external_function_parameters(array(
+            'inquiry_id' => new external_value(PARAM_INT,  'ID of the inquiry to reply to'),
+            'reply'      => new external_value(PARAM_RAW,  'Admin reply message'),
+            'status'     => new external_value(PARAM_TEXT, 'New status: replied or resolved', VALUE_DEFAULT, 'replied'),
+        ));
+    }
+
+    public static function reply_inquiry($inquiry_id, $reply, $status = 'replied')
+    {
+        global $DB;
+        $params = self::validate_parameters(self::reply_inquiry_parameters(), array(
+            'inquiry_id' => $inquiry_id,
+            'reply'      => $reply,
+            'status'     => $status,
+        ));
+
+        $record = $DB->get_record('local_skillsaint_inquiries', array('id' => $params['inquiry_id']));
+        if (!$record) {
+            return array('status' => 'error', 'message' => 'Inquiry not found');
+        }
+
+        $record->admin_reply  = $params['reply'];
+        $record->status       = in_array($params['status'], array('replied', 'resolved')) ? $params['status'] : 'replied';
+        $record->timemodified = time();
+        $DB->update_record('local_skillsaint_inquiries', $record);
+
+        // Also insert into messages table
+        $msg = new stdClass();
+        $msg->inquiry_id  = $params['inquiry_id'];
+        $msg->userid      = 0; // Admin (or we could pass admin ID)
+        $msg->message     = $params['reply'];
+        $msg->timecreated = time();
+        $DB->insert_record('local_skillsaint_messages', $msg);
+
+        return array('status' => 'success', 'message' => 'Reply saved');
+    }
+
+    public static function reply_inquiry_returns()
+    {
+        return new external_single_structure(array(
+            'status'  => new external_value(PARAM_TEXT, 'success or error'),
+            'message' => new external_value(PARAM_TEXT, 'Status message'),
+        ));
+    }
+
+    /**
+     * Get student's own inquiries (with admin replies).
+     */
+    public static function get_student_inquiries_parameters()
+    {
+        return new external_function_parameters(array(
+            'userid' => new external_value(PARAM_INT, 'Student user ID'),
+        ));
+    }
+
+    public static function get_student_inquiries($userid)
+    {
+        global $DB;
+        $params = self::validate_parameters(self::get_student_inquiries_parameters(), array('userid' => $userid));
+
+        $sql = "
+            SELECT inq.id, inq.courseid, inq.subject, inq.message,
+                   inq.admin_reply, inq.status, inq.timecreated, inq.timemodified,
+                   c.fullname as coursename
+            FROM {local_skillsaint_inquiries} inq
+            LEFT JOIN {course} c ON c.id = inq.courseid
+            WHERE inq.userid = ?
+            ORDER BY inq.timecreated DESC
+        ";
+        $rows = $DB->get_records_sql($sql, array($params['userid']));
+
+        $result = array();
+        foreach ($rows as $r) {
+            // Fetch messages
+            $messages_rows = $DB->get_records('local_skillsaint_messages', array('inquiry_id' => $r->id), 'timecreated ASC');
+            $messages = array();
+            foreach ($messages_rows as $m) {
+                $messages[] = array(
+                    'id'          => (int) $m->id,
+                    'userid'      => (int) $m->userid,
+                    'message'     => $m->message,
+                    'timecreated' => (int) $m->timecreated,
+                );
+            }
+
+            $result[] = array(
+                'id'           => (int) $r->id,
+                'courseid'     => (int) $r->courseid,
+                'coursename'   => $r->coursename ?? 'General',
+                'subject'      => $r->subject,
+                'message'      => $r->message,
+                'admin_reply'  => $r->admin_reply ?? '',
+                'status'       => $r->status,
+                'timecreated'  => (int) $r->timecreated,
+                'timemodified' => (int) $r->timemodified,
+                'messages'     => $messages,
+            );
+        }
+        return $result;
+    }
+
+    public static function get_student_inquiries_returns()
+    {
+        return new external_multiple_structure(
+            new external_single_structure(array(
+                'id'           => new external_value(PARAM_INT,  'Inquiry ID'),
+                'courseid'     => new external_value(PARAM_INT,  'Course ID'),
+                'coursename'   => new external_value(PARAM_TEXT, 'Course name'),
+                'subject'      => new external_value(PARAM_TEXT, 'Subject'),
+                'message'      => new external_value(PARAM_RAW,  'Student message'),
+                'admin_reply'  => new external_value(PARAM_RAW,  'Admin reply'),
+                'status'       => new external_value(PARAM_TEXT, 'open / replied / resolved'),
+                'timecreated'  => new external_value(PARAM_INT,  'Unix timestamp'),
+                'timemodified' => new external_value(PARAM_INT,  'Unix timestamp'),
+                'messages'      => new external_multiple_structure(
+                    new external_single_structure(array(
+                        'id'          => new external_value(PARAM_INT, 'Message ID'),
+                        'userid'      => new external_value(PARAM_INT, 'Sender ID'),
+                        'message'     => new external_value(PARAM_RAW, 'Content'),
+                        'timecreated' => new external_value(PARAM_INT, 'Timestamp'),
+                    ))
+                ),
+            ))
+        );
+    }
+
+    // ============================================================
+    // AVATAR / PROFILE PICTURE UPLOAD
+    // ============================================================
+
+    /**
+     * Update user avatar from a Base64-encoded image string.
+     */
+    public static function update_avatar_parameters()
+    {
+        return new external_function_parameters(array(
+            'userid'      => new external_value(PARAM_INT, 'Moodle user ID'),
+            'imagebase64' => new external_value(PARAM_RAW, 'Base64-encoded image (with or without data: prefix)'),
+        ));
+    }
+
+    public static function update_avatar($userid, $imagebase64)
+    {
+        global $DB, $CFG;
+        require_once($CFG->libdir . '/gdlib.php');
+        require_once($CFG->dirroot . '/user/lib.php');
+
+        $params = self::validate_parameters(self::update_avatar_parameters(), array(
+            'userid'      => $userid,
+            'imagebase64' => $imagebase64,
+        ));
+
+        $user = $DB->get_record('user', array('id' => $params['userid']), '*', MUST_EXIST);
+
+        // Strip base64 data prefix if present
+        $b64 = $params['imagebase64'];
+        if (strpos($b64, ',') !== false) {
+            $b64 = explode(',', $b64)[1];
+        }
+        $imagedata = base64_decode($b64, true);
+        if (!$imagedata) {
+            return array('status' => 'error', 'message' => 'Invalid base64 image data');
+        }
+
+        // Write image to a temp file
+        $tmpfile = tempnam(sys_get_temp_dir(), 'avatar_') . '.png';
+        file_put_contents($tmpfile, $imagedata);
+
+        // Use Moodle's native gdlib to process and save the icon
+        $context = context_user::instance($user->id);
+        $newpicture = process_new_icon($context, 'user', 'icon', 0, $tmpfile);
+        @unlink($tmpfile);
+
+        if ($newpicture) {
+            $DB->set_field('user', 'picture', $newpicture, array('id' => $user->id));
+            return array('status' => 'success', 'message' => 'Avatar updated successfully');
+        }
+
+        return array('status' => 'error', 'message' => 'Failed to process image');
+    }
+
+    public static function update_avatar_returns()
+    {
+        return new external_single_structure(array(
+            'status'  => new external_value(PARAM_TEXT, 'success or error'),
+            'message' => new external_value(PARAM_TEXT, 'Status message'),
+        ));
+    }
+
+    /**
+     * Add a message to an existing inquiry thread (Student or Admin).
+     */
+    public static function add_inquiry_message_parameters()
+    {
+        return new external_function_parameters(array(
+            'inquiry_id' => new external_value(PARAM_INT,  'ID of the inquiry'),
+            'userid'     => new external_value(PARAM_INT,  'Moodle user ID of the sender'),
+            'message'    => new external_value(PARAM_RAW,  'Message content'),
+        ));
+    }
+
+    public static function add_inquiry_message($inquiry_id, $userid, $message)
+    {
+        global $DB;
+        $params = self::validate_parameters(self::add_inquiry_message_parameters(), array(
+            'inquiry_id' => $inquiry_id,
+            'userid'     => $userid,
+            'message'    => $message,
+        ));
+
+        // Insert message
+        $record = new stdClass();
+        $record->inquiry_id = $params['inquiry_id'];
+        $record->userid     = $params['userid'];
+        $record->message    = $params['message'];
+        $record->timecreated = time();
+        $DB->insert_record('local_skillsaint_messages', $record);
+
+        // Update inquiry timestamp
+        $DB->set_field('local_skillsaint_inquiries', 'timemodified', time(), array('id' => $params['inquiry_id']));
+
+        // If it's a student replying, set status back to 'open' if it was 'replied'
+        $inq = $DB->get_record('local_skillsaint_inquiries', array('id' => $params['inquiry_id']));
+        if ($inq && $inq->status === 'replied' && $inq->userid == $params['userid']) {
+            $DB->set_field('local_skillsaint_inquiries', 'status', 'open', array('id' => $params['inquiry_id']));
+        }
+
+        return array('status' => 'success', 'message' => 'Message added');
+    }
+
+    public static function add_inquiry_message_returns()
+    {
+        return new external_single_structure(array(
+            'status'  => new external_value(PARAM_TEXT, 'success or error'),
+            'message' => new external_value(PARAM_TEXT, 'Status message'),
+        ));
+    }
+
+    /**
+     * Delete an inquiry and its messages (Student only).
+     */
+    public static function delete_inquiry_parameters()
+    {
+        return new external_function_parameters(array(
+            'inquiry_id' => new external_value(PARAM_INT, 'ID of the inquiry to delete'),
+            'userid'     => new external_value(PARAM_INT, 'User ID of the student requesting deletion'),
+        ));
+    }
+
+    public static function delete_inquiry($inquiry_id, $userid)
+    {
+        global $DB;
+        $params = self::validate_parameters(self::delete_inquiry_parameters(), array(
+            'inquiry_id' => $inquiry_id,
+            'userid'     => $userid,
+        ));
+
+        // Verify ownership
+        $inquiry = $DB->get_record('local_skillsaint_inquiries', array('id' => $params['inquiry_id']));
+        
+        if (!$inquiry) {
+            return array('status' => 'error', 'message' => 'Inquiry not found');
+        }
+
+        if ($inquiry->userid != $params['userid']) {
+            return array('status' => 'error', 'message' => 'Not authorized to delete this inquiry');
+        }
+
+        // Delete all associated messages first
+        $DB->delete_records('local_skillsaint_messages', array('inquiry_id' => $params['inquiry_id']));
+        
+        // Delete the inquiry itself
+        $DB->delete_records('local_skillsaint_inquiries', array('id' => $params['inquiry_id']));
+
+        return array('status' => 'success', 'message' => 'Inquiry deleted successfully');
+    }
+
+    public static function delete_inquiry_returns()
+    {
+        return new external_single_structure(array(
+            'status'  => new external_value(PARAM_TEXT, 'success or error'),
+            'message' => new external_value(PARAM_TEXT, 'Status message'),
+        ));
+    }
+
+    /**
+     * Update student profile fields (synced with local_skillsaint_apps).
+     */
+    public static function update_student_profile_parameters()
+    {
+        return new external_function_parameters(array(
+            'userid'     => new external_value(PARAM_INT, 'User ID'),
+            'phone'      => new external_value(PARAM_TEXT, 'Phone number', VALUE_DEFAULT, ''),
+            'address'    => new external_value(PARAM_TEXT, 'Mailing address', VALUE_DEFAULT, ''),
+            'motivation' => new external_value(PARAM_TEXT, 'Motivation', VALUE_DEFAULT, ''),
+            'spiritual_bg' => new external_value(PARAM_TEXT, 'Spiritual info', VALUE_DEFAULT, ''),
+        ));
+    }
+
+    public static function update_student_profile($userid, $phone, $address, $motivation, $spiritual_bg)
+    {
+        global $DB, $CFG;
+        require_once($CFG->dirroot . '/user/lib.php');
+
+        $params = self::validate_parameters(self::update_student_profile_parameters(), array(
+            'userid'     => $userid,
+            'phone'      => $phone,
+            'address'    => $address,
+            'motivation' => $motivation,
+            'spiritual_bg' => $spiritual_bg,
+        ));
+
+        $user = $DB->get_record('user', array('id' => $params['userid']), '*', MUST_EXIST);
+        $app = $DB->get_record('local_skillsaint_apps', array('email' => $user->email));
+
+        if ($app) {
+            $app->phone = $params['phone'];
+            $app->address = $params['address'];
+            $app->motivation = $params['motivation'];
+            $app->spiritual_bg = $params['spiritual_bg'];
+            $app->timemodified = time();
+            $DB->update_record('local_skillsaint_apps', $app);
+        }
+
+        return array('status' => 'success', 'message' => 'Profile updated');
+    }
+
+    public static function update_student_profile_returns()
+    {
+        return new external_single_structure(array(
+            'status'  => new external_value(PARAM_TEXT, 'success or error'),
+            'message' => new external_value(PARAM_TEXT, 'Status message'),
+        ));
+    }
+
+    /**
+     * Change student password (with old password verification).
+     */
+    public static function change_password_parameters()
+    {
+        return new external_function_parameters(array(
+            'userid'           => new external_value(PARAM_INT, 'User ID'),
+            'currentpassword'  => new external_value(PARAM_TEXT, 'Current password'),
+            'newpassword'      => new external_value(PARAM_TEXT, 'New password'),
+        ));
+    }
+
+    public static function change_password($userid, $currentpassword, $newpassword)
+    {
+        global $DB, $CFG;
+        require_once($CFG->dirroot . '/user/lib.php');
+
+        $params = self::validate_parameters(self::change_password_parameters(), array(
+            'userid'           => $userid,
+            'currentpassword'  => $currentpassword,
+            'newpassword'      => $newpassword,
+        ));
+
+        $user = $DB->get_record('user', array('id' => $params['userid']), '*', MUST_EXIST);
+
+        // Verify current password
+        $authinstance = get_auth_plugin($user->auth);
+        if (!$authinstance->user_login($user->username, $params['currentpassword'])) {
+             return array('status' => 'error', 'message' => 'L\'ancien mot de passe est incorrect.');
+        }
+
+        // Update password
+        $user->password = hash_internal_user_password($params['newpassword']);
+        $user->timemodified = time();
+        $DB->update_record('user', $user);
+
+        return array('status' => 'success', 'message' => 'Mot de passe mis à jour avec succès.');
+    }
+
+    public static function change_password_returns()
+    {
+        return new external_single_structure(array(
+            'status'  => new external_value(PARAM_TEXT, 'success or error'),
+            'message' => new external_value(PARAM_TEXT, 'Status message'),
+        ));
+    }
+
 }
+
