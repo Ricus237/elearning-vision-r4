@@ -6,12 +6,10 @@ import {
   FileText, 
   PlayCircle, 
   X, 
-  Clock, 
   Play,
   Send,
   HelpCircle,
   ShieldCheck,
-  Image as ImageIcon
 } from "lucide-react";
 import StudentSidebar from "@/components/dashboard/StudentSidebar";
 import { useEffect, useState } from "react";
@@ -345,6 +343,8 @@ const SubjectModal = ({ subject, onClose, moodleToken }: { subject: Subject; onC
   const [activeTab, setActiveTab] = useState("curriculum");
   const [sections, setSections] = useState<MoodleSection[]>([]);
   const [activeModule, setActiveModule] = useState<MoodleModule | null>(null);
+  const [moduleContent, setModuleContent] = useState<string>("");
+  const [isModuleLoading, setIsModuleLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [messageSent, setMessageSent] = useState(false);
@@ -359,9 +359,19 @@ const SubjectModal = ({ subject, onClose, moodleToken }: { subject: Subject; onC
         });
         const data = await response.json();
         if (Array.isArray(data)) {
-          setSections(data);
+          // Filter out forum and quiz modules (Announcements and Exams) as requested
+          const filteredData = data.map((section: MoodleSection) => ({
+            ...section,
+            modules: section.modules.filter(mod => 
+              mod.modname !== 'forum' && 
+              mod.modname !== 'quiz'
+            )
+          })).filter(section => section.modules.length > 0);
+
+          setSections(filteredData);
+          
           // Set first module as active by default if available
-          const firstSection = data.find(s => s.modules && s.modules.length > 0);
+          const firstSection = filteredData.find(s => s.modules && s.modules.length > 0);
           if (firstSection) {
             setActiveModule(firstSection.modules[0]);
           }
@@ -374,15 +384,52 @@ const SubjectModal = ({ subject, onClose, moodleToken }: { subject: Subject; onC
     };
     fetchContents();
   }, [subject.id]);
+  useEffect(() => {
+    if (!activeModule) return;
+    
+    const fetchModuleContent = async () => {
+      setIsModuleLoading(true);
+      try {
+        const response = await fetch('/api/moodle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            function: 'local_skillsaint_get_module_content', 
+            params: { cmid: activeModule.id } 
+          })
+        });
+        const data = await response.json();
+        
+        // If the custom function returns content, use it. 
+        // Otherwise fallback to the module description.
+        if (data && data.content !== undefined) {
+          setModuleContent(data.content);
+        } else {
+          setModuleContent(activeModule.description || "");
+        }
+      } catch (err) {
+        console.error("Failed to fetch module content:", err);
+        setModuleContent(activeModule.description || "");
+      } finally {
+        setIsModuleLoading(false);
+      }
+    };
+    
+    fetchModuleContent();
+  }, [activeModule]);
 
   const processHtml = (html: string) => {
     if (!html) return "";
-    // Replace Moodle pluginfile URLs with authenticated ones
+    // Replace Moodle pluginfile URLs with authenticated ones using the webservice endpoint
     const moodleFileRegex = /src="([^"]+pluginfile\.php\/[^"]+)"/g;
     return html.replace(moodleFileRegex, (match, url) => {
-      const separator = url.includes('?') ? '&' : '?';
-      if (url.includes('token=')) return match;
-      return `src="${url}${separator}token=${moodleToken}"`;
+      let finalUrl = url;
+      if (url.includes('pluginfile.php') && !url.includes('webservice/pluginfile.php')) {
+        finalUrl = url.replace('pluginfile.php', 'webservice/pluginfile.php');
+      }
+      const separator = finalUrl.includes('?') ? '&' : '?';
+      if (finalUrl.includes('token=')) return `src="${finalUrl}"`;
+      return `src="${finalUrl}${separator}token=${moodleToken}&forcedownload=0"`;
     });
   };
 
@@ -401,11 +448,13 @@ const SubjectModal = ({ subject, onClose, moodleToken }: { subject: Subject; onC
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[120] bg-gray-900/80 backdrop-blur-xl flex items-center justify-center p-6"
+      onClick={onClose}
     >
        <motion.div 
         initial={{ scale: 0.95, y: 30 }}
         animate={{ scale: 1, y: 0 }}
         className="bg-white rounded-[4rem] w-full max-w-6xl h-[90vh] shadow-2xl flex flex-col lg:flex-row overflow-hidden border border-white/20"
+        onClick={(e) => e.stopPropagation()}
        >
           {/* Left Side: Content Viewer */}
           <div className="flex-1 bg-gray-900 p-8 flex flex-col relative overflow-hidden">
@@ -435,39 +484,112 @@ const SubjectModal = ({ subject, onClose, moodleToken }: { subject: Subject; onC
                     <div className="max-w-3xl mx-auto prose prose-purple lg:prose-xl">
                        <h2 className="text-3xl font-black text-gray-900 mb-8 tracking-tight">{activeModule.name}</h2>
                        
-                       {/* Description/Written content from Moodle */}
-                       <div 
-                         className="text-gray-600 leading-relaxed font-medium space-y-6 moodle-content"
-                         dangerouslySetInnerHTML={{ __html: processHtml(activeModule.description || "") }}
-                       />
+                        {/* Description/Written content from Moodle */}
+                        {isModuleLoading ? (
+                          <div className="py-12 flex flex-col items-center justify-center text-gray-400 gap-3 border-2 border-dashed border-gray-100 rounded-[2.5rem]">
+                            <div className="w-8 h-8 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
+                            <p className="text-[10px] font-black uppercase tracking-widest">Decoding Module...</p>
+                          </div>
+                        ) : (
+                          <div 
+                            className="text-gray-600 leading-relaxed font-medium space-y-6 moodle-content site-content-render"
+                            dangerouslySetInnerHTML={{ __html: processHtml(moduleContent || activeModule.description || "") }}
+                          />
+                        )}
 
-                       {/* Assets list (Video, PDF, etc) */}
-                       {activeModule.contents && activeModule.contents.length > 0 && (
-                         <div className="mt-12 space-y-4">
-                           <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Attached Resources</h4>
-                           {activeModule.contents.map((file, idx) => (
-                             <div key={idx} className="p-6 bg-gray-50 rounded-[2rem] border border-gray-100 flex items-center justify-between group hover:border-purple-200 transition-all">
-                                <div className="flex items-center gap-4">
-                                   <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-purple-600 shadow-sm">
-                                      {file.mimetype?.includes('image') ? <ImageIcon size={20} /> : file.mimetype?.includes('pdf') ? <FileText size={20} /> : <Play size={20} />}
-                                   </div>
-                                   <div>
-                                      <p className="text-xs font-black text-gray-900">{file.filename}</p>
-                                      <p className="text-[10px] font-bold text-gray-400 uppercase">{file.mimetype || "Digital Asset"}</p>
-                                   </div>
-                                </div>
-                                <a 
-                                  href={`${file.fileurl}${file.fileurl.includes('?') ? '&' : '?'}token=${moodleToken}`} 
-                                  target="_blank" 
-                                  rel="noreferrer"
-                                  className="px-6 py-2 bg-gray-900 text-white rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-purple-600 transition-colors"
-                                >
-                                  Open File
-                                </a>
-                             </div>
-                           ))}
-                         </div>
-                       )}
+                        {/* Assets list (Video, PDF, etc) - Only show if not already rendered as main content */}
+                        {activeModule.contents && activeModule.contents.length > 0 && (
+                          <div className="mt-12 space-y-6">
+                            {(() => {
+                              const relevantFiles = activeModule.contents.filter(file => {
+                                const isImage = file.mimetype?.includes('image') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.filename);
+                                const isVideo = file.mimetype?.includes('video') || /\.(mp4|webm|ogg|mov)$/i.test(file.filename);
+                                const isPdf = file.mimetype?.includes('pdf') || /\.pdf$/i.test(file.filename);
+                                return isImage || isVideo || isPdf;
+                              });
+
+                              if (relevantFiles.length === 0) return null;
+
+                              return (
+                                <>
+                                  <div className="flex items-center gap-4 mb-8">
+                                     <div className="h-px flex-1 bg-gray-100" />
+                                     <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest shrink-0">Attached Course Assets</h4>
+                                     <div className="h-px flex-1 bg-gray-100" />
+                                  </div>
+                                  {relevantFiles.map((file, idx) => {
+                                    let baseUrl = file.fileurl;
+                                    if (baseUrl.includes('pluginfile.php') && !baseUrl.includes('webservice/pluginfile.php')) {
+                                      baseUrl = baseUrl.replace('pluginfile.php', 'webservice/pluginfile.php');
+                                    }
+                                    const fileUrl = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}token=${moodleToken}&forcedownload=0`;
+                                    
+                                    const isImage = file.mimetype?.includes('image') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.filename);
+                                    const isVideo = file.mimetype?.includes('video') || /\.(mp4|webm|ogg|mov)$/i.test(file.filename);
+                                    const isPdf = file.mimetype?.includes('pdf') || /\.pdf$/i.test(file.filename);
+
+                                    if (isImage) {
+                                      return (
+                                        <div key={idx} className="mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                          <div className="relative group rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-xl">
+                                            <Image 
+                                              src={fileUrl} 
+                                              alt={file.filename} 
+                                              width={1200}
+                                              height={800}
+                                              className="w-full h-auto transition-transform duration-700 group-hover:scale-105" 
+                                              unoptimized
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
+                                              <p className="text-white text-[10px] font-black uppercase tracking-widest">{file.filename}</p>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    }
+
+                                    if (isVideo) {
+                                      return (
+                                        <div key={idx} className="mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                          <div className="rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-xl bg-black aspect-video flex items-center justify-center">
+                                            <video src={fileUrl} controls className="w-full h-full" />
+                                          </div>
+                                          <p className="mt-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">{file.filename}</p>
+                                        </div>
+                                      );
+                                    }
+
+                                    if (isPdf) {
+                                      return (
+                                        <div key={idx} className="mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                          <div className="rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-xl bg-white group">
+                                            <div className="p-5 bg-gray-50 border-b border-gray-100 flex justify-between items-center px-10">
+                                              <div className="flex items-center gap-3">
+                                                 <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-purple-600 shadow-sm">
+                                                    <FileText size={14} />
+                                                 </div>
+                                                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{file.filename}</span>
+                                              </div>
+                                            </div>
+                                            <div className="relative bg-gray-50">
+                                               <iframe 
+                                                 src={fileUrl} 
+                                                 className="w-full h-[75vh] border-none bg-white" 
+                                                 title={file.filename} 
+                                                 loading="lazy"
+                                               />
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    }
+                                    return null;
+                                  })}
+                                </>
+                              );
+                            })()}
+                          </div>
+                        )}
                     </div>
                   </div>
                 ) : (
@@ -478,7 +600,7 @@ const SubjectModal = ({ subject, onClose, moodleToken }: { subject: Subject; onC
                 )}
              </div>
 
-             <div className="mt-8 flex items-center justify-between text-white">
+             {/* <div className="mt-8 flex items-center justify-between text-white">
                 <div className="flex items-center gap-6">
                    <div className="flex items-center gap-3">
                       <Clock size={16} className="text-purple-400" />
@@ -493,7 +615,7 @@ const SubjectModal = ({ subject, onClose, moodleToken }: { subject: Subject; onC
                    <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Quality:</span>
                    <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 bg-white/10 rounded-full">4K ULTRA</span>
                 </div>
-             </div>
+             </div> */}
           </div>
 
           {/* Right Side: Resources & Contact */}
@@ -590,11 +712,11 @@ const SubjectModal = ({ subject, onClose, moodleToken }: { subject: Subject; onC
                 )}
              </div>
 
-             <div className="mt-10 pt-8 border-t border-gray-50 italic">
+             {/* <div className="mt-10 pt-8 border-t border-gray-50 italic">
                 <p className="text-[9px] font-medium text-gray-300">
                    Authenticated Academic Resources • © 2024 International Bible Institute
                 </p>
-             </div>
+             </div> */}
           </div>
        </motion.div>
     </motion.div>

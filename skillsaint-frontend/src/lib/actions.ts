@@ -1,7 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { loginMoodle, createMoodleUser, enrolUserInCourse, fetchMoodle, startQuizAttempt, getAttemptData, getPublicCourses } from './moodle';
+import { loginMoodle, createMoodleUser, enrolUserInCourse, fetchMoodle, startQuizAttempt, getAttemptData, getPublicCourses, getCourseQuizzes } from './moodle';
 import { redirect } from 'next/navigation';
 
 /**
@@ -351,6 +351,31 @@ export async function getStudentDashboardAction() {
       if (dashboardData.plan === 'none') dashboardData.plan = 'executive';
     } catch (e) {
       console.error("Fallback fetch failed", e);
+    }
+  }
+
+  // Fetch quizzes dynamically if the custom WS didn't return any but the user has courses
+  if (dashboardData.exams.length === 0 && dashboardData.courses.length > 0) {
+    try {
+      const allExams: DashboardExam[] = [];
+      // We process sequentially to avoid overwhelming Moodle with too many parallel WS calls
+      for (const course of dashboardData.courses) {
+        if (course.id > 1) {
+          const quizzes = await getCourseQuizzes(course.id);
+          if (Array.isArray(quizzes)) {
+            allExams.push(...quizzes.map((q: { id: number; name: string; timelimit?: number; intro?: string }) => ({
+              id: q.id,
+              courseid: course.id,
+              name: q.name,
+              timeLimit: q.timelimit || 0,
+              intro: q.intro || ""
+            })));
+          }
+        }
+      }
+      dashboardData.exams = allExams;
+    } catch (e) {
+      console.error("Failed to dynamically load exams for courses", e);
     }
   }
 
