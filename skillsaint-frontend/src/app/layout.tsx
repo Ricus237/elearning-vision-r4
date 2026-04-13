@@ -5,6 +5,7 @@ import { siteName, siteUrl } from "@/utils/envExport";
 import { Inter, Inter_Tight, Mulish } from "next/font/google";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const interTight = Inter_Tight({
   variable: "--font-inter-tight",
@@ -82,7 +83,7 @@ export default function RootLayout({
         <ConditionalWrapper type="footer">
           <Footer/>
         </ConditionalWrapper>
-
+        <SpeedInsights />
       </body>
     </html>
   );
