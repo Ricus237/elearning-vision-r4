@@ -126,7 +126,7 @@ function SuccessContent() {
       </p>
 
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
-        <Link href="/dashboard/my-courses">
+        <Link href="/dashboard">
           <motion.div
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
