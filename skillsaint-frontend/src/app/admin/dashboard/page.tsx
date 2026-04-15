@@ -78,10 +78,10 @@ const AdminDashboardPage = async () => {
                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-600">Operations Control</span>
                 </div>
                 <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight leading-none mb-4">
-                  IBI <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">Terminal</span>
+                  GBI <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">Terminal</span>
                 </h1>
                 <p className="text-gray-400 font-medium max-w-md text-sm">
-                  Strategic management for the International Bible Institute.
+                  Strategic management for the Global Bible Institute.
                 </p>
               </div>
               

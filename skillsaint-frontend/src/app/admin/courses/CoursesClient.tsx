@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useTransition, useRef} from "react";
+import toast from "react-hot-toast";
 
-import { BookOpen, Users, Eye, Plus, X, Pencil, Play, FileText, Bold, Italic, Underline, List, ListOrdered, Link2, Image as ImageIcon } from "lucide-react";
+import { BookOpen, Users, Eye, Plus, X, Pencil, Play, FileText, Bold, Italic, Underline, List, ListOrdered, Link2, Image as ImageIcon, CheckCircle } from "lucide-react";
 import Image from "next/image";
 
 import AdminSidebar from "@/components/dashboard/AdminSidebar";
@@ -55,12 +56,12 @@ async function callMoodleAdmin(wsfunction: string, params: Record<string, unknow
 export default function CoursesClient({ initialCourses, initialCategories, moodleToken }: { initialCourses: Course[], initialCategories: CategoryType[], moodleToken: string }) {
   const [courses, setCourses] = useState<Course[]>(initialCourses);
   const [isPending, startTransition] = useTransition();
-  const [actionMsg, setActionMsg] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
   // Rich Text Editor State
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editorContent, setEditorContent] = useState("");
   const [editingModule, setEditingModule] = useState<MoodleModule | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -95,7 +96,7 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
 
   const handleOpenAdd = () => {
     if (categories.length === 0) {
-      alert("You must create at least one category before designing a course.");
+      toast.error("You must create at least one category before designing a course.");
       setIsCategoryModalOpen(true);
       return;
     }
@@ -115,7 +116,7 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
 
   const handleCreateCategory = () => {
     if (!categoryFormData.name) {
-      alert("Category name is required.");
+      toast.error("Category name is required.");
       return;
     }
     startTransition(async () => {
@@ -127,7 +128,7 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
       });
 
       if (res?.exception) {
-        setActionMsg({ text: `Error: ${res.message}`, type: 'error' });
+        toast.error(`Error: ${res.message}`);
       } else if (res?.[0]?.id) {
         const newCat: CategoryType = {
           _id: res[0].id.toString(),
@@ -139,9 +140,8 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
         setCategories(prev => [...prev, newCat]);
         setCategoryFormData({ name: "", idnumber: "", description: "" });
         setIsCategoryModalOpen(false);
-        setActionMsg({ text: `Category "${newCat.title}" created successfully!`, type: 'success' });
+        toast.success(`Category "${newCat.title}" created successfully!`);
       }
-      setTimeout(() => setActionMsg(null), 4000);
     });
   };
 
@@ -234,10 +234,11 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
 
   const handleSaveSettings = async () => {
     if (!formData.fullname || !formData.shortname || !formData.categoryid) {
-      alert("Course Name, Short Name, and Category are mandatory to proceed.");
+      toast.error("Course Name, Short Name, and Category are mandatory.");
       return false;
     }
 
+    setIsSaving(true);
     try {
       if (selectedCourse) {
         const res = await callMoodleAdmin("local_skillsaint_update_course", {
@@ -252,7 +253,7 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
         });
 
         if (res?.exception || res?.error) {
-          setActionMsg({ text: `Error: ${res.message || res.error}`, type: 'error' });
+          toast.error(`Error: ${res.message || res.error}`);
           return false;
         } else {
           setCourses(prev => prev.map(c => c.id === selectedCourse.id ? { 
@@ -269,7 +270,7 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
               ? [{ fileurl: formData.syllabus_pdf, filename: 'syllabus.pdf' }]
               : c.summaryfiles
           } : c));
-          setActionMsg({ text: `Settings for "${formData.fullname}" updated.`, type: 'success' });
+          toast.success(`Settings for "${formData.fullname}" updated.`);
           return true;
         }
       } else {
@@ -284,7 +285,7 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
         });
 
         if (res?.exception || res?.error) {
-          setActionMsg({ text: `Error: ${res.message || res.error}`, type: 'error' });
+          toast.error(`Error: ${res.message || res.error}`);
           return false;
         } else if (Array.isArray(res) && res[0]?.id) {
           const newCourse: Course = {
@@ -300,15 +301,14 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
             summaryfiles: formData.syllabus_pdf ? [{ fileurl: formData.syllabus_pdf, filename: 'syllabus.pdf' }] : [],
           };
           setCourses(prev => [newCourse, ...prev]);
-          setActionMsg({ text: `Course "${formData.fullname}" created!`, type: 'success' });
+          toast.success(`Course "${formData.fullname}" created!`);
           setSelectedCourse(newCourse);
           setActiveTab("content");
           return true;
         }
       }
-    } catch {
-       setActionMsg({ text: "Connection error.", type: 'error' });
-       return false;
+    } finally {
+       setIsSaving(false);
     }
     return false;
   };
@@ -326,12 +326,21 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (activeTab === "content") {
+       setIsModalOpen(false);
+       return;
+    }
     const success = await handleSaveSettings();
     if (success) {
-      if (!selectedCourse) setActiveTab("content");
-      else setActionMsg({ text: "All changes saved.", type: 'success' });
+      if (!selectedCourse) {
+        // Transition to content for new builds
+        setActiveTab("content");
+      } else {
+        // Close if it was just a settings update
+        setIsModalOpen(false);
+        toast.success(`Finalized: "${formData.fullname}" is up to date.`);
+      }
     }
-    setTimeout(() => setActionMsg(null), 4000);
   };
 
   const handleRenameSection = async (sectionId: string, currentName: string) => {
@@ -345,11 +354,10 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
           name: newName,
         });
         setCourseContents(prev => prev.map(s => s.id === sectionId ? { ...s, name: newName } : s));
-        setActionMsg({ text: `Chapter successfully renamed to "${newName}".`, type: 'success' });
+        toast.success(`Chapter successfully renamed to "${newName}".`);
       } catch {
-        setActionMsg({ text: "Failed to synchronize rename.", type: 'error' });
+        toast.error("Failed to synchronize rename.");
       }
-      setTimeout(() => setActionMsg(null), 3000);
     });
   };
 
@@ -359,18 +367,17 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
       try {
         const res = await callMoodleAdmin("local_skillsaint_add_section", { courseid: selectedCourse.id });
         if (res?.exception) {
-          setActionMsg({ text: `Access Denied: ${res.message}`, type: 'error' });
+          toast.error(`Access Denied: ${res.message}`);
         } else {
           const fresh = await callMoodleAdmin("core_course_get_contents", { courseid: selectedCourse.id });
           if (Array.isArray(fresh)) {
              setCourseContents(fresh);
-             setActionMsg({ text: "Chapter successfully added to curriculum.", type: 'success' });
+             toast.success("Chapter successfully added to curriculum.");
           }
         }
       } catch {
-        setActionMsg({ text: "Connectivity failed.", type: 'error' });
+        toast.error("Connectivity failed.");
       }
-      setTimeout(() => setActionMsg(null), 3000);
     });
   };
 
@@ -384,16 +391,15 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
           sectionid: parseInt(sectionId)
         });
         if (res?.exception) {
-          setActionMsg({ text: `Error: ${res.message}`, type: 'error' });
+          toast.error(`Error: ${res.message}`);
         } else {
           const fresh = await callMoodleAdmin("core_course_get_contents", { courseid: selectedCourse.id });
           if (Array.isArray(fresh)) setCourseContents(fresh);
-          setActionMsg({ text: "Chapter successfully removed.", type: 'success' });
+          toast.success("Chapter successfully removed.");
         }
       } catch {
-        setActionMsg({ text: "Failed to reach Moodle.", type: 'error' });
+        toast.error("Failed to reach Moodle.");
       }
-      setTimeout(() => setActionMsg(null), 3000);
     });
   };
 
@@ -412,16 +418,15 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
         });
 
         if (res?.exception) {
-          setActionMsg({ text: `Direct deployment failed: ${res.message}.`, type: 'error' });
+          toast.error(`Direct deployment failed: ${res.message}.`);
         } else {
           const fresh = await callMoodleAdmin("core_course_get_contents", { courseid: selectedCourse.id });
           if (Array.isArray(fresh)) setCourseContents(fresh);
-          setActionMsg({ text: `Asset "${assetTitle}" deployed to curriculum.`, type: 'success' });
+          toast.success(`Asset "${assetTitle}" deployed to curriculum.`);
         }
       } catch {
-        setActionMsg({ text: "Deployment failed.", type: 'error' });
+        toast.error("Deployment failed.");
       }
-      setTimeout(() => setActionMsg(null), 3000);
     });
   };
 
@@ -446,26 +451,24 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
 
   const handleSaveEditorContent = async () => {
     if (!editingModule) return;
-    startTransition(async () => {
-      try {
-        const res = await callMoodleAdmin("local_skillsaint_update_module_content", {
-           cmid: editingModule.id,
-           content: editorContent
-        });
-        if (res?.exception || res?.error) {
-          setActionMsg({ text: `Update failed: ${res.message || res.error}.`, type: 'error' });
-        } else {
-          setActionMsg({ text: `Content for "${editingModule.name}" updated successfully.`, type: 'success' });
-          setIsEditorOpen(false);
-          setEditingModule(null);
-          const fresh = await callMoodleAdmin("core_course_get_contents", { courseid: selectedCourse!.id });
-          if (Array.isArray(fresh)) setCourseContents(fresh);
-        }
-      } catch {
-        setActionMsg({ text: "Failed to update module.", type: 'error' });
+    setIsSaving(true);
+    try {
+      const res = await callMoodleAdmin("local_skillsaint_update_module_content", {
+          cmid: editingModule.id,
+          content: editorContent
+      });
+      if (res?.exception || res?.error) {
+        toast.error(`Update failed: ${res.message || res.error}.`);
+      } else {
+        toast.success(`Content for "${editingModule.name}" updated successfully.`);
+        setIsEditorOpen(false);
+        setEditingModule(null);
+        const fresh = await callMoodleAdmin("core_course_get_contents", { courseid: selectedCourse!.id });
+        if (Array.isArray(fresh)) setCourseContents(fresh);
       }
-      setTimeout(() => setActionMsg(null), 3000);
-    });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleDelete = (course: Course) => {
@@ -475,13 +478,12 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
         "courseids[0]": course.id,
       });
       if ((res?.warnings && res.warnings.length > 0) || res?.error) {
-        setActionMsg({ text: `Error: ${res.warnings?.[0]?.message || res.error}`, type: 'error' });
+        toast.error(`Error: ${res.warnings?.[0]?.message || res.error}`);
       } else {
         setCourses(prev => prev.filter(c => c.id !== course.id));
-        setActionMsg({ text: `Course deleted.`, type: 'success' });
+        toast.success(`Course deleted.`);
         setIsViewModalOpen(false);
       }
-      setTimeout(() => setActionMsg(null), 4000);
     });
   };
 
@@ -492,15 +494,6 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
       <main className="flex-1 min-h-screen">
         <div className="h-full pt-24 md:pt-0 p-6 md:p-10 lg:p-12 bg-[#f0f2f5] dark:bg-[#0b1120]">
           <div className="max-w-7xl mx-auto">
-            {actionMsg && (
-              <div className={`mb-8 border-2 rounded-2xl px-6 py-4 text-xs font-black uppercase tracking-widest animate-in slide-in-from-top duration-300 shadow-lg ${
-                actionMsg.type === 'error' 
-                  ? "bg-red-50 border-red-100 text-red-600" 
-                  : "bg-emerald-50 border-emerald-100 text-emerald-600"
-              }`}>
-                {actionMsg.text}
-              </div>
-            )}
 
             {/* Header Section */}
             <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -733,10 +726,15 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
               </button>
               <button 
                 onClick={handleCreateCategory}
-                disabled={isPending}
-                className="flex-[2] px-4 py-4 rounded-2xl bg-purple-600 text-white font-black tracking-widest uppercase text-[10px] shadow-lg shadow-purple-200 hover:bg-purple-700 hover:-translate-y-1 active:translate-y-0 transition-all disabled:opacity-50"
+                disabled={isPending || isSaving}
+                className="flex-[2] px-4 py-4 rounded-2xl bg-purple-600 text-white font-black tracking-widest uppercase text-[10px] shadow-lg shadow-purple-200 hover:bg-purple-700 hover:-translate-y-1 active:translate-y-0 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {isPending ? "Creating..." : "Save Category"}
+                {isPending || isSaving ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Syncing...
+                  </>
+                ) : "Save Category"}
               </button>
             </div>
           </div>
@@ -971,8 +969,27 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
                 )}
               </div>
               <div className="p-8 bg-white border-t border-gray-100 flex justify-between items-center">
-                <button type="submit" disabled={isPending} className="px-10 py-4 text-sm font-black text-white bg-gray-900 hover:bg-black rounded-2xl transition-all shadow-xl shadow-gray-200 disabled:opacity-50 flex items-center gap-3 active:scale-95 uppercase tracking-widest">
-                  {isPending ? "Syncing..." : selectedCourse ? "Update Course" : "Deploy Masterclass"}
+                <button 
+                  type="submit" 
+                  disabled={isPending || isSaving} 
+                  className={`px-10 py-5 text-[10px] font-black text-white rounded-2xl transition-all shadow-xl shadow-gray-200/50 disabled:opacity-50 flex items-center gap-3 active:scale-95 uppercase tracking-[0.2em] min-w-[200px] justify-center ${activeTab === "content" ? "bg-emerald-600 border-2 border-emerald-600 hover:bg-emerald-700" : "bg-gray-900 border-2 border-gray-900 hover:bg-purple-600 hover:border-purple-600 text-white"}`}
+                >
+                  {isPending || isSaving ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Syncing with Moodle...
+                    </>
+                  ) : activeTab === "content" ? (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      Finish & Close Designer
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      {selectedCourse ? "Synchronize Course Settings" : "Deploy Masterclass Build"}
+                    </>
+                  )}
                 </button>
               </div>
             </form>
@@ -1058,7 +1075,18 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
 
             <div className="p-6 border-t border-gray-100 dark:border-slate-800 flex justify-end gap-3 bg-white dark:bg-slate-900">
               <button onClick={() => setIsEditorOpen(false)} className="px-6 py-3 rounded-xl font-bold text-sm text-gray-500 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">Cancel</button>
-              <button onClick={handleSaveEditorContent} className="px-8 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-sm shadow-md">Save Content</button>
+               <button 
+                onClick={handleSaveEditorContent} 
+                disabled={isSaving}
+                className="px-8 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-purple-100 flex items-center gap-2 disabled:opacity-50"
+              >
+                {isSaving ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Updating Masterclass...
+                  </>
+                ) : "Save Content Changes"}
+              </button>
             </div>
           </div>
         </div>

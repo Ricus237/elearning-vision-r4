@@ -66,7 +66,7 @@ const AdminSidebar = () => {
         <div>
           <h3 className="font-black text-gray-900 dark:text-white tracking-tight leading-none uppercase text-sm">Control <span className="text-purple-600 dark:text-purple-400">Hub</span></h3>
           <p className="text-[10px] font-black text-gray-300 dark:text-slate-500 uppercase tracking-widest mt-1">IBI • Vision/R4</p>
-          <p className="text-[8px] font-bold text-gray-400 dark:text-slate-600 mt-1 uppercase tracking-tighter">International Bible Institute</p>
+          <p className="text-[8px] font-bold text-gray-400 dark:text-slate-600 mt-1 uppercase tracking-tighter">Global Bible Institute</p>
         </div>
       </div>
 

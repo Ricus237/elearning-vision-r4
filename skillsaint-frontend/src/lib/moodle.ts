@@ -173,7 +173,7 @@ export async function getMoodleSiteData() {
   }
 
   return {
-    sitename: info?.sitename || "International Bible Institute",
+    sitename: info?.sitename || "Global Bible Institute",
     summary: summary || info?.summary || ""
   };
 }
@@ -224,12 +224,22 @@ export function mapMoodleCourseToCourseType(mCourse: {
       if (files.length > 0) {
         const imageFile = files.find((f: { mimetype?: string, fileurl: string }) => f.mimetype && f.mimetype.startsWith('image/'));
         if (imageFile) {
-          return `${imageFile.fileurl}${imageFile.fileurl.includes('?') ? '&' : '?'}token=${MOODLE_TOKEN}`;
+          let url = imageFile.fileurl;
+          if (url.startsWith('/')) {
+            const base = MOODLE_URL?.endsWith('/') ? MOODLE_URL.slice(0, -1) : MOODLE_URL;
+            url = `${base}${url}`;
+          }
+          return `${url}${url.includes('?') ? '&' : '?'}token=${MOODLE_TOKEN}`;
         }
 
         // Fallback sur le premier fichier si pas de mimetype mais URL existante
         if (files[0].fileurl) {
-           return `${files[0].fileurl}${files[0].fileurl.includes('?') ? '&' : '?'}token=${MOODLE_TOKEN}`;
+           let url = files[0].fileurl;
+           if (url.startsWith('/')) {
+             const base = MOODLE_URL?.endsWith('/') ? MOODLE_URL.slice(0, -1) : MOODLE_URL;
+             url = `${base}${url}`;
+           }
+           return `${url}${url.includes('?') ? '&' : '?'}token=${MOODLE_TOKEN}`;
         }
       }
       

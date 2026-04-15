@@ -74,7 +74,7 @@ const ApplyClient = ({ enrollmentData, courses }: ApplyClientProps) => {
 
   return (
     <main 
-      className="min-h-screen bg-slate-50 overflow-hidden pt-24 pb-16 font-inter-tight"
+      className="min-h-screen bg-slate-50 overflow-hidden pt-12 pb-16 font-inter-tight"
       suppressHydrationWarning={true}
     >
       <Rays className="opacity-30" />

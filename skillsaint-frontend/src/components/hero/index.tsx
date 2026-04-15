@@ -18,7 +18,7 @@ const Hero = ({ title, description }: HeroProps) => {
       <div className="container">
         <div className="flex flex-col items-center text-center">
           <h1 className="text-[clamp(2.25rem,1.663rem+2.6087vw,3.75rem)] leading-[1.2] font-bold tracking-[-1.2px] font-serif">
-            {title || "International Bible Institute"}
+            {title || "Global Bible Institute"}
           </h1>
           <p className="mx-auto mt-4 max-w-[800px] text-center leading-[1.5] text-secondary sm:text-lg lg:text-xl">
             {description || "A House Where Leaders Are Formed in Scripture, Holiness, and the Power of God!"}

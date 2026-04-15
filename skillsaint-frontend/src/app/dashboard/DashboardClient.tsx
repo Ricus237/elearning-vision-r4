@@ -1,22 +1,22 @@
 "use client";
 
-import { 
-  CheckCircle2, 
-  Lock, 
-  FileText, 
-  PlayCircle, 
-  X, 
-  Play,
-  Send,
-  HelpCircle,
+import {
+  CheckCircle2,
+  Lock,
+  PlayCircle,
+  X,
   ShieldCheck,
+  Search,
+  BookOpen,
+  Sparkles,
+  Plus,
 } from "lucide-react";
 import StudentSidebar from "@/components/dashboard/StudentSidebar";
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { activateAccount } from "@/lib/data";
-import { sendInquiryAction } from "@/lib/actions";
 
 interface EnrolledCourse {
   id: number;
@@ -28,92 +28,211 @@ interface EnrolledCourse {
 interface DashboardData {
   courses: EnrolledCourse[];
   plan: string;
-  exams?: Array<{ id: number; name: string; courseid: number; timeLimit: number; }>;
+  exams?: Array<{ id: number; name: string; courseid: number; timeLimit: number }>;
 }
 
-interface Subject {
-  id: number;
-  title: string;
-  name: string;
-  image: string;
-  status: string;
-  progress: number;
-  manual: string;
-  summary?: string;
-  instructor: string;
+interface PlanQuotas {
+  standard: number;
+  premium: number;
+  executive: number;
 }
+
+const PLAN_QUOTA: Record<string, number> = {
+  standard: 3,
+  premium: 6,
+  executive: Infinity,
+  none: 0,
+};
 
 const getAuthenticatedUrl = (url?: string, token?: string) => {
   if (!url) return "/images/course/course-1.png";
-  if (url.startsWith('data:') || url.includes('token=')) return url;
-  if (!url.includes('pluginfile.php')) return url;
-  return `${url}${url.includes('?') ? '&' : '?'}token=${token}`;
+  if (url.startsWith("data:") || url.includes("token=")) return url;
+  if (!url.includes("pluginfile.php")) return url;
+  return `${url}${url.includes("?") ? "&" : "?"}token=${token}`;
 };
 
-const DashboardClient = ({ initialData, userEmail, isActivated: serverIsActivated, moodleToken }: { initialData: DashboardData, userEmail: string, isActivated: boolean, moodleToken: string }) => {
-  const [activeTrimester] = useState(1);
-  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
+// ─── Course Card ────────────────────────────────────────────────────────────
+interface CourseCardProps {
+  course: EnrolledCourse;
+  isEnrolled: boolean;
+  canAdd: boolean;
+  moodleToken: string;
+  onClick: () => void;
+}
+
+const CourseCard = ({ course, isEnrolled, canAdd, moodleToken, onClick }: CourseCardProps) => {
+  const imgSrc = getAuthenticatedUrl(course.image_url, moodleToken);
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      onClick={isEnrolled ? onClick : undefined}
+      className={`group relative bg-white border-2 rounded-[3rem] p-4 pb-8 transition-all duration-500 overflow-hidden
+        ${isEnrolled
+          ? "border-purple-200 hover:border-purple-400 hover:shadow-2xl hover:shadow-purple-100 hover:-translate-y-2 cursor-pointer"
+          : "border-gray-100 hover:border-gray-200 hover:shadow-lg"
+        }
+      `}
+    >
+      {/* Enrolled glow */}
+      {isEnrolled && (
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-50/60 to-indigo-50/40 rounded-[3rem] pointer-events-none" />
+      )}
+
+      {/* Image */}
+      <div className="relative h-44 w-full rounded-[2.5rem] overflow-hidden mb-6">
+        <Image
+          src={imgSrc}
+          alt={course.fullname}
+          fill
+          className={`object-cover transition-transform duration-700 ${isEnrolled ? "group-hover:scale-110" : "opacity-70"}`}
+          unoptimized
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
+        {/* Status badge on image */}
+        <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
+          {isEnrolled ? (
+            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 backdrop-blur-md rounded-full text-[9px] font-black text-white uppercase tracking-widest shadow-lg">
+              <CheckCircle2 size={10} />
+              Enrolled
+            </span>
+          ) : canAdd ? (
+            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 backdrop-blur-md rounded-full text-[9px] font-black text-white uppercase tracking-widest">
+              <Plus size={10} />
+              Available
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900/50 backdrop-blur-md rounded-full text-[9px] font-black text-white/80 uppercase tracking-widest">
+              <Lock size={10} />
+              Quota Full
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="px-4 relative z-10">
+        <h3
+          className={`text-lg font-black tracking-tight leading-tight mb-2 transition-colors ${
+            isEnrolled ? "text-gray-900 group-hover:text-purple-600" : "text-gray-500"
+          }`}
+        >
+          {course.fullname}
+        </h3>
+        {course.summary && (
+          <p className="text-[11px] text-gray-400 font-medium leading-relaxed mb-4 line-clamp-2">
+            {course.summary.replace(/<[^>]*>/g, "")}
+          </p>
+        )}
+
+        {isEnrolled ? (
+          <div className="flex items-center gap-2 text-[10px] font-black text-purple-600 uppercase tracking-widest">
+            <PlayCircle size={14} />
+            Continue Learning
+          </div>
+        ) : canAdd ? (
+          <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+            <BookOpen size={14} />
+            Contactez-nous pour ajouter
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-[10px] font-black text-gray-300 uppercase tracking-widest">
+            <Lock size={14} />
+            Upgradez votre forfait
+          </div>
+        )}
+      </div>
+
+      {/* Hover glow */}
+      {isEnrolled && (
+        <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-purple-100/40 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
+      )}
+    </motion.div>
+  );
+};
+
+// ─── Main Component ─────────────────────────────────────────────────────────
+const DashboardClient = ({
+  initialData,
+  userEmail,
+  isActivated: serverIsActivated,
+  moodleToken,
+  allCourses = [],
+  planQuotas,
+}: {
+  initialData: DashboardData;
+  userEmail: string;
+  isActivated: boolean;
+  moodleToken: string;
+  allCourses?: EnrolledCourse[];
+  planQuotas?: PlanQuotas;
+}) => {
+  const router = useRouter();
   const [showActivationWall, setShowActivationWall] = useState(!serverIsActivated);
   const [activationCode, setActivationCode] = useState("");
   const [isActivating, setIsActivating] = useState(false);
   const [activationError, setActivationError] = useState("");
+  const [search, setSearch] = useState("");
+  const [activeFilter, setActiveFilter] = useState<"all" | "enrolled" | "available">("all");
 
-  // Use real data or fallbacks
-  const enrolledCourses = initialData?.courses || [];
+  const enrolledCourses = useMemo(() => initialData?.courses || [], [initialData]);
   const userPlan = initialData?.plan || "none";
-  const isExecutive = userPlan === "executive";
 
-  // Map courses to trimesters 
-  const roadmap = [
-    {
-      id: 1,
-      title: "Active Studies",
-      subtitle: "Current Enrollment",
-      status: "Active",
-      progress: enrolledCourses.length > 0 ? 35 : 0,
-      subjects: enrolledCourses.map((c: EnrolledCourse) => ({
-        id: c.id,
-        title: c.fullname,
-        name: c.fullname,
-        image: getAuthenticatedUrl(c.image_url, moodleToken),
-        status: "Resume",
-        progress: 12, // Mock progress
-        manual: "Course_Guide.pdf",
-        summary: c.summary,
-        instructor: "IBI Global Team"
-      }))
-    },
-    {
-       id: 2,
-       title: "Next Phase",
-       subtitle: "Spiritual Identity",
-       status: isExecutive ? "Unlocked" : "Locked",
-       progress: 0,
-       subjects: []
-    },
-    {
-       id: 3,
-       title: "Ministry",
-       subtitle: "Service & Leadership",
-       status: "Locked",
-       progress: 0,
-       subjects: []
-    },
-    {
-       id: 4,
-       title: "Impact",
-       subtitle: "Global Kingdom Reach",
-       status: "Locked",
-       progress: 0,
-       subjects: []
+  // Determine quota from server-side planQuotas or defaults
+  const quotaMap: Record<string, number> = {
+    standard: planQuotas?.standard ?? PLAN_QUOTA.standard,
+    premium: planQuotas?.premium ?? PLAN_QUOTA.premium,
+    executive: Infinity,
+    none: 0,
+  };
+  const userQuota = quotaMap[userPlan] ?? 0;
+  const enrolledCount = enrolledCourses.length;
+  const slotsLeft = userQuota === Infinity ? Infinity : Math.max(0, userQuota - enrolledCount);
+  const canAddMore = slotsLeft > 0;
+
+  // Build a Set of enrolled IDs for O(1) look-up
+  const enrolledIds = useMemo(() => new Set(enrolledCourses.map((c) => c.id)), [enrolledCourses]);
+
+  // Merge: enrolled courses come first, then the rest from the catalog
+  const catalogCourses = useMemo(() => {
+    const map = new Map<number, EnrolledCourse>();
+    // First add ALL catalog courses
+    allCourses.forEach((c) => map.set(c.id, c));
+    // Override/add enrolled courses (they may have richer data)
+    enrolledCourses.forEach((c) => map.set(c.id, c));
+    return Array.from(map.values());
+  }, [allCourses, enrolledCourses]);
+
+  // Search + filter
+  const filteredCourses = useMemo(() => {
+    let list = catalogCourses;
+
+    if (activeFilter === "enrolled") list = list.filter((c) => enrolledIds.has(c.id));
+    if (activeFilter === "available") list = list.filter((c) => !enrolledIds.has(c.id));
+
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(
+        (c) =>
+          c.fullname.toLowerCase().includes(q) ||
+          (c.summary || "").toLowerCase().includes(q)
+      );
     }
-  ];
+
+    // Enrolled courses first
+    return [...list].sort((a, b) => {
+      const aE = enrolledIds.has(a.id) ? 0 : 1;
+      const bE = enrolledIds.has(b.id) ? 0 : 1;
+      return aE - bE;
+    });
+  }, [catalogCourses, search, activeFilter, enrolledIds]);
 
   useEffect(() => {
-    const localBypass = localStorage.getItem('ibi_dev_activated');
-    if (localBypass === 'true') {
-      setShowActivationWall(false);
-    }
+    const localBypass = localStorage.getItem("ibi_dev_activated");
+    if (localBypass === "true") setShowActivationWall(false);
   }, []);
 
   const handleActivate = async () => {
@@ -122,7 +241,7 @@ const DashboardClient = ({ initialData, userEmail, isActivated: serverIsActivate
     setActivationError("");
 
     if (activationCode === "0000") {
-      localStorage.setItem('ibi_dev_activated', 'true');
+      localStorage.setItem("ibi_dev_activated", "true");
       setShowActivationWall(false);
       await activateAccount(userEmail, activationCode);
       window.location.reload();
@@ -131,20 +250,22 @@ const DashboardClient = ({ initialData, userEmail, isActivated: serverIsActivate
 
     try {
       const result = await activateAccount(userEmail, activationCode);
-      if (result.status === "success" ) {
+      if (result.status === "success") {
         setShowActivationWall(false);
         window.location.reload();
       } else {
-        setActivationError(result.message || "Invalid code");
+        setActivationError(result.message || "Code invalide");
       }
     } catch {
-      setActivationError("Error activating account");
+      setActivationError("Erreur d'activation");
     } finally {
       setIsActivating(false);
     }
   };
 
-  const currentTrimester = roadmap.find(t => t.id === activeTrimester);
+  const handleCourseClick = (course: EnrolledCourse) => {
+    router.push(`/dashboard/courses/${course.id}`);
+  };
 
   return (
     <div className="min-h-screen bg-[#f0f2f5] flex flex-col md:flex-row relative selection:bg-purple-100 selection:text-purple-900">
@@ -152,595 +273,232 @@ const DashboardClient = ({ initialData, userEmail, isActivated: serverIsActivate
 
       <main className="flex-1 min-h-screen">
         <div className="p-6 md:p-10 lg:p-14 pt-8 md:pt-10">
-          <div className="max-w-7xl mx-auto space-y-12">
-            
-            <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 animate-in slide-in-from-left duration-700">
-               <div>
-                  <div className="flex items-center gap-3 mb-4">
-                     <div className="w-10 h-1 rounded-full bg-purple-600" />
-                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-600">Student Portal</span>
-                  </div>
-                  <h1 className="text-4xl md:text-6xl font-black text-gray-900 tracking-tighter leading-none mb-4">
-                    Welcome back, <br />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">
-                       Scholar.
-                    </span>
-                  </h1>
-                  <p className="text-gray-400 font-medium max-w-xl text-sm leading-relaxed">
-                    You are currently on the <span className="text-gray-900 font-bold uppercase tracking-widest">{userPlan}</span> {isExecutive ? "Full Access" : "Standard"} enrollment.
-                    Your academic journey is synchronized with IBI Global standards.
-                  </p>
-               </div>
+          <div className="max-w-7xl mx-auto space-y-10">
 
-               <div className="flex items-center gap-10">
-                  <div className="text-left">
-                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Courses</p>
-                     <p className="text-4xl font-black text-gray-900">{enrolledCourses.length}</p>
-                  </div>
-                  <div className="h-10 w-px bg-gray-100 hidden sm:block" />
-                  <div className="text-left">
-                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Status</p>
-                     <p className="text-4xl font-black text-emerald-500">{serverIsActivated ? "Active" : "Pending"}</p>
-                  </div>
-               </div>
+            {/* ── Header ── */}
+            <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 animate-in slide-in-from-left duration-700">
+              <div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-1 rounded-full bg-purple-600" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-600">
+                    Student Portal
+                  </span>
+                </div>
+                <h1 className="text-4xl md:text-6xl font-black text-gray-900 tracking-tighter leading-none mb-4">
+                  My Courses,{" "}
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">
+                    Scholar.
+                  </span>
+                </h1>
+              </div>
+
+              {/* Stats */}
+              <div className="flex items-center gap-8">
+                <div className="text-left">
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Enrolled</p>
+                  <p className="text-4xl font-black text-gray-900">{enrolledCount}</p>
+                </div>
+               
+                {userQuota !== Infinity && (
+                  <>
+                    <div className="h-10 w-px bg-gray-200 hidden sm:block" />
+                    <div className="text-left">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Slots Left</p>
+                      <p className={`text-4xl font-black ${slotsLeft > 0 ? "text-emerald-600" : "text-red-400"}`}>
+                        {slotsLeft}
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
             </header>
 
-            <section className="animate-in fade-in duration-1000 delay-200 pb-20">
-               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {currentTrimester?.subjects && currentTrimester.subjects.length > 0 ? (
-                    currentTrimester.subjects.map((subject: Subject) => (
-                      <div 
-                        key={subject.id}
-                        onClick={() => setSelectedSubject(subject)}
-                        className="group relative bg-white border border-gray-100 rounded-[3rem] p-4 pb-8 transition-all duration-500 hover:shadow-2xl hover:shadow-purple-50 hover:-translate-y-2 cursor-pointer overflow-hidden block"
-                      >
-                         <div className="relative h-48 w-full rounded-[2.5rem] overflow-hidden mb-8">
-                            <Image 
-                              src={getAuthenticatedUrl(subject.image, moodleToken)} 
-                              alt={subject.title} 
-                              fill 
-                              className="object-cover transition-transform duration-700 group-hover:scale-110 opacity-90" 
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                            <div className="absolute bottom-4 left-4 right-4">
-                               <div className="flex items-center gap-2">
-                                  <span className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[9px] font-black text-white uppercase tracking-widest">
-                                     {subject.status}
-                                  </span>
-                               </div>
-                            </div>
-                         </div>
+            {/* ── Quota banner if restricted ── */}
+            {(userPlan === "standard" || userPlan === "premium") && (
+              <div className="animate-in fade-in duration-700">
+                <div className={`flex flex-col sm:flex-row items-start sm:items-center gap-4 px-8 py-5 rounded-3xl border-2 ${
+                  slotsLeft > 0
+                    ? "bg-emerald-50 border-emerald-100 text-emerald-700"
+                    : "bg-amber-50 border-amber-100 text-amber-700"
+                }`}>
+                  <Sparkles size={20} className="shrink-0 mt-0.5" />
+                  <div>
+                    {slotsLeft > 0 ? (
+                      <p className="text-sm font-bold">
+                        Your <strong>{userPlan}</strong> plan allows you to add{" "}
+                        <strong>{slotsLeft} more course{slotsLeft !== 1 ? "s" : ""}</strong>. Contact our team to enroll in additional courses.
+                      </p>
+                    ) : (
+                      <p className="text-sm font-bold">
+                        You have reached the limit of your <strong>{userPlan}</strong> plan ({userQuota} courses).{" "}
+                        <a href="/apply" className="underline underline-offset-2 font-black">
+                          Upgrade to Premium or Executive
+                        </a>{" "}
+                        to unlock more courses.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
-                         <div className="px-4">
-                            <h3 className="text-xl font-black text-gray-900 tracking-tight leading-tight mb-2 group-hover:text-purple-600 transition-colors">
-                               {subject.title}
-                            </h3>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-6">Moodle Course #{subject.id}</p>
-                            
-                            <div className="space-y-4">
-                               <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-gray-400">
-                                  <span>Curriculum Progress</span>
-                                  <span className="text-gray-900">{subject.progress}%</span>
-                                </div>
-                               <div className="h-1.5 w-full bg-gray-50 rounded-full overflow-hidden">
-                                  <div 
-                                    className="h-full bg-gray-900 rounded-full transition-all duration-1000" 
-                                    style={{ width: `${subject.progress}%` }} 
-                                  />
-                               </div>
-                            </div>
-                         </div>
+            {/* ── Search + Filter bar ── */}
+            <div className="animate-in fade-in duration-700 delay-150 space-y-4">
+              {/* Search input */}
+              <div className="relative">
+                <Search
+                  size={18}
+                  className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search courses by title or description…"
+                  className="w-full pl-14 pr-6 py-5 bg-white border-2 border-transparent rounded-[2rem] text-sm font-medium text-gray-800 placeholder:text-gray-400 transition-all focus:outline-none focus:border-purple-400 focus:shadow-lg focus:shadow-purple-50"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch("")}
+                    className="absolute right-5 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-400 transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
 
-                         <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-purple-100/30 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                    ))
-                  ) : (
-                    <div className="col-span-full py-24 bg-gray-50 rounded-[4rem] border-2 border-dashed border-gray-100 flex flex-col items-center justify-center text-center">
-                       <Lock className="text-gray-200 mb-6" size={56} />
-                       <h4 className="text-xl font-black text-gray-400 uppercase tracking-widest">Enrollment Required</h4>
-                       <p className="text-sm text-gray-400 mt-2 max-w-sm px-6">
-                         This phase is currently locked. Complete your current course load or contact support to modify your learning path.
-                       </p>
-                    </div>
-                  )}
-               </div>
+              {/* Filter tabs */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {(["all", "enrolled", "available"] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setActiveFilter(f)}
+                    className={`px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
+                      activeFilter === f
+                        ? "bg-gray-900 text-white shadow-lg"
+                        : "bg-white border border-gray-100 text-gray-500 hover:border-gray-300"
+                    }`}
+                  >
+                    {f === "all" && `All (${catalogCourses.length})`}
+                    {f === "enrolled" && `My Courses (${enrolledCount})`}
+                    {f === "available" && `Catalog (${catalogCourses.length - enrolledCount})`}
+                  </button>
+                ))}
+
+                {search && (
+                  <span className="ml-auto text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                    {filteredCourses.length} result{filteredCourses.length !== 1 ? "s" : ""}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* ── Course Grid ── */}
+            <section className="animate-in fade-in duration-1000 delay-200 pb-24">
+              {filteredCourses.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  <AnimatePresence mode="popLayout">
+                    {filteredCourses.map((course) => {
+                      const isEnrolled = enrolledIds.has(course.id);
+                      return (
+                        <CourseCard
+                          key={course.id}
+                          course={course}
+                          isEnrolled={isEnrolled}
+                          canAdd={!isEnrolled && canAddMore}
+                          moodleToken={moodleToken}
+                          onClick={() => handleCourseClick(course)}
+                        />
+                      );
+                    })}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                <div className="py-24 bg-white rounded-[4rem] border-2 border-dashed border-gray-100 flex flex-col items-center justify-center text-center">
+                  <Search className="text-gray-200 mb-6" size={56} />
+                  <h4 className="text-xl font-black text-gray-400 uppercase tracking-widest">
+                    No Courses Found
+                  </h4>
+                  <p className="text-sm text-gray-400 mt-2 max-w-sm px-6">
+                    Try a different keyword or clear the filters.
+                  </p>
+                  <button
+                    onClick={() => { setSearch(""); setActiveFilter("all"); }}
+                    className="mt-6 px-6 py-3 bg-gray-900 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-purple-600 transition-colors"
+                  >
+                    Reset Filters
+                  </button>
+                </div>
+              )}
             </section>
           </div>
         </div>
       </main>
 
+      {/* ── Activation Wall ── */}
       <AnimatePresence>
         {showActivationWall && (
-           <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] bg-gray-900/60 backdrop-blur-[20px] flex items-center justify-center p-6 overflow-y-auto"
-           >
-              <motion.div 
-                initial={{ scale: 0.9, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                className="bg-white rounded-[2.5rem] md:rounded-[4rem] p-8 md:p-16 max-w-2xl w-full text-center shadow-2xl relative overflow-hidden my-auto"
-              >
-                 <div className="absolute -top-24 -left-24 w-64 h-64 bg-purple-100 rounded-full blur-3xl opacity-50" />
-                 <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-indigo-100 rounded-full blur-3xl opacity-50" />
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className="bg-white rounded-[2.5rem] md:rounded-[4rem] p-8 md:p-16 max-w-2xl w-full text-center shadow-2xl relative overflow-hidden my-auto"
+            >
+              <div className="absolute -top-24 -left-24 w-64 h-64 bg-purple-100 rounded-full blur-3xl opacity-50" />
+              <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-indigo-100 rounded-full blur-3xl opacity-50" />
 
-                 <div className="relative z-10">
-                    <div className="w-24 h-24 bg-gray-900 text-white rounded-[2rem] flex items-center justify-center mx-auto mb-10 shadow-2xl shadow-gray-200">
-                       <ShieldCheck size={40} />
-                    </div>
-                    
-                    <h2 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tighter leading-none mb-6">
-                       Account <br />
-                       <span className="text-purple-600">Verification</span>
-                    </h2>
-                    
-                    <p className="text-gray-400 font-medium mb-10 text-sm md:text-base leading-relaxed max-w-lg mx-auto">
-                       To protect our community and your academic records, please enter the unique 16-character code provided by your International Bible Institute administrator.
-                    </p>
+              <div className="relative z-10">
+                <div className="w-24 h-24 bg-gray-900 text-white rounded-[2rem] flex items-center justify-center mx-auto mb-10 shadow-2xl shadow-gray-200">
+                  <ShieldCheck size={40} />
+                </div>
+                <h2 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tighter leading-none mb-6">
+                  Account <br />
+                  <span className="text-purple-600">Verification</span>
+                </h2>
+                <p className="text-gray-400 font-medium mb-10 text-sm md:text-base leading-relaxed max-w-lg mx-auto">
+                  To protect our community and your academic records, please enter the unique code provided by your Global Bible Institute administrator.
+                </p>
 
-                    <div className="max-w-md mx-auto space-y-4">
-                       <div className="group relative">
-                          <input 
-                            type="text" 
-                            placeholder="IBI-XXXX-XXXX-XXXX"
-                            value={activationCode}
-                            onChange={(e) => setActivationCode(e.target.value.toUpperCase())}
-                            className="w-full px-8 py-6 bg-gray-50 border-2 border-transparent rounded-[2rem] text-center text-lg font-black tracking-[0.3em] uppercase transition-all focus:bg-white focus:border-purple-600 outline-none"
-                          />
-                          <div className="absolute inset-0 rounded-[2rem] border-2 border-gray-900 opacity-0 group-hover:opacity-10 pointer-events-none transition-opacity" />
-                       </div>
-                       
-                       {activationError && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest">{activationError}</p>}
-                       
-                       <button 
-                        onClick={handleActivate}
-                        disabled={isActivating}
-                        className="w-full py-6 bg-gray-900 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl shadow-gray-200 transition-all hover:bg-purple-600 hover:shadow-purple-100 active:scale-95 disabled:opacity-50"
-                       >
-                          {isActivating ? "Verifying..." : "Validate Access"}
-                       </button>
-                    </div>
+                <div className="max-w-md mx-auto space-y-4">
+                  <div className="group relative">
+                    <input
+                      type="text"
+                      placeholder="IBI-XXXX-XXXX-XXXX"
+                      value={activationCode}
+                      onChange={(e) => setActivationCode(e.target.value.toUpperCase())}
+                      className="w-full px-8 py-6 bg-gray-50 border-2 border-transparent rounded-[2rem] text-center text-lg font-black tracking-[0.3em] uppercase transition-all focus:bg-white focus:border-purple-600 outline-none"
+                    />
+                    <div className="absolute inset-0 rounded-[2rem] border-2 border-gray-900 opacity-0 group-hover:opacity-10 pointer-events-none transition-opacity" />
+                  </div>
 
-                    <p className="mt-12 text-[10px] font-black text-gray-300 uppercase tracking-widest">
-                      Problems? contact admin@ibi-edu.com
-                    </p>
-                 </div>
-              </motion.div>
-           </motion.div>
+                  {activationError && (
+                    <p className="text-red-500 text-[10px] font-black uppercase tracking-widest">{activationError}</p>
+                  )}
+
+                  <button
+                    onClick={handleActivate}
+                    disabled={isActivating}
+                    className="w-full py-6 bg-gray-900 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl shadow-gray-200 transition-all hover:bg-purple-600 hover:shadow-purple-100 active:scale-95 disabled:opacity-50"
+                  >
+                    {isActivating ? "Verifying..." : "Validate Access"}
+                  </button>
+                </div>
+
+                <p className="mt-12 text-[10px] font-black text-gray-300 uppercase tracking-widest">
+                  Problems? contact admin@ibi-edu.com
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Subject Modal (Viewer) */}
-      <AnimatePresence>
-         {selectedSubject && (
-           <SubjectModal subject={selectedSubject} onClose={() => setSelectedSubject(null)} moodleToken={moodleToken} />
-         )}
-      </AnimatePresence>
     </div>
-  );
-};
-
-interface MoodleSection {
-  id: number;
-  name: string;
-  summary: string;
-  modules: MoodleModule[];
-}
-
-interface MoodleModule {
-  id: number;
-  name: string;
-  modname: string;
-  description?: string;
-  contents?: Array<{
-    fileurl: string;
-    filename: string;
-    mimetype?: string;
-  }>;
-}
-
-const SubjectModal = ({ subject, onClose, moodleToken }: { subject: Subject; onClose: () => void; moodleToken: string }) => {
-  const [activeTab, setActiveTab] = useState("curriculum");
-  const [sections, setSections] = useState<MoodleSection[]>([]);
-  const [activeModule, setActiveModule] = useState<MoodleModule | null>(null);
-  const [moduleContent, setModuleContent] = useState<string>("");
-  const [isModuleLoading, setIsModuleLoading] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSendingMessage, setIsSendingMessage] = useState(false);
-  const [messageSent, setMessageSent] = useState(false);
-  const [inquiryMessage, setInquiryMessage] = useState("");
-
-  useEffect(() => {
-    const fetchContents = async () => {
-      try {
-        const response = await fetch('/api/moodle', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ function: 'core_course_get_contents', params: { courseid: subject.id } })
-        });
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          // Filter out forum and quiz modules (Announcements and Exams) as requested
-          const filteredData = data.map((section: MoodleSection) => ({
-            ...section,
-            modules: section.modules.filter(mod => 
-              mod.modname !== 'forum' && 
-              mod.modname !== 'quiz'
-            )
-          })).filter(section => section.modules.length > 0);
-
-          setSections(filteredData);
-          
-          // Set first module as active by default if available
-          const firstSection = filteredData.find(s => s.modules && s.modules.length > 0);
-          if (firstSection) {
-            setActiveModule(firstSection.modules[0]);
-          }
-        }
-      } catch (err) {
-        console.error("Failed to fetch course content:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchContents();
-  }, [subject.id]);
-  useEffect(() => {
-    if (!activeModule) return;
-    
-    const fetchModuleContent = async () => {
-      setIsModuleLoading(true);
-      try {
-        const response = await fetch('/api/moodle', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            function: 'local_skillsaint_get_module_content', 
-            params: { cmid: activeModule.id } 
-          })
-        });
-        const data = await response.json();
-        
-        // If the custom function returns content, use it. 
-        // Otherwise fallback to the module description.
-        if (data && data.content !== undefined) {
-          setModuleContent(data.content);
-        } else {
-          setModuleContent(activeModule.description || "");
-        }
-      } catch (err) {
-        console.error("Failed to fetch module content:", err);
-        setModuleContent(activeModule.description || "");
-      } finally {
-        setIsModuleLoading(false);
-      }
-    };
-    
-    fetchModuleContent();
-  }, [activeModule]);
-
-  const processHtml = (html: string) => {
-    if (!html) return "";
-    // Replace Moodle pluginfile URLs with authenticated ones using the webservice endpoint
-    const moodleFileRegex = /src="([^"]+pluginfile\.php\/[^"]+)"/g;
-    return html.replace(moodleFileRegex, (match, url) => {
-      let finalUrl = url;
-      if (url.includes('pluginfile.php') && !url.includes('webservice/pluginfile.php')) {
-        finalUrl = url.replace('pluginfile.php', 'webservice/pluginfile.php');
-      }
-      const separator = finalUrl.includes('?') ? '&' : '?';
-      if (finalUrl.includes('token=')) return `src="${finalUrl}"`;
-      return `src="${finalUrl}${separator}token=${moodleToken}&forcedownload=0"`;
-    });
-  };
-
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inquiryMessage.trim()) return;
-    
-    setIsSendingMessage(true);
-    try {
-      const result = await sendInquiryAction({
-        courseid: subject.id,
-        subject: `Question regarding ${subject.title}`,
-        message: inquiryMessage
-      });
-      
-      if (result.success) {
-        setMessageSent(true);
-        setInquiryMessage("");
-      } else {
-        alert(result.error || "Failed to transmit inquiry.");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Error transmitting inquiry.");
-    } finally {
-      setIsSendingMessage(false);
-    }
-  };
-
-  return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[120] bg-gray-900/80 backdrop-blur-xl flex items-center justify-center p-2 md:p-6"
-      onClick={onClose}
-    >
-       <motion.div 
-        initial={{ scale: 0.95, y: 30 }}
-        animate={{ scale: 1, y: 0 }}
-        className="bg-white rounded-[2rem] md:rounded-[4rem] w-full max-w-6xl h-[95vh] md:h-[90vh] shadow-2xl flex flex-col lg:flex-row overflow-hidden border border-white/20"
-        onClick={(e) => e.stopPropagation()}
-       >
-          {/* Left Side: Content Viewer */}
-          <div className="flex-[2] bg-gray-900 p-4 md:p-8 flex flex-col relative overflow-hidden">
-             <div className="relative z-10 flex items-center justify-between mb-4 md:mb-8">
-                <div className="flex items-center gap-4">
-                   <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-purple-400">
-                      {activeModule?.modname === "video" ? <PlayCircle size={24} /> : <FileText size={24} />}
-                   </div>
-                   <div>
-                      <h3 className="text-white font-black uppercase tracking-widest text-xs truncate max-w-[200px] md:max-w-md">{activeModule?.name || subject.title}</h3>
-                      <p className="text-[9px] font-black text-purple-400 uppercase tracking-[0.2em]">Learning Resource</p>
-                   </div>
-                </div>
-                <button onClick={onClose} className="p-4 bg-white/10 text-white rounded-2xl transition-all hover:bg-white hover:text-gray-900">
-                   <X size={20} />
-                </button>
-             </div>
-
-             <div className="flex-1 rounded-[1.5rem] md:rounded-[3rem] bg-white border border-white/5 relative flex flex-col shadow-inner overflow-hidden">
-                {isLoading ? (
-                  <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-4">
-                    <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
-                    <p className="text-[10px] font-black uppercase tracking-widest">Synchronizing Academic Assets...</p>
-                  </div>
-                ) : activeModule ? (
-                  <div className="flex-1 overflow-y-auto p-10 bg-white custom-scrollbar text-gray-800">
-                    <div className="max-w-3xl mx-auto prose prose-purple lg:prose-xl">
-                       <h2 className="text-3xl font-black text-gray-900 mb-8 tracking-tight">{activeModule.name}</h2>
-                       
-                        {/* Description/Written content from Moodle */}
-                        {isModuleLoading ? (
-                          <div className="py-12 flex flex-col items-center justify-center text-gray-400 gap-3 border-2 border-dashed border-gray-100 rounded-[2.5rem]">
-                            <div className="w-8 h-8 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
-                            <p className="text-[10px] font-black uppercase tracking-widest">Decoding Module...</p>
-                          </div>
-                        ) : (
-                          <div 
-                            className="text-gray-600 leading-relaxed font-medium space-y-6 moodle-content site-content-render"
-                            dangerouslySetInnerHTML={{ __html: processHtml(moduleContent || activeModule.description || "") }}
-                          />
-                        )}
-
-                        {/* Assets list (Video, PDF, etc) - Only show if not already rendered as main content */}
-                        {activeModule.contents && activeModule.contents.length > 0 && (
-                          <div className="mt-12 space-y-6">
-                            {(() => {
-                              const relevantFiles = activeModule.contents.filter(file => {
-                                const isImage = file.mimetype?.includes('image') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.filename);
-                                const isVideo = file.mimetype?.includes('video') || /\.(mp4|webm|ogg|mov)$/i.test(file.filename);
-                                const isPdf = file.mimetype?.includes('pdf') || /\.pdf$/i.test(file.filename);
-                                return isImage || isVideo || isPdf;
-                              });
-
-                              if (relevantFiles.length === 0) return null;
-
-                              return (
-                                <>
-                                  <div className="flex items-center gap-4 mb-8">
-                                     <div className="h-px flex-1 bg-gray-100" />
-                                     <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest shrink-0">Attached Course Assets</h4>
-                                     <div className="h-px flex-1 bg-gray-100" />
-                                  </div>
-                                  {relevantFiles.map((file, idx) => {
-                                    let baseUrl = file.fileurl;
-                                    if (baseUrl.includes('pluginfile.php') && !baseUrl.includes('webservice/pluginfile.php')) {
-                                      baseUrl = baseUrl.replace('pluginfile.php', 'webservice/pluginfile.php');
-                                    }
-                                    const fileUrl = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}token=${moodleToken}&forcedownload=0`;
-                                    
-                                    const isImage = file.mimetype?.includes('image') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.filename);
-                                    const isVideo = file.mimetype?.includes('video') || /\.(mp4|webm|ogg|mov)$/i.test(file.filename);
-                                    const isPdf = file.mimetype?.includes('pdf') || /\.pdf$/i.test(file.filename);
-
-                                    if (isImage) {
-                                      return (
-                                        <div key={idx} className="mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                          <div className="relative group rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-xl">
-                                            <Image 
-                                              src={fileUrl} 
-                                              alt={file.filename} 
-                                              width={1200}
-                                              height={800}
-                                              className="w-full h-auto transition-transform duration-700 group-hover:scale-105" 
-                                              unoptimized
-                                            />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
-                                              <p className="text-white text-[10px] font-black uppercase tracking-widest">{file.filename}</p>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      );
-                                    }
-
-                                    if (isVideo) {
-                                      return (
-                                        <div key={idx} className="mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                          <div className="rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-xl bg-black aspect-video flex items-center justify-center">
-                                            <video src={fileUrl} controls className="w-full h-full" />
-                                          </div>
-                                          <p className="mt-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">{file.filename}</p>
-                                        </div>
-                                      );
-                                    }
-
-                                    if (isPdf) {
-                                      return (
-                                        <div key={idx} className="mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                          <div className="rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-xl bg-white group">
-                                            <div className="p-5 bg-gray-50 border-b border-gray-100 flex justify-between items-center px-10">
-                                              <div className="flex items-center gap-3">
-                                                 <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-purple-600 shadow-sm">
-                                                    <FileText size={14} />
-                                                 </div>
-                                                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{file.filename}</span>
-                                              </div>
-                                            </div>
-                                            <div className="relative bg-gray-50">
-                                               <iframe 
-                                                 src={fileUrl} 
-                                                 className="w-full h-[75vh] border-none bg-white" 
-                                                 title={file.filename} 
-                                                 loading="lazy"
-                                               />
-                                            </div>
-                                          </div>
-                                        </div>
-                                      );
-                                    }
-                                    return null;
-                                  })}
-                                </>
-                              );
-                            })()}
-                          </div>
-                        )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-6 p-10 text-center">
-                    <HelpCircle size={48} className="opacity-20" />
-                    <p className="text-sm font-bold max-w-xs">No active content modules found for this subject. Please check back later or contact your advisor.</p>
-                  </div>
-                )}
-             </div>
-
-             {/* <div className="mt-8 flex items-center justify-between text-white">
-                <div className="flex items-center gap-6">
-                   <div className="flex items-center gap-3">
-                      <Clock size={16} className="text-purple-400" />
-                      <span className="text-[10px] font-black tracking-widest uppercase">42:15 Remaining</span>
-                   </div>
-                   <div className="flex items-center gap-3">
-                      <CheckCircle2 size={16} className="text-emerald-400" />
-                      <span className="text-[10px] font-black tracking-widest uppercase">Auto-Save Active</span>
-                   </div>
-                </div>
-                <div className="flex items-center gap-3">
-                   <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Quality:</span>
-                   <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 bg-white/10 rounded-full">4K ULTRA</span>
-                </div>
-             </div> */}
-          </div>
-
-          {/* Right Side: Resources & Contact */}
-          <div className="flex-1 lg:w-96 bg-white border-t lg:border-t-0 lg:border-l border-gray-100 p-4 md:p-10 flex flex-col min-h-[30vh]">
-             <nav className="flex items-center gap-6 mb-6 md:mb-10 border-b border-gray-50 pb-4 md:pb-6">
-                <button 
-                  onClick={() => setActiveTab("curriculum")} 
-                  className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors ${activeTab === "curriculum" ? "text-purple-600" : "text-gray-400"}`}
-                >
-                  Curriculum
-                </button>
-                <button 
-                  onClick={() => setActiveTab("advisor")} 
-                  className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors ${activeTab === "advisor" ? "text-purple-600" : "text-gray-400"}`}
-                >
-                  Inquiry
-                </button>
-             </nav>
-
-             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
-                {activeTab === "curriculum" ? (
-                   <div className="space-y-8">
-                     {sections.map((section, sIdx) => (
-                       <div key={sIdx}>
-                          <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                             <span className="w-4 h-px bg-gray-200" /> {section.name || `Section ${sIdx + 1}`}
-                          </h4>
-                          <div className="space-y-2">
-                             {section.modules.map((mod, mIdx) => (
-                               <button 
-                                 key={mIdx}
-                                 onClick={() => setActiveModule(mod)}
-                                 className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${
-                                   activeModule?.id === mod.id 
-                                     ? "bg-purple-600 border-purple-600 text-white shadow-lg shadow-purple-100 scale-[1.02]" 
-                                     : "bg-white border-transparent text-gray-500 hover:border-gray-100 hover:bg-gray-50"
-                                 }`}
-                               >
-                                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${activeModule?.id === mod.id ? "bg-white/20 text-white" : "bg-purple-50 text-purple-600"}`}>
-                                    {mod.modname === "video" ? <Play size={14} /> : <FileText size={14} />}
-                                  </div>
-                                  <div className="flex-1 truncate">
-                                     <p className="text-[10px] font-black uppercase leading-tight truncate">{mod.name}</p>
-                                     <p className={`text-[8px] font-bold uppercase tracking-wider opacity-60 ${activeModule?.id === mod.id ? "text-white" : ""}`}>
-                                       {mod.modname === "label" ? "Text Entry" : mod.modname}
-                                     </p>
-                                  </div>
-                               </button>
-                             ))}
-                          </div>
-                       </div>
-                     ))}
-                   </div>
-                ) : (
-                   <div className="space-y-6">
-                      <div className="text-left mb-6">
-                         <h4 className="text-lg font-black text-gray-900 tracking-tight leading-none mb-2">Direct Inquiry</h4>
-                         <p className="text-xs font-medium text-gray-400">Response time within 24 hours.</p>
-                      </div>
-                      
-                      {messageSent ? (
-                        <div className="py-10 text-center animate-in zoom-in duration-500">
-                           <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                              <CheckCircle2 size={32} />
-                           </div>
-                           <h5 className="text-sm font-black text-gray-900 uppercase tracking-widest mb-2">Message Sent</h5>
-                           <p className="text-xs text-gray-400 leading-relaxed">An advisor will review your query and respond via email.</p>
-                           <button onClick={() => setMessageSent(false)} className="mt-8 text-[10px] font-black text-purple-600 uppercase tracking-widest">Send another</button>
-                        </div>
-                      ) : (
-                        <form onSubmit={handleSendMessage} className="space-y-4">
-                           <div className="space-y-2">
-                              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Your Question</label>
-                              <textarea 
-                                value={inquiryMessage}
-                                onChange={(e) => setInquiryMessage(e.target.value)}
-                                required
-                                className="w-full p-6 bg-gray-50 rounded-3xl border-2 border-transparent focus:border-purple-600 focus:bg-white text-sm font-medium outline-none transition-all resize-none h-48"
-                                placeholder="State your inquiry clearly..."
-                              />
-                           </div>
-                           <button 
-                            disabled={isSendingMessage}
-                            className="w-full py-5 bg-gray-900 text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[10px] shadow-xl shadow-gray-200 hover:bg-purple-600 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-                           >
-                              {isSendingMessage ? "Dispatching..." : (
-                                <>
-                                  <Send size={16} />
-                                  Transmit
-                                </>
-                              )}
-                           </button>
-                        </form>
-                      )}
-                   </div>
-                )}
-             </div>
-
-             {/* <div className="mt-10 pt-8 border-t border-gray-50 italic">
-                <p className="text-[9px] font-medium text-gray-300">
-                   Authenticated Academic Resources • © 2024 International Bible Institute
-                </p>
-             </div> */}
-          </div>
-       </motion.div>
-    </motion.div>
   );
 };
 

@@ -1,5 +1,7 @@
 import { CourseType } from "@/types/CourseType";
-import { getPublicCourses, getMoodleSiteData, fetchMoodle } from "./moodle";
+import { getPublicCourses, getMoodleSiteData, fetchMoodle, getMoodleCategories } from "./moodle";
+import { CategoryType } from "@/types/CategoryType";
+export { getMoodleSiteData };
 
 /**
  * Fetches Hero data from Moodle site info or returns default values.
@@ -39,7 +41,7 @@ export async function getAllCourses(): Promise<CourseType[]> {
       title: "Introduction to Biblical Studies",
       shortDescription: "Learn the basics of interpreting sacred texts and understanding their context.",
       instructor: {
-        name: "International Bible Institute Team"
+        name: "Global Bible Institute Team"
       },
       thumbnail: "/images/course/course-1.png",
       price: 49.99,
@@ -59,7 +61,7 @@ export async function getAllCourses(): Promise<CourseType[]> {
       title: "Mastering Systematic Theology",
       shortDescription: "Dive deep into the foundations of faith and major theological doctrines.",
       instructor: {
-        name: "International Bible Institute Expert"
+        name: "Global Bible Institute Expert"
       },
       thumbnail: "/images/course/course-2.png",
       price: 89.99,
@@ -103,21 +105,27 @@ export async function getAllCourses(): Promise<CourseType[]> {
 export async function getGlobalSiteData() {
   const defaultData = {
     hero_badge: "Empowering Spiritual Leaders",
-    mission: { title: "Our Mission", content: "To form mature believers..." },
-    vision: { title: "Our Vision", content: "To cultivate believers..." },
+    mission: { title: "Our Mission", content: "To form mature believers who impact every sphere of society with biblical truth." },
+    vision: { title: "Our Vision", content: "To cultivate believers who transform every sphere of society." },
     about: {
       hero_title: "Our Identity & Vision",
       founder_title: "Welcome Letter from Founder",
-      founder_content: "Welcome to the International Bible Institute...",
+      founder_content: "Welcome to the Global Bible Institute.\n\nWe are committed to raising a generation of leaders rooted in the Word of God.",
       founder_name: "In Christ, Our Founder",
       goal_title: "Our Goal",
-      goal_content: "Raising a generation of leaders..."
+      goal_content: "Raising a generation of leaders equipped with biblical foundations and global vision."
     },
     programs: {
       hero_title: "Academic Programs",
       hero_desc: "Equipping the next generation of spiritual and global leaders.",
+      hero_image: "/program.jpg",
       core_title: "Kingdom Foundations",
-      core_items: ["40-minute pre-recorded lessons", "Daily journaling", "Practical assignments"]
+      core_items: ["40-minute pre-recorded lessons", "Daily journaling", "Practical assignments"],
+      floating: {
+        badge_1: "Academic Excellence",
+        subtitle_1: "Rigorous Study",
+        badge_2: "Certified Curriculum"
+      }
     },
     enrollment: {
       hero_title: "Apply to IBI",
@@ -127,8 +135,21 @@ export async function getGlobalSiteData() {
         premium: { price: 499, quota: 6 },
         executive: { price: 999, quota: Infinity }
       },
-      security_note: ""
-    }
+      security_note: "Your data is protected. Payment is processed securely."
+    },
+    highlights: {
+      curriculum_title: "Curriculum Overview",
+      curriculum_desc: "Discover our Kingdom Foundations program, subjects, and study schedule.",
+      apply_title: "Application Form",
+      apply_desc: "Ready to join? Start your application process here and join our global community.",
+      footer_description: "A House Where Leaders Are Formed in Scripture, Holiness, and the Power of God",
+      home_floating: {
+        badge_1: "Global Leadership Community",
+        subtitle_1: "Join the Vision",
+        badge_2: "Accredited Programs"
+      },
+    },
+    home_hero_image: "https://images.unsplash.com/photo-1529070538774-1843cb3265df?q=80&w=2070"
   };
 
   try {
@@ -138,6 +159,7 @@ export async function getGlobalSiteData() {
           hero_badge: data.hero_badge || defaultData.hero_badge,
           mission: { title: data.mission_title || defaultData.mission.title, content: data.mission_content || defaultData.mission.content },
           vision: { title: data.vision_title || defaultData.vision.title, content: data.vision_content || defaultData.vision.content },
+          home_hero_image: data.home_hero_image || defaultData.home_hero_image,
           about: {
             hero_title: data.about_hero_title || defaultData.about.hero_title,
             founder_title: data.founder_title || defaultData.about.founder_title,
@@ -149,8 +171,14 @@ export async function getGlobalSiteData() {
           programs: {
             hero_title: data.programs_hero_title || defaultData.programs.hero_title,
             hero_desc: data.programs_hero_desc || defaultData.programs.hero_desc,
+            hero_image: data.programs_hero_image || defaultData.programs.hero_image,
             core_title: data.core_program_title || defaultData.programs.core_title,
-            core_items: data.core_program_items ? data.core_program_items.split('\n').filter(Boolean) : defaultData.programs.core_items
+            core_items: data.core_program_items ? data.core_program_items.split('\n').filter(Boolean) : defaultData.programs.core_items,
+            floating: {
+              badge_1: data.programs_floating_badge_1 || defaultData.programs.floating.badge_1,
+              subtitle_1: data.programs_floating_subtitle_1 || defaultData.programs.floating.subtitle_1,
+              badge_2: data.programs_floating_badge_2 || defaultData.programs.floating.badge_2
+            }
           },
           enrollment: {
             hero_title: data.apply_hero_title || defaultData.enrollment.hero_title,
@@ -161,6 +189,18 @@ export async function getGlobalSiteData() {
               executive: { price: parseInt(data.price_executive) || 999, quota: Infinity }
             },
             security_note: data.security_note || defaultData.enrollment.security_note
+          },
+          highlights: {
+            curriculum_title: data.highlight_curriculum_title || defaultData.highlights.curriculum_title,
+            curriculum_desc: data.highlight_curriculum_desc || defaultData.highlights.curriculum_desc,
+            apply_title: data.highlight_apply_title || defaultData.highlights.apply_title,
+            apply_desc: data.highlight_apply_desc || defaultData.highlights.apply_desc,
+            footer_description: data.footer_description || defaultData.highlights.footer_description,
+            home_floating: {
+              badge_1: data.home_floating_badge_1 || defaultData.highlights.home_floating.badge_1,
+              subtitle_1: data.home_floating_subtitle_1 || defaultData.highlights.home_floating.subtitle_1,
+              badge_2: data.home_floating_badge_2 || defaultData.highlights.home_floating.badge_2
+            }
           }
        };
     }
@@ -349,4 +389,12 @@ export async function checkActivation(email: string) {
     return false;
   }
 
+}
+
+export async function getCoursesWithCategories(): Promise<{ courses: CourseType[], categories: CategoryType[] }> {
+    const [courses, categories] = await Promise.all([
+        getAllCourses(),
+        getMoodleCategories()
+    ]);
+    return { courses, categories };
 }

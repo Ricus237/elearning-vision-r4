@@ -29,6 +29,10 @@ const config: NextConfig = {
       {
         protocol: 'https',
         hostname: 'skillsaint-backend.vercel.app',
+      },
+      {
+        protocol: 'https',
+        hostname: 'apogeeweb.visionca.net',
       }
     ],
   },

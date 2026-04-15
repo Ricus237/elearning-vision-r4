@@ -9,7 +9,7 @@ import { ArrowRight, Star, BookOpen, Clock } from "@/lib/icons";
 
 export const metadata: Metadata = {
   title: `Contact Us | ${siteName}`,
-  description: "Get in touch with International Bible Institute support or partnership teams.",
+  description: "Get in touch with Global Bible Institute support or partnership teams.",
 };
 
 const ContactPage = () => {

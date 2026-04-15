@@ -161,10 +161,10 @@ button {
 
 @utility container {
   margin-inline: auto;
-  padding-inline: 10px;
+  padding-inline: 16px;
   @variant xl {
-    max-width: 1280px;
-    padding-inline: 32px;
+    max-width: 1200px;
+    padding-inline: 40px;
   }
 }
 .btn-gradient-border {
@@ -210,6 +210,24 @@ input[type="number"] {
 
 .animate-light-rays {
   animation: light-rays 20s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes bounce-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 3s ease-in-out infinite;
 }
 
 /* ============================================================

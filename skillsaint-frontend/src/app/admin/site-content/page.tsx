@@ -2,9 +2,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { Save, ChevronDown, Home, Info,
   BookOpen, ClipboardList, RefreshCw,
-  CheckCircle2, Loader2, DollarSign, Plus, Trash2
+  CheckCircle2, Loader2, DollarSign, Plus, Trash2,
+  Image as ImageIcon, Upload
 } from "lucide-react";
 import AdminSidebar from "@/components/dashboard/AdminSidebar";
+import Image from "next/image";
+
 
 // ─── Types mapped exactly to what data.ts / the plugin return ─────────────────
 interface SiteData {
@@ -38,10 +41,27 @@ interface SiteData {
   quota_premium: string;
   price_executive: string;
   security_note: string;
+  // Highlights
+  highlight_curriculum_title: string;
+  highlight_curriculum_desc: string;
+  highlight_apply_title: string;
+  highlight_apply_desc: string;
+  footer_description: string;
+  // Home Floating Badges
+  home_floating_badge_1: string;
+  home_floating_subtitle_1: string;
+  home_floating_badge_2: string;
+  // Programs Floating Badges
+  programs_floating_badge_1: string;
+  programs_floating_subtitle_1: string;
+  programs_floating_badge_2: string;
+  // Hero Images
+  home_hero_image: string;
+  programs_hero_image: string;
 }
 
 const DEFAULT: SiteData = {
-  sitename: "International Bible Institute",
+  sitename: "Global Bible Institute",
   summary: "Deepen your understanding of Scripture and grow as a global leader.",
   hero_badge: "Empowering Spiritual Leaders",
   mission_title: "Our Mission",
@@ -50,7 +70,7 @@ const DEFAULT: SiteData = {
   vision_content: "To cultivate believers who transform every sphere of society.",
   about_hero_title: "Our Identity & Vision",
   founder_title: "Welcome Letter from Founder",
-  founder_content: "Welcome to the International Bible Institute.\n\nWe are committed to raising a generation of leaders rooted in the Word of God.",
+  founder_content: "Welcome to the Global Bible Institute.\n\nWe are committed to raising a generation of leaders rooted in the Word of God.",
   founder_name: "In Christ, Our Founder",
   goal_title: "Our Goal",
   goal_content: "Raising a generation of leaders equipped with biblical foundations and global vision.",
@@ -66,10 +86,24 @@ const DEFAULT: SiteData = {
   quota_premium: "6",
   price_executive: "999",
   security_note: "Your data is protected. Payment is processed securely.",
+  highlight_curriculum_title: "Curriculum Overview",
+  highlight_curriculum_desc: "Discover our Kingdom Foundations program, subjects, and study schedule.",
+  highlight_apply_title: "Application Form",
+  highlight_apply_desc: "Ready to join? Start your application process here and join our global community.",
+  footer_description: "A House Where Leaders Are Formed in Scripture, Holiness, and the Power of God",
+  // Floating
+  home_floating_badge_1: "Global Leadership Community",
+  home_floating_subtitle_1: "Join the Vision",
+  home_floating_badge_2: "Accredited Programs",
+  programs_floating_badge_1: "Academic Excellence",
+  programs_floating_subtitle_1: "Rigorous Study",
+  programs_floating_badge_2: "Certified Curriculum",
+  home_hero_image: "https://images.unsplash.com/photo-1529070538774-1843cb3265df?q=80&w=2070",
+  programs_hero_image: "/program.jpg",
 };
 
 // ─── Field renderer ───────────────────────────────────────────────────────────
-type FieldType = "text" | "textarea" | "number";
+type FieldType = "text" | "textarea" | "number" | "image";
 interface Field { key: keyof SiteData; label: string; type: FieldType; hint?: string }
 
 interface Section {
@@ -96,6 +130,14 @@ const sections: Section[] = [
       { key: "mission_content", label: "Mission — Body Text", type: "textarea" },
       { key: "vision_title", label: "Vision — Title", type: "text" },
       { key: "vision_content", label: "Vision — Body Text", type: "textarea" },
+      { key: "highlight_curriculum_title", label: "Highlight 1: Curriculum Title", type: "text" },
+      { key: "highlight_curriculum_desc", label: "Highlight 1: Curriculum Description", type: "textarea" },
+      { key: "highlight_apply_title", label: "Highlight 2: Application Title", type: "text" },
+      { key: "highlight_apply_desc", label: "Highlight 2: Application Description", type: "textarea" },
+      { key: "home_floating_badge_1", label: "Image Card 1 — Title", type: "text" },
+      { key: "home_floating_subtitle_1", label: "Image Card 1 — Small Subtitle", type: "text" },
+      { key: "home_floating_badge_2", label: "Image Card 2 — Floating Badge", type: "text" },
+      { key: "home_hero_image", label: "Hero Image", type: "image", hint: "Upload the main image for the homepage" },
     ],
   },
   {
@@ -122,6 +164,10 @@ const sections: Section[] = [
     fields: [
       { key: "programs_hero_title", label: "Page Hero Title", type: "text" },
       { key: "programs_hero_desc", label: "Page Hero Description", type: "textarea" },
+      { key: "programs_floating_badge_1", label: "Image Card 1 — Title", type: "text" },
+      { key: "programs_floating_subtitle_1", label: "Image Card 1 — Small Subtitle", type: "text" },
+      { key: "programs_floating_badge_2", label: "Image Card 2 — Floating Badge", type: "text" },
+      { key: "programs_hero_image", label: "Hero Image", type: "image", hint: "Upload the main image for the programs page" },
       { key: "core_program_title", label: "Core Program Name", type: "text", hint: "e.g. \"Kingdom Foundations\"" },
       { key: "core_program_items", label: "Lesson Format Items", type: "textarea", hint: "One item per line. Each line becomes a bullet point in the Lesson Format list." },
     ],
@@ -150,6 +196,17 @@ const sections: Section[] = [
       { key: "price_premium", label: "Premium Plan — Price ($)", type: "number" },
       { key: "quota_premium", label: "Premium Plan — Course Quota", type: "number" },
       { key: "price_executive", label: "Executive Plan — Price ($)", type: "number", hint: "Executive plan always has unlimited courses" },
+    ],
+  },
+  {
+    id: "global",
+    label: "Global / Footer",
+    subtitle: "Website name & Footer Bio",
+    icon: RefreshCw,
+    color: "purple",
+    fields: [
+      { key: "sitename", label: "Full Website Name", type: "text" },
+      { key: "footer_description", label: "Footer Bio Text", type: "textarea", hint: "Short description shown at the bottom of every page." },
     ],
   },
 ];
@@ -203,7 +260,7 @@ export default function SiteContentPage() {
 
   const handleChange = (key: keyof SiteData, value: string) => {
     setData((prev) => ({ ...prev, [key]: value }));
-    setSaved((prev) => { const s = new Set(prev); s.delete(/* the section */sections.find(s => s.fields.some(f => f.key === key))?.id || ""); return s; });
+    setSaved((prev) => { const s = new Set(prev); s.delete(sections.find(s => s.fields.some(f => f.key === key))?.id || ""); return s; });
   };
 
   const handleSave = async (sectionId: string) => {
@@ -369,20 +426,54 @@ export default function SiteContentPage() {
                                     </button>
                                   </div>
                                 ) : field.type === "textarea" ? (
-                                  <textarea
-                                    rows={field.key === "founder_content" ? 6 : 3}
-                                    value={data[field.key]}
-                                    onChange={(e) => handleChange(field.key, e.target.value)}
-                                    className="w-full px-6 py-4 bg-gray-50 dark:bg-slate-900 border-none rounded-2xl text-sm font-bold text-gray-900 dark:text-white focus:ring-4 focus:ring-purple-100 dark:focus:ring-purple-900/20 transition-all resize-none leading-relaxed"
-                                  />
-                                ) : (
-                                  <input
-                                    type={field.type}
-                                    value={data[field.key]}
-                                    onChange={(e) => handleChange(field.key, e.target.value)}
-                                    className="w-full px-6 h-14 bg-gray-50 dark:bg-slate-900 border-none rounded-2xl text-sm font-bold text-gray-900 dark:text-white focus:ring-4 focus:ring-purple-100 dark:focus:ring-purple-900/20 transition-all"
-                                  />
-                                )}
+                                    <textarea
+                                      rows={field.key === "founder_content" ? 6 : 3}
+                                      value={data[field.key]}
+                                      onChange={(e) => handleChange(field.key, e.target.value)}
+                                      className="w-full px-6 py-4 bg-gray-50 dark:bg-slate-900 border-none rounded-2xl text-sm font-bold text-gray-900 dark:text-white focus:ring-4 focus:ring-purple-100 dark:focus:ring-purple-900/20 transition-all resize-none leading-relaxed"
+                                    />
+                                  ) : field.type === "image" ? (
+                                    <div className="flex flex-col gap-4">
+                                       <div className="relative w-full h-48 rounded-2xl overflow-hidden bg-gray-100 dark:bg-slate-800 border-2 border-dashed border-gray-200 dark:border-slate-700 group/img">
+                                          {data[field.key] ? (
+                                             <Image src={data[field.key]} alt={field.label} fill className="object-cover" unoptimized />
+                                          ) : (
+                                             <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+                                                <ImageIcon className="w-8 h-8 mb-2" />
+                                                <span className="text-[10px] font-bold uppercase tracking-widest">No Image Selected</span>
+                                             </div>
+                                          )}
+                                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+                                             <label className="cursor-pointer px-6 py-3 bg-white text-black rounded-xl font-bold text-xs flex items-center gap-2 hover:scale-105 transition-transform">
+                                                <Upload className="w-4 h-4" />
+                                                Replace Image
+                                                <input 
+                                                  type="file" 
+                                                  className="hidden" 
+                                                  accept="image/*"
+                                                  onChange={async (e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (!file) return;
+                                                    const reader = new FileReader();
+                                                    reader.onloadend = () => {
+                                                      handleChange(field.key, reader.result as string);
+                                                    };
+                                                    reader.readAsDataURL(file);
+                                                  }}
+                                                />
+                                             </label>
+                                          </div>
+                                       </div>
+                                       <p className="text-[9px] text-gray-400 font-medium px-2 italic">Format: JPG, PNG, WebP. Base64 encoded for Moodle Storage.</p>
+                                    </div>
+                                  ) : (
+                                    <input
+                                      type={field.type}
+                                      value={data[field.key]}
+                                      onChange={(e) => handleChange(field.key, e.target.value)}
+                                      className="w-full px-6 h-14 bg-gray-50 dark:bg-slate-900 border-none rounded-2xl text-sm font-bold text-gray-900 dark:text-white focus:ring-4 focus:ring-purple-100 dark:focus:ring-purple-900/20 transition-all"
+                                    />
+                                  )}
                               </div>
                             ))}
                           </div>

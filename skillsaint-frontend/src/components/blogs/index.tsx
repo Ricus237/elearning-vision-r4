@@ -15,7 +15,7 @@ const Blogs = () => {
             subTitle="Blogs"
             description="Deepen your spiritual understanding with expert insights, biblical teaching, and encouraging stories to fuel your faith journey."
           >
-            The International Bible Institute Knowledge Hub
+            The Global Bible Institute Knowledge Hub
           </SectionTitle>
           <Button
             asChild

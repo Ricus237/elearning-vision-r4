@@ -104,7 +104,7 @@ const ExamsPage = () => {
             
             <div className="text-center mb-12">
                 <h1 className="text-4xl font-black font-serif text-gray-900 mb-2">Final Examination</h1>
-                <p className="text-gray-500">International Bible Institute</p>
+                <p className="text-gray-500">Global Bible Institute</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-10">

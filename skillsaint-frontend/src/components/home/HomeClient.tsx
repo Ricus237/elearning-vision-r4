@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, useScroll, AnimatePresence } from "framer-motion";
 import { 
   BookOpen, 
@@ -31,6 +32,19 @@ interface HomeClientProps {
     hero_badge: string;
     mission: { title: string; content: string };
     vision: { title: string; content: string };
+    home_hero_image: string;
+    highlights: {
+      curriculum_title: string;
+      curriculum_desc: string;
+      apply_title: string;
+      apply_desc: string;
+      footer_description: string;
+      home_floating: {
+        badge_1: string;
+        subtitle_1: string;
+        badge_2: string;
+      };
+    };
   };
 }
 
@@ -81,10 +95,13 @@ export default function HomeClient({ heroData, extraData }: HomeClientProps) {
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-8 font-medium">
+          <nav className="hidden md:flex items-center gap-6 font-medium">
             <Link href="/programs" className="text-slate-600 hover:text-purple-600 transition-colors">Programs</Link>
             <Link href="/about" className="text-slate-600 hover:text-purple-600 transition-colors">About</Link>
-            <Link href="/apply" className="px-6 py-2.5 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition-all shadow-lg shadow-purple-100 hover:shadow-purple-200 hover:-translate-y-0.5 active:translate-y-0">
+            <Link href="/dashboard" className="px-5 py-2.5 text-purple-600 font-bold hover:text-purple-700 transition-all">
+              Login
+            </Link>
+            <Link href="/apply" className="px-6 py-2.5 bg-purple-600 text-white font-bold rounded-full hover:bg-purple-700 transition-all shadow-lg shadow-purple-100 hover:shadow-purple-200 hover:-translate-y-0.5">
               Apply Now
             </Link>
           </nav>
@@ -99,69 +116,121 @@ export default function HomeClient({ heroData, extraData }: HomeClientProps) {
       </motion.header>
 
       {/* Hero Section */}
-      <section className="relative pt-40 pb-32 overflow-hidden bg-slate-50">
-        <Rays className="opacity-60 scale-110" />
+      <section className="relative pt-32 pb-24 overflow-hidden bg-slate-50">
+        <Rays className="opacity-60 scale-100" />
 
         <div className="container px-6 mx-auto relative">
-          <div className="max-w-4xl mx-auto text-center">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.8 }}
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full  font-bold text-xs uppercase tracking-widest mb-8"
-            >
-              <Zap size={14} className="fill-purple-600 text-purple-600" />
-              {extraData.hero_badge || "Empowering Spiritual Leaders"}
-            </motion.div>
-
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
             
-            <motion.h1 
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="text-5xl lg:text-7xl font-black text-slate-900 leading-[1.1] font-serif mb-8 tracking-tight"
-            >
-              {heroData.title.split(' ').map((word: string, i: number) => (
-                <span key={i} className={i >= heroData.title.split(' ').length - 2 ? "text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600" : ""}>
-                   {word}{' '}
-                </span>
-              ))}
-            </motion.h1>
+            {/* Left: Text Content */}
+            <div className="text-left z-10">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.8 }}
+                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full font-bold text-xs uppercase tracking-widest mb-8 bg-purple-50 text-purple-600"
+              >
+                <Zap size={14} className="fill-purple-600" />
+                {extraData.hero_badge || "Empowering Spiritual Leaders"}
+              </motion.div>
 
-            <motion.p 
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.3 }}
-              className="text-xl lg:text-2xl text-slate-600 leading-relaxed mb-12 max-w-3xl mx-auto font-medium italic"
-            >
-              {heroData.description}
-            </motion.p>
+              <motion.h1 
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                className="text-4xl lg:text-6xl font-black text-slate-900 leading-[1.1] font-serif mb-6 tracking-tight"
+              >
+                {heroData.title.split(' ').map((word: string, i: number) => (
+                  <span key={i} className={i >= heroData.title.split(' ').length - 2 ? "text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600" : ""}>
+                    {word}{' '}
+                  </span>
+                ))}
+              </motion.h1>
 
-            <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
-              className="flex flex-col sm:flex-row items-center justify-center gap-5"
+              <motion.p 
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.3 }}
+                className="text-lg lg:text-xl text-slate-600 leading-relaxed mb-10 max-w-xl font-medium italic"
+              >
+                {heroData.description}
+              </motion.p>
+
+              <motion.div 
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.4 }}
+                className="flex flex-col sm:flex-row items-center gap-5"
+              >
+                <Link href="/apply" className="group w-full sm:w-auto px-10 py-5 bg-slate-900 text-white font-bold rounded-2xl flex items-center justify-center gap-2 hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 hover:-translate-y-1 active:translate-y-0">
+                  Enroll Now
+                  <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                </Link>
+                <Link href="/programs" className="w-full sm:w-auto px-10 py-5 bg-white text-slate-900 font-bold rounded-2xl border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-all">
+                  Explore Programs
+                </Link>
+              </motion.div>
+            </div>
+
+            {/* Right: Featured Image */}
+            <motion.div
+              initial={{ opacity: 0, x: 50, scale: 0.95 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              transition={{ duration: 1, delay: 0.2 }}
+              className="relative hidden lg:block"
             >
-              <Link href="/apply" className="group w-full sm:w-auto px-10 py-5 bg-slate-900 text-white font-bold rounded-2xl flex items-center justify-center gap-2 hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 hover:-translate-y-1 active:translate-y-0">
-                Enroll Now and Begin Your Journey 
-                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-              </Link>
+              <div className="relative group">
+                {/* Decorative Elements */}
+                <div className="absolute -inset-4 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-[4rem] blur-2xl opacity-10 group-hover:opacity-20 transition-opacity" />
+                
+                <div className="relative rounded-[3rem] overflow-hidden shadow-2xl shadow-purple-200/50 border-8 border-white">
+                    <Image 
+                       src={extraData.home_hero_image} 
+                       alt="Global Bible Institute Study"
+                       width={1000}
+                       height={520}
+                       className="w-full h-[520px] object-cover hover:scale-105 transition-transform duration-700"
+                    />
+                   
+                   {/* Floating Stats/Badge */}
+                   <div className="absolute bottom-10 left-10 p-6 bg-white/90 backdrop-blur-md rounded-3xl shadow-xl flex items-center gap-4 animate-bounce-slow">
+                      <div className="size-12 bg-purple-600 rounded-2xl flex items-center justify-center text-white">
+                        <Heart size={24} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{extraData.highlights.home_floating.subtitle_1}</p>
+                        <p className="text-sm font-bold text-slate-900">{extraData.highlights.home_floating.badge_1}</p>
+                      </div>
+                   </div>
+                </div>
+
+                {/* Floating card 2 */}
+                <div className="absolute -top-6 -right-6 p-6 bg-white rounded-3xl shadow-xl border border-slate-50 hidden xl:flex items-center gap-4 animate-float">
+                    <div className="size-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
+                      <ShieldCheck size={20} />
+                    </div>
+                    <p className="text-xs font-bold text-slate-900">{extraData.highlights.home_floating.badge_2}</p>
+                </div>
+              </div>
             </motion.div>
 
-            {/* Highlights Grid */}
+            {/* Highlights Grid (Now full width below columns) */}
             <motion.div 
               variants={staggerContainer}
               initial="initial"
               whileInView="whileInView"
-              className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-24 text-left"
+              className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-20 lg:mt-32 text-left lg:col-span-2"
             >
               <motion.div variants={fadeIn} className="group p-8 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-purple-100 transition-all duration-500 hover:-translate-y-2">
                 <div className="size-14 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-600 mb-6 group-hover:scale-110 transition-transform">
                   <FileText size={28} />
                 </div>
-                <h3 className="text-2xl font-bold mb-3 text-slate-900 font-serif">Curriculum Overview</h3>
-                <p className="text-slate-500 mb-6 leading-relaxed">Discover our Kingdom Foundations program, subjects, and study schedule.</p>
+                <h3 className="text-2xl font-bold mb-3 text-slate-900 font-serif">
+                  {extraData.highlights?.curriculum_title || "Curriculum Overview"}
+                </h3>
+                <p className="text-slate-500 mb-6 leading-relaxed">
+                  {extraData.highlights?.curriculum_desc || "Discover our Kingdom Foundations program, subjects, and study schedule."}
+                </p>
                 <Link href="/programs" className="inline-flex items-center gap-2 font-bold text-purple-600 group/btn">
                   Learn More <ChevronRight size={18} className="group-hover/btn:translate-x-0.5 transition-transform" />
                 </Link>
@@ -171,8 +240,12 @@ export default function HomeClient({ heroData, extraData }: HomeClientProps) {
                 <div className="size-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 mb-6 group-hover:scale-110 transition-transform">
                   <GraduationCap size={28} />
                 </div>
-                <h3 className="text-2xl font-bold mb-3 text-slate-900 font-serif">Application Form</h3>
-                <p className="text-slate-500 mb-6 leading-relaxed">Ready to join? Start your application process here and join our global community.</p>
+                <h3 className="text-2xl font-bold mb-3 text-slate-900 font-serif">
+                  {extraData.highlights?.apply_title || "Application Form"}
+                </h3>
+                <p className="text-slate-500 mb-6 leading-relaxed">
+                  {extraData.highlights?.apply_desc || "Ready to join? Start your application process here and join our global community."}
+                </p>
                 <Link href="/apply" className="inline-flex items-center gap-2 font-bold text-indigo-600 group/btn">
                   Start Application <ChevronRight size={18} className="group-hover/btn:translate-x-0.5 transition-transform" />
                 </Link>
@@ -240,7 +313,7 @@ export default function HomeClient({ heroData, extraData }: HomeClientProps) {
       </section> */}
 
       {/* Mission & Vision Section */}
-      <section className="py-24 relative overflow-hidden bg-white">
+      <section className="py-20 relative overflow-hidden bg-white">
         <Rays className="opacity-40 -top-full scale-125 rotate-180" />
 
         <div className="container px-6 mx-auto relative z-10">
@@ -310,7 +383,14 @@ export default function HomeClient({ heroData, extraData }: HomeClientProps) {
               <div className="flex flex-col gap-6 text-2xl font-bold font-serif">
                 <Link href="/programs" onClick={() => setMobileMenuOpen(false)}>Programs</Link>
                 <Link href="/about" onClick={() => setMobileMenuOpen(false)}>About</Link>
-                <Link href="/apply" onClick={() => setMobileMenuOpen(false)} className="py-4 bg-purple-600 text-white rounded-2xl text-center">Apply Now</Link>
+                <div className="flex flex-col gap-4 mt-4">
+                  <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="py-4 border-2 border-slate-100 text-slate-900 rounded-2xl text-center text-lg">
+                    Student Login
+                  </Link>
+                  <Link href="/apply" onClick={() => setMobileMenuOpen(false)} className="py-4 bg-purple-600 text-white rounded-2xl text-center text-lg">
+                    Apply Now
+                  </Link>
+                </div>
               </div>
             </motion.div>
           </motion.div>

@@ -290,7 +290,7 @@ const SettingsPage = () => {
               </h3>
               <div className="text-sm text-gray-500 font-medium leading-relaxed mb-10 space-y-4 max-h-[50vh] overflow-y-auto custom-scrollbar pr-4">
                  <p className="p-4 bg-emerald-50 text-emerald-800 rounded-2xl mb-6">Your privacy matters. We rigorously guard your personal and academic data using state-of-the-art encryption protocols.</p>
-                 <p><strong className="text-gray-900">1. Data Collection:</strong> We collect your personal data such as name, email, and academic progress strictly for educational tracking and certification purposes within the International Bible Institute portal.</p>
+                 <p><strong className="text-gray-900">1. Data Collection:</strong> We collect your personal data such as name, email, and academic progress strictly for educational tracking and certification purposes within the Global Bible Institute portal.</p>
                  <p><strong className="text-gray-900">2. Third Parties:</strong> Your data is securely synchronized with our LMS backbone via protected APIs. We absolutely do not sell or rent your personal information to third parties or marketing boards.</p>
                  <p><strong className="text-gray-900">3. Security Infrastructure:</strong> All communications between your client and our servers are encrypted via HTTPS headers and secure token rotations. Authentication relies on industry-standard hashing.</p>
                  <p><strong className="text-gray-900">4. Right to Deletion:</strong> You may permanently wipe your records at any time via the « Danger Zone » on your settings dashboard. Upon request, all historical progress is scrubbed irreversibly.</p>

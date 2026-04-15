@@ -35,9 +35,9 @@ const menuList: MenuType[] = [
     href: "/apply",
   },
   {
-    id: 5,
-    label: "Exams",
-    href: "/exams",
+    id: 6,
+    label: "Login",
+    href: "/dashboard",
   },
 ];
 
@@ -49,12 +49,14 @@ const Header = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-10">
             <Link href={"/"} className="inline-block shrink-0 py-1.75 text-2xl font-bold tracking-tight text-white lg:text-3xl font-serif">
-              International Bible Institute
+              Global Bible Institute
             </Link>
             <Navigation data={menuList} />
           </div>
-          <div className="flex items-center gap-7">
-            {/* <HeaderExtraInfo user={user} /> */}
+          <div className="flex items-center gap-6">
+            <Link href="/apply" className="px-6 py-2.5 bg-white text-purple-700 font-bold rounded-full hover:bg-slate-50 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 text-sm">
+               Apply Now
+            </Link>
             <MobileNavigation data={menuList}  />
           </div>
         </div>

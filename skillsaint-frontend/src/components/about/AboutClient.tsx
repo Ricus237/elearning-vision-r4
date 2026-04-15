@@ -27,7 +27,7 @@ const AboutClient = ({ data }: AboutClientProps) => {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 overflow-hidden pt-24 pb-32">
+    <main className="min-h-screen bg-slate-50 overflow-hidden pt-12 pb-24">
       <Rays className="opacity-40" />
 
       <div className="container px-6 mx-auto">
@@ -39,13 +39,13 @@ const AboutClient = ({ data }: AboutClientProps) => {
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-100 text-purple-700 font-bold text-xs uppercase tracking-widest mb-6">
             About IBI
           </div>
-          <h1 className="text-5xl lg:text-7xl font-black text-slate-900 font-serif leading-tight">
+          <h1 className="text-4xl lg:text-6xl font-black text-slate-900 font-serif leading-tight">
             {data.hero_title}
           </h1>
         </motion.div>
 
         {/* 1. Welcome Letter from Founder */}
-        <section className="mb-32">
+        <section className="mb-24">
           <motion.div
             variants={fadeIn}
             initial="initial"
@@ -82,7 +82,7 @@ const AboutClient = ({ data }: AboutClientProps) => {
         </section>
 
         {/* 4. Our Goal */}
-        <section className="mb-32">
+        <section className="mb-24">
           <motion.div
             variants={fadeIn}
             initial="initial"

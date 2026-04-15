@@ -2,19 +2,24 @@ import React from "react";
 import Link from "next/link";
 
 
-const Footer = () => {
+interface FooterProps {
+  siteName?: string;
+  description?: string;
+}
+
+const Footer = ({ siteName, description }: FooterProps) => {
   return (
-    <footer className="bg-white py-16 border-t border-slate-100">
+    <footer className="bg-white py-12 border-t border-slate-100">
       <div className="container px-6 mx-auto">
-        <div className="flex flex-col items-center text-center space-y-10">
+        <div className="flex flex-col items-center text-center space-y-8">
           
           {/* Main Identity */}
           <div className="space-y-4">
-            <Link href="/" className="text-3xl font-black font-serif tracking-tight text-slate-900 block">
-              International Bible Institute
+            <Link href="/" className="text-2xl font-black font-serif tracking-tight text-slate-900 block">
+              {siteName || "Global Bible Institute"}
             </Link>
-            <p className="text-slate-400 font-medium italic max-w-lg mx-auto leading-relaxed">
-              A House Where Leaders Are Formed in Scripture, Holiness, and the Power of God
+            <p className="text-slate-400 font-medium italic max-w-md mx-auto leading-relaxed text-sm">
+              {description || "A House Where Leaders Are Formed in Scripture, Holiness, and the Power of God"}
             </p>
           </div>
 
@@ -43,7 +48,7 @@ const Footer = () => {
                 <p>© {new Date().getFullYear()} IBI. All rights reserved.</p>
                 <span className="hidden md:inline-block opacity-30">|</span>
                 <p>
-                  Made by <a href="https://visionca.com/" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-purple-600 transition-colors">Vision/R4</a>
+                  Made by <a href="https://visionca.com/" target="_blank" rel="noopener noreferrer" className="text-purple-600 dark:text-purple-400 hover:text-purple-800 transition-colors font-bold">Vision/R4</a>
                 </p>
 
              </div>

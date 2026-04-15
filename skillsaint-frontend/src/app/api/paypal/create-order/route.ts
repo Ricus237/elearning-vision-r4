@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
           },
         ],
         application_context: {
-          brand_name: 'International Bible Institute',
+          brand_name: 'Global Bible Institute',
           landing_page: 'LOGIN',
           user_action: 'PAY_NOW',
           shipping_preference: 'NO_SHIPPING',
