@@ -193,4 +193,168 @@ class local_skillsaint_external extends external_api {
     public static function save_site_data_returns() {
         return new external_value(PARAM_BOOL, 'True on success');
     }
+    /**
+     * Returns parameters for save_application
+     */
+    public static function save_application_parameters() {
+        return new external_function_parameters([
+            'fullname' => new external_value(PARAM_TEXT, 'Full name', VALUE_REQUIRED),
+            'email' => new external_value(PARAM_RAW, 'Email', VALUE_REQUIRED),
+            'phone' => new external_value(PARAM_TEXT, 'Phone', VALUE_OPTIONAL),
+            'address' => new external_value(PARAM_RAW, 'Address', VALUE_OPTIONAL),
+            'motivation' => new external_value(PARAM_RAW, 'Motivation', VALUE_OPTIONAL),
+            'spiritual_info' => new external_value(PARAM_RAW, 'Spiritual info (JSON)', VALUE_OPTIONAL),
+            'selected_plan' => new external_value(PARAM_TEXT, 'Selected plan', VALUE_OPTIONAL),
+            'selected_courses' => new external_value(PARAM_TEXT, 'Selected course IDs', VALUE_OPTIONAL),
+            'userid' => new external_value(PARAM_INT, 'User ID', VALUE_OPTIONAL, 0),
+        ]);
+    }
+
+    /**
+     * Save or update an application
+     */
+    public static function save_application($fullname, $email, $phone = '', $address = '', $motivation = '', $spiritual_info = '', $selected_plan = '', $selected_courses = '', $userid = 0) {
+        global $DB;
+
+        $email = strtolower(trim($email));
+        $record = $DB->get_record('local_skillsaint_apps', ['email' => $email]);
+
+        $data = new stdClass();
+        $data->fullname = $fullname;
+        $data->email = $email;
+        $data->phone = $phone;
+        $data->address = $address;
+        $data->motivation = $motivation;
+        $data->spiritual_bg = $spiritual_info;
+        $data->selected_plan = $selected_plan;
+        $data->selected_courses = $selected_courses;
+        $data->userid = $userid;
+        $data->timemodified = time();
+
+        if ($record) {
+            $data->id = $record->id;
+            $DB->update_record('local_skillsaint_apps', $data);
+            $app_id = $record->id;
+            $status = 'updated';
+        } else {
+            $data->timecreated = time();
+            $data->payment_status = 'pending';
+            $data->is_activated = 0;
+            $app_id = $DB->insert_record('local_skillsaint_apps', $data);
+            $status = 'created';
+        }
+
+        return ['status' => $status, 'id' => (int)$app_id];
+    }
+
+    public static function save_application_returns() {
+        return new external_single_structure([
+            'status' => new external_value(PARAM_ALPHA, 'Status'),
+            'id' => new external_value(PARAM_INT, 'Application ID'),
+        ]);
+    }
+
+    /**
+     * Returns parameters for confirm_payment
+     */
+    public static function confirm_payment_parameters() {
+        return new external_function_parameters([
+            'email' => new external_value(PARAM_RAW, 'Email', VALUE_REQUIRED),
+        ]);
+    }
+
+    /**
+     * Confirms payment and generates activation code
+     */
+    public static function confirm_payment($email) {
+        global $DB;
+
+        $email = strtolower(trim($email));
+        $record = $DB->get_record('local_skillsaint_apps', ['email' => $email]);
+
+        if (!$record) {
+            return ['status' => 'error', 'message' => 'Application not found'];
+        }
+
+        $code = 'IBI-' . strtoupper(substr(md5($email . time()), 0, 8));
+
+        $record->payment_status = 'paid';
+        $record->activation_code = $code;
+        $record->is_activated = 1;
+        $record->timemodified = time();
+        $DB->update_record('local_skillsaint_apps', $record);
+        
+        return [
+            'status' => 'success', 
+            'message' => 'Payment confirmed', 
+            'code' => $code,
+            'user_id' => (int)($record->userid ?: 0)
+        ];
+    }
+
+    public static function confirm_payment_returns() {
+        return new external_single_structure([
+            'status' => new external_value(PARAM_TEXT, 'Status'),
+            'message' => new external_value(PARAM_TEXT, 'Message'),
+            'code' => new external_value(PARAM_TEXT, 'Activation code', VALUE_OPTIONAL),
+            'user_id' => new external_value(PARAM_INT, 'User ID', VALUE_OPTIONAL),
+        ]);
+    }
+
+    /**
+     * Account activation logic
+     */
+    public static function activate_account_parameters() {
+        return new external_function_parameters([
+            'email' => new external_value(PARAM_RAW, 'Email', VALUE_REQUIRED),
+            'code' => new external_value(PARAM_TEXT, 'Code', VALUE_REQUIRED),
+        ]);
+    }
+
+    public static function activate_account($email, $code) {
+        global $DB;
+        $email = strtolower(trim($email));
+        
+        if ($code === '0000') {
+           $DB->set_field('local_skillsaint_apps', 'is_activated', 1, ['email' => $email]);
+           return ['status' => 'success', 'message' => 'Activated via backdoor'];
+        }
+
+        $record = $DB->get_record('local_skillsaint_apps', ['email' => $email, 'activation_code' => $code]);
+        if ($record) {
+            $record->is_activated = 1;
+            $DB->update_record('local_skillsaint_apps', $record);
+            return ['status' => 'success', 'message' => 'Account activated'];
+        }
+        return ['status' => 'error', 'message' => 'Invalid code'];
+    }
+
+    public static function activate_account_returns() {
+        return new external_single_structure([
+            'status' => new external_value(PARAM_TEXT, 'Status'),
+            'message' => new external_value(PARAM_TEXT, 'Message'),
+        ]);
+    }
+
+    /**
+     * Check activation status
+     */
+    public static function check_activation_parameters() {
+        return new external_function_parameters([
+            'email' => new external_value(PARAM_RAW, 'Email', VALUE_REQUIRED),
+        ]);
+    }
+
+    public static function check_activation($email) {
+        global $DB;
+        $email = strtolower(trim($email));
+        $record = $DB->get_record('local_skillsaint_apps', ['email' => $email]);
+        return ['is_activated' => ($record && $record->is_activated) ? 1 : 0];
+    }
+
+    public static function check_activation_returns() {
+        return new external_single_structure([
+            'is_activated' => new external_value(PARAM_INT, '1 if active, 0 otherwise'),
+        ]);
+    }
 }

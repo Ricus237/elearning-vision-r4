@@ -66,9 +66,8 @@
 }
 
 @theme inline {
+  --font-sans: var(--font-inter-tight);
   --font-inter-tight: var(--font-inter-tight);
-  --font-mulish: var(--font-mulish);
-  --font-inter: var(--font-inter);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-primary: var(--primary);
@@ -152,7 +151,7 @@
 }
 
 body {
-  @apply bg-background font-inter-tight text-foreground;
+  @apply bg-background font-sans text-foreground;
 }
 
 button {

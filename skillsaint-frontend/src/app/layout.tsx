@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { siteName, siteUrl } from "@/utils/envExport";
-import { Inter, Inter_Tight, Mulish } from "next/font/google";
+import { Inter_Tight } from "next/font/google";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -11,16 +11,6 @@ import ToasterProvider from "@/components/ToasterProvider";
 
 const interTight = Inter_Tight({
   variable: "--font-inter-tight",
-  subsets: ["latin"],
-});
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
-
-const mulish = Mulish({
-  variable: "--font-mulish",
   subsets: ["latin"],
 });
 
@@ -81,7 +71,7 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning={true}>
       <body
-        className={`${interTight.variable} ${mulish.variable} ${inter.variable} antialiased`}
+        className={`${interTight.variable} antialiased`}
       >
         <ConditionalWrapper type="header">
           <Header />

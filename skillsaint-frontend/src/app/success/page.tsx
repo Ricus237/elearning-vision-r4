@@ -114,7 +114,7 @@ function SuccessContent() {
         Payment Confirmed
       </motion.div>
 
-      <h1 className="text-4xl sm:text-5xl font-black font-serif text-slate-900 leading-tight mb-6">
+      <h1 className="text-4xl sm:text-5xl font-black  text-slate-900 leading-tight mb-6">
         {isApplication ? "Application Received!" : "You're enrolled!"}
       </h1>
 

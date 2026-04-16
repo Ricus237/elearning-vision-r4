@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Rays } from "@/components/magicui/rays";
-import ApplyForm, { CourseSelector } from "./components/ApplyForm";
-import { BookOpen, ShieldCheck } from "lucide-react";
+import ApplyForm from "./components/ApplyForm";
 import { CourseType } from "@/types/CourseType";
 
 interface ApplyClientProps {
@@ -21,12 +20,22 @@ interface ApplyClientProps {
   courses: CourseType[];
 }
 
-const ApplyClient = ({ enrollmentData, courses }: ApplyClientProps) => {
-  const [selectedPlan, setSelectedPlan] = useState("executive");
-  const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
-  const [isReviewing, setIsReviewing] = useState(false);
+// ─── Wizard Steps Definition ──────────────────────────────────────────────────
+const WIZARD_STEPS = [
+  { id: 1, label: "Identity",   short: "You" },
+  { id: 2, label: "Faith",      short: "Faith" },
+  { id: 3, label: "Vision",     short: "Vision" },
+  { id: 4, label: "Plan",       short: "Plan" },
+  // { id: 5, label: "Courses",  short: "Courses" }, // ← Commented out — may be re-enabled later
+  { id: 5, label: "Payment",    short: "Pay" },
+];
 
-  // Reconstruct PLANS from Moodle data
+const ApplyClient = ({ enrollmentData, courses }: ApplyClientProps) => {
+  const [currentStep, setCurrentStep] = useState(1);
+  const [selectedPlan, setSelectedPlan] = useState("executive");
+  const [collectedData, setCollectedData] = useState<Record<string, string>>({});
+
+  // ─── PLANS rebuilt from CMS/Moodle data ──────────────────────────────────
   const PLANS = [
     {
       id: "standard",
@@ -52,34 +61,22 @@ const ApplyClient = ({ enrollmentData, courses }: ApplyClientProps) => {
     },
   ];
 
-  const currentPlan = PLANS.find((p) => p.id === selectedPlan)!;
-  const quota = currentPlan.courseQuota;
-  const used = selectedCourses.length;
+  const totalSteps = WIZARD_STEPS.length;
+  const progress = ((currentStep - 1) / (totalSteps - 1)) * 100;
 
-  const toggleCourse = (id: string) => {
-    setSelectedCourses((prev) => {
-      if (prev.includes(id)) return prev.filter((c) => c !== id);
-      if (quota !== Infinity && prev.length >= quota) return prev;
-      return [...prev, id];
-    });
-  };
-
-  const handlePlanChange = (planId: string) => {
-    setSelectedPlan(planId);
-    const plan = PLANS.find((p) => p.id === planId)!;
-    if (plan.courseQuota !== Infinity && selectedCourses.length > (plan.courseQuota as number)) {
-      setSelectedCourses((prev) => prev.slice(0, plan.courseQuota as number));
-    }
-  };
+  const goNext = () => setCurrentStep((s) => Math.min(s + 1, totalSteps));
+  const goBack = () => setCurrentStep((s) => Math.max(s - 1, 1));
 
   return (
-    <main 
-      className="min-h-screen bg-slate-50 overflow-hidden pt-12 pb-16 font-inter-tight"
+    <main
+      className="min-h-screen bg-slate-50 overflow-hidden pt-12 pb-20 font-inter-tight"
       suppressHydrationWarning={true}
     >
-      <Rays className="opacity-30" />
+      <Rays className="opacity-25" />
 
-      <div className="container px-4 mx-auto max-w-7xl">
+      <div className="container px-4 mx-auto max-w-3xl">
+
+        {/* ── Hero / Header ─────────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -88,7 +85,7 @@ const ApplyClient = ({ enrollmentData, courses }: ApplyClientProps) => {
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-100 text-purple-700 font-bold text-xs uppercase tracking-widest mb-4">
             Enrollment
           </div>
-          <h1 className="text-4xl lg:text-6xl font-black text-slate-900 font-serif leading-tight">
+          <h1 className="text-4xl lg:text-5xl font-black text-slate-900 leading-tight">
             {enrollmentData.hero_title}
           </h1>
           <p className="text-slate-500 mt-3 text-base font-medium max-w-lg mx-auto">
@@ -96,75 +93,92 @@ const ApplyClient = ({ enrollmentData, courses }: ApplyClientProps) => {
           </p>
         </motion.div>
 
-        <div className={`grid ${isReviewing ? 'grid-cols-1 max-w-4xl mx-auto' : 'lg:grid-cols-[1fr_380px] xl:grid-cols-[1fr_420px] items-start'} gap-6 transition-all duration-500`}>
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-            className={`bg-white rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 p-6 lg:p-8 ${isReviewing ? 'sm:p-12' : ''}`}
-          >
-            {!isReviewing && (
-              <div className="flex items-center gap-3 mb-6">
-                <div className="size-10 rounded-xl bg-purple-600 flex items-center justify-center">
-                  <ShieldCheck size={20} className="text-white" />
-                </div>
-                <div>
-                  <h2 className="font-black text-slate-900 text-xl font-serif leading-tight">Application Form</h2>
-                  <p className="text-slate-400 text-xs font-medium">Fill all sections to continue</p>
-                </div>
-              </div>
-            )}
-
-            <ApplyForm
-              plans={PLANS}
-              courses={courses}
-              selectedPlan={selectedPlan}
-              selectedCourses={selectedCourses}
-              onPlanChange={handlePlanChange}
-              onToggleCourse={toggleCourse}
-              isReviewing={isReviewing}
-              setIsReviewing={setIsReviewing}
-            />
-          </motion.div>
-
-          {!isReviewing && (
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-              className="lg:sticky lg:top-28 space-y-4"
-            >
-              <div className="hidden lg:block">
-                <div className="flex items-center gap-2 mb-3 px-1">
-                  <BookOpen size={16} className="text-purple-600" />
-                  <h2 className="font-black text-slate-800 text-base">Programs & Courses</h2>
-                  {quota !== Infinity ? (
-                    <span className={`ml-auto text-xs font-bold px-2.5 py-1 rounded-full ${used >= quota ? "bg-red-100 text-red-600" : "bg-purple-100 text-purple-700"}`}>
-                      {used}/{quota} selected
-                    </span>
+        {/* ── Step Progress Bar ─────────────────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="mb-8"
+        >
+          {/* Step labels */}
+          <div className="flex items-center justify-between mb-3 px-1">
+            {WIZARD_STEPS.map((step) => (
+              <div key={step.id} className="flex flex-col items-center gap-1">
+                <div
+                  className={`size-8 rounded-full flex items-center justify-center text-xs font-black transition-all duration-500 ${
+                    step.id < currentStep
+                      ? "bg-purple-600 text-white shadow-md shadow-purple-200"
+                      : step.id === currentStep
+                      ? "bg-slate-900 text-white shadow-md shadow-slate-200 scale-110"
+                      : "bg-white border-2 border-slate-200 text-slate-400"
+                  }`}
+                >
+                  {step.id < currentStep ? (
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
                   ) : (
-                    <span className="ml-auto text-xs font-bold px-2.5 py-1 rounded-full bg-green-100 text-green-700">
-                      All courses ✓
-                    </span>
+                    step.id
                   )}
                 </div>
-                <CourseSelector
-                  plans={PLANS}
-                  courses={courses}
-                  selectedPlan={selectedPlan}
-                  selectedCourses={selectedCourses}
-                  onToggleCourse={toggleCourse}
-                  onPlanChange={handlePlanChange}
-                />
+                <span
+                  className={`text-[10px] font-bold uppercase tracking-widest hidden sm:block transition-colors ${
+                    step.id === currentStep ? "text-slate-900" : "text-slate-400"
+                  }`}
+                >
+                  {step.short}
+                </span>
               </div>
+            ))}
+          </div>
 
-              <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex items-start gap-3 text-slate-500">
-                <ShieldCheck size={18} className="shrink-0 mt-0.5" />
-                <p className="text-[10px] font-bold leading-snug uppercase tracking-tight">{enrollmentData.security_note}</p>
-              </div>
+          {/* Progress bar track */}
+          <div className="relative h-2 bg-slate-200 rounded-full overflow-hidden">
+            <motion.div
+              className="absolute left-0 top-0 h-full bg-gradient-to-r from-purple-500 to-purple-700 rounded-full"
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.5, ease: "easeInOut" }}
+            />
+          </div>
+
+          {/* Step counter */}
+          <div className="flex items-center justify-between mt-2 px-1">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+              Step {currentStep} of {totalSteps}
+            </span>
+            <span className="text-[11px] font-bold text-purple-600 uppercase tracking-widest">
+              {WIZARD_STEPS[currentStep - 1].label}
+            </span>
+          </div>
+        </motion.div>
+
+        {/* ── Step Content Card ─────────────────────────────────────────── */}
+        <div className="relative">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentStep}
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -40 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="bg-white rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 p-6 lg:p-10"
+            >
+              <ApplyForm
+                currentStep={currentStep}
+                plans={PLANS}
+                courses={courses}
+                selectedPlan={selectedPlan}
+                onPlanChange={setSelectedPlan}
+                onNext={goNext}
+                onBack={goBack}
+                collectedData={collectedData}
+                setCollectedData={setCollectedData}
+                securityNote={enrollmentData.security_note}
+              />
             </motion.div>
-          )}
+          </AnimatePresence>
         </div>
+
       </div>
     </main>
   );

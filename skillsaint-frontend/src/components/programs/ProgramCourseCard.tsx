@@ -1,6 +1,7 @@
 "use client";
 
-import { BookOpen, Tag } from "lucide-react";
+import { BookOpen, Tag, ArrowRight } from "lucide-react";
+import Image from "next/image";
 
 const MOODLE_URL = process.env.NEXT_PUBLIC_MOODLE_URL || "https://apogeeweb.visionca.net/moodle";
 const DEFAULT_COURSE_IMG = `${MOODLE_URL}/theme/image.php/boost/core/1723710505/course/defaultcourse`;
@@ -20,29 +21,26 @@ const ProgramCourseCard = ({
   categoryName,
   lessonsCount,
 }: ProgramCourseCardProps) => {
-  // Use the thumbnail if available, else fall back to Moodle's default course image
   const imgSrc = thumbnail && thumbnail.trim() !== ""
     ? thumbnail
     : DEFAULT_COURSE_IMG;
 
   return (
-    <div className="group flex flex-col h-full rounded-3xl bg-white shadow-md border border-slate-100 overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+    <div className="group flex flex-col h-full rounded-[2.5rem] bg-white border border-slate-100/50 shadow-sm hover:shadow-2xl hover:shadow-purple-100 transition-all duration-500 hover:-translate-y-2 overflow-hidden">
       {/* Cover Image */}
-      <div className="relative aspect-[16/10] bg-slate-100 overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+      <div className="relative aspect-[16/10] overflow-hidden">
+        <Image
           src={imgSrc}
           alt={title}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = DEFAULT_COURSE_IMG;
-          }}
+          width={600}
+          height={375}
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent opacity-60" />
 
-        {/* Category badge overlaid on image */}
+        {/* Category badge */}
         {categoryName && (
-          <div className="absolute bottom-3 left-3 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 backdrop-blur-sm shadow-md">
+          <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/90 backdrop-blur-md shadow-sm">
             <Tag className="size-3 text-purple-600" />
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-700">
               {categoryName}
@@ -52,26 +50,32 @@ const ProgramCourseCard = ({
       </div>
 
       {/* Content */}
-      <div className="flex flex-col flex-1 p-5 gap-3">
-        {/* Lessons count */}
-        {lessonsCount !== undefined && (
-          <div className="flex items-center gap-1.5 text-slate-400">
-            <BookOpen className="size-3.5" />
-            <span className="text-[11px] font-semibold">{lessonsCount} leçon{lessonsCount > 1 ? "s" : ""}</span>
-          </div>
-        )}
+      <div className="flex flex-col flex-1 p-8">
+        <div className="flex items-center justify-between mb-4">
+          {lessonsCount !== undefined && (
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 text-slate-400 group-hover:bg-purple-50 group-hover:text-purple-600 transition-colors">
+              <BookOpen className="size-3" />
+              <span className="text-[10px] font-bold uppercase tracking-tight">{lessonsCount} Modules</span>
+            </div>
+          )}
+        </div>
 
-        {/* Title */}
-        <h3 className="text-base font-extrabold text-slate-900 leading-snug line-clamp-2 tracking-tight group-hover:text-purple-700 transition-colors">
+        <h3 className="text-xl font-black text-slate-900 leading-[1.2] tracking-tight group-hover:text-purple-700 transition-colors mb-4 line-clamp-2">
           {title}
         </h3>
 
-        {/* Description */}
         {description && description !== "No description provided" && (
-          <p className="text-sm text-slate-500 leading-relaxed line-clamp-3">
+          <p className="text-sm text-slate-500 leading-relaxed line-clamp-2 mb-6 font-medium">
             {description}
           </p>
         )}
+
+        <div className="mt-auto flex items-center justify-between border-t border-slate-50 pt-6">
+           <span className="text-xs font-black uppercase tracking-widest text-purple-600">Explore Course</span>
+           <div className="size-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-purple-600 group-hover:text-white transition-all">
+              <ArrowRight size={18} />
+           </div>
+        </div>
       </div>
     </div>
   );

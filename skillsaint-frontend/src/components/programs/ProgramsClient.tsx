@@ -47,7 +47,7 @@ const ProgramsClient = ({ data, courses, categories }: ProgramsClientProps) => {
   return (
     <main className="min-h-screen bg-slate-50 overflow-hidden pb-24 font-inter-tight">
       {/* Hero Section */}
-      <section className="relative pt-28 pb-16 overflow-hidden bg-slate-50">
+      <section className="relative pt-24 pb-12 overflow-hidden bg-slate-50">
         <Rays className="opacity-40 scale-100" />
 
         <div className="container px-6 mx-auto relative">
@@ -59,7 +59,7 @@ const ProgramsClient = ({ data, courses, categories }: ProgramsClientProps) => {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.8 }}
-                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full font-bold text-xs uppercase tracking-widest mb-8 bg-purple-100 text-purple-700"
+                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full font-bold text-xs uppercase tracking-widest mb-6 bg-purple-100 text-purple-700"
               >
                 Our Curriculum
               </motion.div>
@@ -68,16 +68,20 @@ const ProgramsClient = ({ data, courses, categories }: ProgramsClientProps) => {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.2 }}
-                className="text-4xl lg:text-6xl font-black text-slate-900 leading-[1.1] font-serif mb-6 tracking-tight"
+                className="text-3xl lg:text-5xl font-black text-slate-900 leading-[1.1] mb-6 tracking-tight"
               >
-                {data.hero_title}
+                {data.hero_title.split(' ').map((word: string, i: number) => (
+                  <span key={i} className={i >= data.hero_title.split(' ').length - 2 ? "text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600" : ""}>
+                    {word}{' '}
+                  </span>
+                ))}
               </motion.h1>
 
               <motion.p 
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.3 }}
-                className="text-lg lg:text-xl text-slate-600 leading-relaxed mb-10 max-w-xl font-medium italic"
+                className="text-base lg:text-lg text-slate-600 leading-relaxed mb-8 max-w-xl font-medium italic"
               >
                 {data.hero_desc}
               </motion.p>
@@ -146,40 +150,42 @@ const ProgramsClient = ({ data, courses, categories }: ProgramsClientProps) => {
                   <span className="font-black uppercase tracking-widest text-sm">{data.core_title}</span>
                </div>
                
-               <h2 className="text-3xl lg:text-5xl font-black text-slate-900 font-serif mb-8">
-                 {data.core_title}
-               </h2>
-               
-               <div className="flex flex-wrap gap-4 mb-12">
-                  <div className="px-6 py-3 bg-slate-900 text-white rounded-2xl font-bold flex items-center gap-2">
-                     <Calendar size={20} />
-                     1-Year Curriculum
-                  </div>
-                  <div className="px-6 py-3 bg-purple-100 text-purple-700 rounded-2xl font-bold flex items-center gap-2">
-                     <Lightbulb size={20} />
-                     4 Quarters
-                  </div>
-               </div>
+                <h2 className="text-4xl lg:text-5xl font-black text-slate-900 mb-8 leading-tight">
+                  {data.core_title}
+                </h2>
+                
+                <div className="flex flex-wrap gap-4 mb-12">
+                   <div className="px-6 py-4 bg-slate-900 text-white rounded-2xl font-bold flex items-center gap-3 shadow-xl shadow-slate-200">
+                      <Calendar size={22} className="text-purple-400" />
+                      <span className="text-sm uppercase tracking-widest">1-Year Curriculum</span>
+                   </div>
+                   <div className="px-6 py-4 bg-purple-100 text-purple-700 rounded-2xl font-bold flex items-center gap-3">
+                      <Lightbulb size={22} />
+                      <span className="text-sm uppercase tracking-widest">4 Intensive Quarters</span>
+                   </div>
+                </div>
 
-               <div className="grid md:grid-cols-2 gap-12 mt-16">
-                  {/* Lesson Format */}
-                  <div className="space-y-6">
-                     <div className="flex items-center gap-3 text-slate-900">
-                        <div className="size-10 rounded-xl bg-slate-100 flex items-center justify-center">
-                           <Video size={20} className="text-slate-600" />
-                        </div>
-                        <h3 className="text-2xl font-black font-serif">Lesson Format</h3>
-                     </div>
-                     <ul className="space-y-4">
-                        {data.core_items.map((item, i) => (
-                           <li key={i} className="flex items-center gap-3 text-lg text-slate-600 font-medium">
-                              <div className="size-2 rounded-full bg-purple-400" />
-                              {item}
-                           </li>
-                        ))}
-                     </ul>
-                  </div>
-               </div>
+                <div className="grid md:grid-cols-2 gap-12 mt-16 pb-8">
+                   {/* Lesson Format */}
+                   <div className="space-y-8 p-8 bg-slate-50/50 rounded-[2rem] border border-slate-100/50">
+                      <div className="flex items-center gap-4 text-slate-900">
+                         <div className="size-12 rounded-2xl bg-white shadow-sm flex items-center justify-center">
+                            <Video size={24} className="text-purple-600" />
+                         </div>
+                         <h3 className="text-2xl font-black tracking-tight">Lesson Format</h3>
+                      </div>
+                      <ul className="space-y-5">
+                         {data.core_items.map((item, i) => (
+                            <li key={i} className="flex items-start gap-4 text-lg text-slate-600 font-medium">
+                               <div className="size-6 mt-0.5 rounded-full bg-purple-600 text-white flex items-center justify-center shrink-0 text-[10px] font-bold">
+                                  {i + 1}
+                               </div>
+                               <span className="leading-tight">{item}</span>
+                            </li>
+                         ))}
+                      </ul>
+                   </div>
+                </div>
 
                {/* CTA Buttons */}
                <div className="flex flex-col sm:flex-row items-center gap-6 mt-16">
@@ -199,7 +205,7 @@ const ProgramsClient = ({ data, courses, categories }: ProgramsClientProps) => {
               variants={fadeIn}
               initial="initial"
               whileInView="whileInView"
-              className="text-3xl lg:text-4xl font-black text-slate-900 font-serif mb-4"
+              className="text-3xl lg:text-4xl font-black text-slate-900  mb-4"
             >
               Explore <span className="text-purple-600">All Our Courses</span>
             </motion.h2>

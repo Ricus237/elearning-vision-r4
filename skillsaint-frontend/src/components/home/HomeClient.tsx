@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -78,42 +80,6 @@ export default function HomeClient({ heroData, extraData }: HomeClientProps) {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-purple-100 selection:text-purple-900 font-sans">
-      {/* Dynamic Header */}
-      <motion.header
-        style={{ backgroundColor: `rgba(255, 255, 255, ${isScrolled ? 0.9 : 0})` }}
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 backdrop-blur-md ${
-          isScrolled ? "py-4 shadow-sm border-b border-slate-200" : "py-6"
-        }`}
-      >
-        <div className="container px-6 mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="size-10 bg-purple-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-purple-200 group-hover:scale-105 transition-transform">
-              <BookOpen size={24} />
-            </div>
-            <span className={`text-xl font-black tracking-tight font-serif ${isScrolled ? "text-slate-900" : "text-slate-900"}`}>
-              {heroData.title}
-            </span>
-          </Link>
-
-          <nav className="hidden md:flex items-center gap-6 font-medium">
-            <Link href="/programs" className="text-slate-600 hover:text-purple-600 transition-colors">Programs</Link>
-            <Link href="/about" className="text-slate-600 hover:text-purple-600 transition-colors">About</Link>
-            <Link href="/dashboard" className="px-5 py-2.5 text-purple-600 font-bold hover:text-purple-700 transition-all">
-              Login
-            </Link>
-            <Link href="/apply" className="px-6 py-2.5 bg-purple-600 text-white font-bold rounded-full hover:bg-purple-700 transition-all shadow-lg shadow-purple-100 hover:shadow-purple-200 hover:-translate-y-0.5">
-              Apply Now
-            </Link>
-          </nav>
-
-          <button 
-            className="md:hidden p-2 text-slate-900"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? <X /> : <Menu />}
-          </button>
-        </div>
-      </motion.header>
 
       {/* Hero Section */}
       <section className="relative pt-32 pb-24 overflow-hidden bg-slate-50">
@@ -138,7 +104,7 @@ export default function HomeClient({ heroData, extraData }: HomeClientProps) {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.2 }}
-                className="text-4xl lg:text-6xl font-black text-slate-900 leading-[1.1] font-serif mb-6 tracking-tight"
+                className="text-3xl lg:text-5xl font-black text-slate-900 leading-[1.1] mb-6 tracking-tight"
               >
                 {heroData.title.split(' ').map((word: string, i: number) => (
                   <span key={i} className={i >= heroData.title.split(' ').length - 2 ? "text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600" : ""}>
@@ -151,7 +117,7 @@ export default function HomeClient({ heroData, extraData }: HomeClientProps) {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.3 }}
-                className="text-lg lg:text-xl text-slate-600 leading-relaxed mb-10 max-w-xl font-medium italic"
+                className="text-base lg:text-lg text-slate-600 leading-relaxed mb-8 max-w-xl font-medium italic"
               >
                 {heroData.description}
               </motion.p>
@@ -225,7 +191,7 @@ export default function HomeClient({ heroData, extraData }: HomeClientProps) {
                 <div className="size-14 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-600 mb-6 group-hover:scale-110 transition-transform">
                   <FileText size={28} />
                 </div>
-                <h3 className="text-2xl font-bold mb-3 text-slate-900 font-serif">
+                <h3 className="text-2xl font-bold mb-3 text-slate-900 ">
                   {extraData.highlights?.curriculum_title || "Curriculum Overview"}
                 </h3>
                 <p className="text-slate-500 mb-6 leading-relaxed">
@@ -240,7 +206,7 @@ export default function HomeClient({ heroData, extraData }: HomeClientProps) {
                 <div className="size-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 mb-6 group-hover:scale-110 transition-transform">
                   <GraduationCap size={28} />
                 </div>
-                <h3 className="text-2xl font-bold mb-3 text-slate-900 font-serif">
+                <h3 className="text-2xl font-bold mb-3 text-slate-900 ">
                   {extraData.highlights?.apply_title || "Application Form"}
                 </h3>
                 <p className="text-slate-500 mb-6 leading-relaxed">
@@ -272,7 +238,7 @@ export default function HomeClient({ heroData, extraData }: HomeClientProps) {
                 variants={fadeIn}
                 initial="initial"
                 whileInView="whileInView"
-                className="text-4xl lg:text-5xl font-black text-slate-900 font-serif leading-tight mb-4"
+                className="text-4xl lg:text-5xl font-black text-slate-900  leading-tight mb-4"
               >
                 Explore <span className="text-purple-600">Our Courses</span>
               </motion.h2>
@@ -330,7 +296,7 @@ export default function HomeClient({ heroData, extraData }: HomeClientProps) {
               </div>
               <div className="relative">
                 <div className="inline-block px-4 py-2 rounded-full bg-purple-100 text-purple-700 font-bold text-xs uppercase tracking-widest mb-6">{extraData.mission.title}</div>
-                <h2 className="text-4xl font-black mb-8 text-slate-900 font-serif leading-tight">{extraData.mission.title}</h2>
+                <h2 className="text-4xl font-black mb-8 text-slate-900  leading-tight">{extraData.mission.title}</h2>
                 <p className="text-xl text-slate-600 leading-relaxed font-medium">
                   {extraData.mission.content}
                 </p>
@@ -349,7 +315,7 @@ export default function HomeClient({ heroData, extraData }: HomeClientProps) {
               </div>
               <div className="relative">
                 <div className="inline-block px-4 py-2 rounded-full bg-white/20 text-white font-bold text-xs uppercase tracking-widest mb-6 backdrop-blur-sm">{extraData.vision.title}</div>
-                <h2 className="text-4xl font-black mb-8 font-serif leading-tight">{extraData.vision.title}</h2>
+                <h2 className="text-4xl font-black mb-8  leading-tight">{extraData.vision.title}</h2>
                 <p className="text-xl text-purple-50 leading-relaxed font-medium">
                   {extraData.vision.content}
                 </p>
@@ -380,12 +346,12 @@ export default function HomeClient({ heroData, extraData }: HomeClientProps) {
               onClick={e => e.stopPropagation()}
             >
               <button className="self-end p-2" onClick={() => setMobileMenuOpen(false)}><X size={32} /></button>
-              <div className="flex flex-col gap-6 text-2xl font-bold font-serif">
+              <div className="flex flex-col gap-6 text-2xl font-bold ">
                 <Link href="/programs" onClick={() => setMobileMenuOpen(false)}>Programs</Link>
                 <Link href="/about" onClick={() => setMobileMenuOpen(false)}>About</Link>
                 <div className="flex flex-col gap-4 mt-4">
                   <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="py-4 border-2 border-slate-100 text-slate-900 rounded-2xl text-center text-lg">
-                    Student Login
+                    Login
                   </Link>
                   <Link href="/apply" onClick={() => setMobileMenuOpen(false)} className="py-4 bg-purple-600 text-white rounded-2xl text-center text-lg">
                     Apply Now

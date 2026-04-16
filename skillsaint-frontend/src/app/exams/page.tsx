@@ -53,7 +53,7 @@ const ExamsPage = () => {
       <main className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-3xl shadow-xl">
           <div className="text-center">
-            <h2 className="mt-6 text-3xl font-extrabold text-gray-900 font-serif">
+            <h2 className="mt-6 text-3xl font-extrabold text-gray-900 ">
               Exam Portal
             </h2>
             <p className="mt-2 text-sm text-red-600 font-bold">
@@ -103,13 +103,13 @@ const ExamsPage = () => {
             )}
             
             <div className="text-center mb-12">
-                <h1 className="text-4xl font-black font-serif text-gray-900 mb-2">Final Examination</h1>
+                <h1 className="text-4xl font-black  text-gray-900 mb-2">Final Examination</h1>
                 <p className="text-gray-500">Global Bible Institute</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-10">
                 <div className="bg-gray-50 p-8 rounded-2xl border border-gray-200">
-                    <h3 className="text-xl font-bold mb-4 font-serif">Question 1: Essay</h3>
+                    <h3 className="text-xl font-bold mb-4 ">Question 1: Essay</h3>
                     <p className="text-gray-700 mb-6">Explore the significance of the transforming work of the Spirit in the life of a modern leader.</p>
                     <textarea 
                         required 

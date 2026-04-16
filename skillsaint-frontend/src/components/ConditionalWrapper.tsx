@@ -11,9 +11,9 @@ export default function ConditionalWrapper({ children, type }: { children: React
     }
   }
 
-  // Hide header on dashboard/admin or home page
+  // Hide header on dashboard/admin
   if (type === "header") {
-    if (pathname?.startsWith("/dashboard") || pathname?.startsWith("/admin") || pathname === "/") {
+    if (pathname?.startsWith("/dashboard") || pathname?.startsWith("/admin")) {
       return null;
     }
   }

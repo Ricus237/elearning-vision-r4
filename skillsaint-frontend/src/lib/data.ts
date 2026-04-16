@@ -283,19 +283,8 @@ export async function saveApplication(
       userid: userId
     };
 
-    // SMART: Envoie la requête via notre serveur sécurisé si on est sur le navigateur
-    if (typeof window !== "undefined") {
-      const response = await fetch("/api/moodle", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ function: "local_skillsaint_save_application", params: payload }),
-      });
-      return await response.json();
-    }
-
-    // Exécution directe si on est déjà côté serveur
     const result = await fetchMoodle('local_skillsaint_save_application', payload);
-    return result;
+    return result || { error: true };
   } catch (_e) {
     console.error("Failed to save application to Moodle:", _e);
     return { error: true };

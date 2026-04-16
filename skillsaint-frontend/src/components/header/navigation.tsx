@@ -21,24 +21,24 @@ const Navigation = ({ data }: { data: MenuType[] }) => {
               <Link
                 href={href}
                 className={cn(
-                  "inline-flex items-center gap-x-1 rounded-xl px-4.5 py-2 leading-6 font-medium tracking-base transition-all duration-500 group-hover/dropdown:text-purple-500",
-                  isActive ? "text-purple-500" : "text-secondary",
+                  "inline-flex items-center gap-x-1 px-4 py-2 text-sm font-bold tracking-tight transition-all duration-300",
+                  isActive ? "text-purple-600" : "text-slate-600 hover:text-purple-600",
                 )}
               >
                 {label}
                 {subMenu?.length && <ChevronDown className="size-5" />}
               </Link>
               {subMenu?.length && (
-                <ul className="absolute right-0 z-40 hidden min-w-54.25 rounded-2xl bg-primary px-1.5 py-2 shadow-2xl group-hover/dropdown:block">
+                <ul className="absolute right-0 z-40 hidden min-w-54.25 rounded-2xl bg-white px-1.5 py-2 shadow-xl border border-slate-100 group-hover/dropdown:block">
                   {subMenu.map(({ href, id, label }) => (
                     <li key={id}>
                       <Link
                         href={href}
                         className={cn(
-                          "flex rounded-lg px-3 py-2.5 text-sm leading-6 font-medium tracking-base transition-all duration-500 hover:bg-gray-50 hover:text-purple-500",
+                          "flex rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-300 hover:bg-slate-50 hover:text-purple-600",
                           pathName === href
-                            ? "bg-gray-50 text-purple-500"
-                            : "text-secondary",
+                            ? "bg-slate-50 text-purple-600 font-bold"
+                            : "text-slate-600",
                         )}
                       >
                         {label}

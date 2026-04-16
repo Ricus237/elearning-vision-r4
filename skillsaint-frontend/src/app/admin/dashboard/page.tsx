@@ -84,7 +84,7 @@ const AdminDashboardPage = async () => {
                   Strategic management for the Global Bible Institute.
                 </p>
               </div>
-              
+
               <div className="flex gap-4 animate-in fade-in duration-1000 delay-300">
                 <Link
                   href="/admin/courses"
@@ -126,7 +126,7 @@ const AdminDashboardPage = async () => {
                 hoverColor="hover:shadow-blue-500/5 hover:border-blue-100"
               />
               <StatCard
-                label="Masterclasses"
+                label="Courses"
                 value={activeCourses}
                 sub="Live in Catalog"
                 subColor="text-gray-400"
@@ -195,13 +195,12 @@ const AdminDashboardPage = async () => {
                             </div>
                           </td>
                           <td className="px-10 py-8">
-                            <span className={`inline-flex px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest ${
-                              student.plan === "executive"
+                            <span className={`inline-flex px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest ${student.plan === "executive"
                                 ? "bg-purple-50 text-purple-600 border border-purple-100"
                                 : student.plan === "premium"
-                                ? "bg-blue-50 text-blue-600 border border-blue-100"
-                                : "bg-gray-50 text-gray-400 border border-gray-100"
-                            }`}>
+                                  ? "bg-blue-50 text-blue-600 border border-blue-100"
+                                  : "bg-gray-50 text-gray-400 border border-gray-100"
+                              }`}>
                               {student.plan === "N/A" ? "Standard" : student.plan}
                             </span>
                           </td>

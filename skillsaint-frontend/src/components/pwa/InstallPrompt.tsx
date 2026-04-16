@@ -80,7 +80,7 @@ export const InstallPrompt = () => {
                 <Smartphone size={28} />
               </div>
               <div className="flex flex-col">
-                <h4 className="font-black text-slate-900 font-serif text-lg leading-tight">Install IBI App</h4>
+                <h4 className="font-black text-slate-900  text-lg leading-tight">Install IBI App</h4>
                 <p className="text-slate-500 text-sm leading-relaxed mt-1">
                   Access your lessons faster and even offline by adding IBI to your home screen.
                 </p>

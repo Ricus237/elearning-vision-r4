@@ -1,6 +1,6 @@
 # Journal de Développement - Optimisation de la Gestion des Cours (09 Avril 2024)
 
-Ce document récapitule les interventions effectuées aujourd'hui pour rendre la gestion des Masterclasses plus robuste, visuelle et fiable.
+Ce document récapitule les interventions effectuées aujourd'hui pour rendre la gestion des Courses plus robuste, visuelle et fiable.
 
 ## 1. Problèmes Identifiés & Solutions Appliquées
 
