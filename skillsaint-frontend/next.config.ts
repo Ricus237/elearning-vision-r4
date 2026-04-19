@@ -3,7 +3,7 @@ import withPWA from "@ducanh2912/next-pwa";
 
 const pwaConfig = withPWA({
   dest: "public",
-  disable: false,
+  disable: true,
   register: true,
 });
 
@@ -13,6 +13,10 @@ const config: NextConfig = {
       {
         protocol: 'https',
         hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'i.pravatar.cc',
       },
       {
         protocol: 'https',

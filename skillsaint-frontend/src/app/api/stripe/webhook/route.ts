@@ -43,12 +43,30 @@ export async function POST(req: NextRequest) {
 async function handleEnrolment(session: Stripe.Checkout.Session) {
   const meta = session.metadata || {};
   const userId = meta.userId;
+  const email = meta.email;
   const isApplication = meta.isApplication === 'true';
   const courseId = meta.courseId;
-  const coursesString = meta.courses; // comma-separated
+  const coursesString = meta.courses;
+  const plan = meta.plan;
 
+  // 1. Handle New Applications (New candidate paying)
+  if (isApplication && email) {
+    try {
+      const result = await fetchMoodle('local_skillsaint_confirm_payment', { email });
+      if (result?.status === 'success') {
+        console.log(`[Stripe Webhook] ✅ Application confirmed for ${email}`);
+        return;
+      } else {
+        console.error(`[Stripe Webhook] ❌ Moodle failed to confirm application for ${email}:`, result);
+      }
+    } catch (err) {
+      console.error(`[Stripe Webhook] ❌ Moodle Error during application confirmation:`, err);
+    }
+  }
+
+  // 2. Handle standard enrollments (Logged in user buying a course)
   if (!userId) {
-    console.error('[Stripe Webhook] Missing userId in metadata');
+    console.error('[Stripe Webhook] Missing userId in metadata (and not a new application)');
     return;
   }
 

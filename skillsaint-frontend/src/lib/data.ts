@@ -149,7 +149,15 @@ export async function getGlobalSiteData() {
         badge_2: "Accredited Programs"
       },
     },
-    home_hero_image: "https://images.unsplash.com/photo-1529070538774-1843cb3265df?q=80&w=2070"
+    home_hero_image: "https://images.unsplash.com/photo-1529070538774-1843cb3265df?q=80&w=2070",
+    auth: {
+      login_title: "LOGIN",
+      login_subtitle: "How to i get started?",
+      login_bg: "https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=2029",
+      login_image: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?q=80&w=1974",
+      forgot_title: "Forgot Password",
+      forgot_subtitle: "Enter your email to reset your password"
+    }
   };
 
   try {
@@ -160,6 +168,14 @@ export async function getGlobalSiteData() {
           mission: { title: data.mission_title || defaultData.mission.title, content: data.mission_content || defaultData.mission.content },
           vision: { title: data.vision_title || defaultData.vision.title, content: data.vision_content || defaultData.vision.content },
           home_hero_image: data.home_hero_image || defaultData.home_hero_image,
+          auth: {
+            login_title: data.auth_login_title || defaultData.auth.login_title,
+            login_subtitle: data.auth_login_subtitle || defaultData.auth.login_subtitle,
+            login_bg: data.auth_login_bg || defaultData.auth.login_bg,
+            login_image: data.auth_login_image || defaultData.auth.login_image,
+            forgot_title: data.auth_forgot_title || defaultData.auth.forgot_title,
+            forgot_subtitle: data.auth_forgot_subtitle || defaultData.auth.forgot_subtitle
+          },
           about: {
             hero_title: data.about_hero_title || defaultData.about.hero_title,
             founder_title: data.founder_title || defaultData.about.founder_title,

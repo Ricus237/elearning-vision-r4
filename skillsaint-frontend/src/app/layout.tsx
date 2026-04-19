@@ -9,6 +9,9 @@ import { getMoodleSiteData, getGlobalSiteData } from "@/lib/data";
 import ConditionalWrapper from "@/components/ConditionalWrapper";
 import ToasterProvider from "@/components/ToasterProvider";
 
+// Force dynamic rendering so the layout always fetches fresh Moodle data
+export const dynamic = 'force-dynamic';
+
 const interTight = Inter_Tight({
   variable: "--font-inter-tight",
   subsets: ["latin"],

@@ -57,10 +57,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, captureId: capture.id });
     }
 
-    const { courseId, userId, isApplication, courses } = JSON.parse(customId);
+    const { courseId, userId, isApplication, courses, email } = JSON.parse(customId);
     
+    // 1. Handle New Applications (New candidate paying)
+    if (isApplication && email) {
+      try {
+        const result = await fetchMoodle('local_skillsaint_confirm_payment', { email });
+        if (result?.status === 'success') {
+          console.log(`[PayPal capture] ✅ Application confirmed for ${email}`);
+          return NextResponse.json({ success: true, captureId: capture.id });
+        } else {
+          console.error(`[PayPal capture] ❌ Moodle failed to confirm application for ${email}:`, result);
+        }
+      } catch (err) {
+        console.error(`[PayPal capture] ❌ Moodle Error during application confirmation:`, err);
+      }
+    }
+
+    // 2. Handle standard enrollments (Logged in user buying a course)
     if (!userId) {
-      console.error('[PayPal capture] Missing userId in customData');
+      console.warn('[PayPal capture] No userId found in customData (and not a new application)');
       return NextResponse.json({ success: true, captureId: capture.id });
     }
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { BookOpen } from "lucide-react";
+import { usePathname } from "next/navigation";
 import Navigation from "./navigation";
 import MobileNavigation from "./mobileNavigation";
 
@@ -42,7 +43,9 @@ const menuList: MenuType[] = [
 ];
 
 const Header = () => {
+  const pathname = usePathname();
   const [isScrolled, setIsScrolled] = useState(false);
+  const isAuthPage = pathname === "/login" || pathname === "/forgot-password";
 
   useEffect(() => {
     const handleScroll = () => {
@@ -56,9 +59,13 @@ const Header = () => {
     <motion.header
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      style={{ backgroundColor: `rgba(255, 255, 255, ${isScrolled ? 0.9 : 0.8})` }}
+      style={{ 
+        backgroundColor: isAuthPage 
+          ? "#ffffff" 
+          : `rgba(255, 255, 255, ${isScrolled ? 0.9 : 0.8})` 
+      }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 backdrop-blur-md ${
-        isScrolled ? "py-4 shadow-sm border-b border-slate-100" : "py-6"
+        (isScrolled || isAuthPage) ? "py-4 shadow-sm border-b border-slate-100" : "py-6"
       }`}
     >
       <div className="container px-6 mx-auto flex items-center justify-between">

@@ -217,10 +217,11 @@ const ApplyForm = ({
         body: JSON.stringify({
           isApplication: true,
           plan: selectedPlan,
-          courses: [], // [] while course step is disabled — re-enable with selectedCourses.join(",")
+          courses: [], // [] while course step is disabled
           amount: currentPlan.price,
           currency: "USD",
           userId,
+          email: collectedData.email, // Passing email for new user activation
           courseTitle: currentPlan.label,
         }),
       });
@@ -253,6 +254,7 @@ const ApplyForm = ({
         amount: currentPlan.price,
         currency: "USD",
         userId,
+        email: collectedData.email,
         courseTitle: currentPlan.label,
       }),
     });

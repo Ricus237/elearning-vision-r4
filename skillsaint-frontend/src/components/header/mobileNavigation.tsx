@@ -20,7 +20,10 @@ const MobileNavigation = ({ data }: { data: MenuType[] }) => {
 
   return (
     <div className="xl:hidden">
-      <button onClick={() => setNavbarShow(true)} className="p-2 text-slate-900 cursor-pointer">
+      <button 
+        onClick={() => setNavbarShow(true)} 
+        className="p-2.5 text-slate-900 cursor-pointer bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-xl transition-colors"
+      >
         <MenuIcon size={28} />
       </button>
 

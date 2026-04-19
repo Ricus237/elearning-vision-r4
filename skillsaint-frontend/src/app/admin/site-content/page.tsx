@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Save, ChevronDown, Home, Info,
   BookOpen, ClipboardList, RefreshCw,
   CheckCircle2, Loader2, DollarSign, Plus, Trash2,
@@ -58,6 +59,13 @@ interface SiteData {
   // Hero Images
   home_hero_image: string;
   programs_hero_image: string;
+  // Auth Pages
+  auth_login_title: string;
+  auth_login_subtitle: string;
+  auth_login_bg: string;
+  auth_login_image: string;
+  auth_forgot_title: string;
+  auth_forgot_subtitle: string;
 }
 
 const DEFAULT: SiteData = {
@@ -100,6 +108,13 @@ const DEFAULT: SiteData = {
   programs_floating_badge_2: "Certified Curriculum",
   home_hero_image: "https://images.unsplash.com/photo-1529070538774-1843cb3265df?q=80&w=2070",
   programs_hero_image: "/program.jpg",
+  // Auth Pages defaults
+  auth_login_title: "LOGIN",
+  auth_login_subtitle: "How to i get started?",
+  auth_login_bg: "https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=2029",
+  auth_login_image: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?q=80&w=1974",
+  auth_forgot_title: "Forgot Password",
+  auth_forgot_subtitle: "Enter your email to reset your password",
 };
 
 // ─── Field renderer ───────────────────────────────────────────────────────────
@@ -209,6 +224,21 @@ const sections: Section[] = [
       { key: "footer_description", label: "Footer Bio Text", type: "textarea", hint: "Short description shown at the bottom of every page." },
     ],
   },
+  {
+    id: "auth",
+    label: "Auth Pages",
+    subtitle: "Login & Forgot Password",
+    icon: ClipboardList,
+    color: "indigo",
+    fields: [
+      { key: "auth_login_title", label: "Login — Title", type: "text" },
+      { key: "auth_login_subtitle", label: "Login — Subtitle", type: "textarea" },
+      { key: "auth_login_bg", label: "Login — Right Background", type: "image", hint: "The wavy/gradient background image" },
+      { key: "auth_login_image", label: "Login — Featured Person", type: "image", hint: "The image of the person in the card" },
+      { key: "auth_forgot_title", label: "Forgot Password — Title", type: "text" },
+      { key: "auth_forgot_subtitle", label: "Forgot Password — Subtitle", type: "textarea" },
+    ],
+  },
 ];
 
 const colorVariants: Record<string, { icon: string; ring: string; saved: string }> = {
@@ -221,6 +251,7 @@ const colorVariants: Record<string, { icon: string; ring: string; saved: string 
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function SiteContentPage() {
+  const router = useRouter();
   const [data, setData] = useState<SiteData>(DEFAULT);
   const [original, setOriginal] = useState<SiteData>(DEFAULT);
   const [expanded, setExpanded] = useState<string | null>("homepage");
@@ -280,6 +311,10 @@ export default function SiteContentPage() {
 
       setOriginal({ ...data });
       setSaved((prev) => new Set(prev).add(sectionId));
+
+      // Purge Next.js server-side cache so changes appear immediately on public pages
+      await fetch('/api/revalidate', { method: 'POST' }).catch(() => {});
+      router.refresh();
     } catch {
       alert("Failed to save. Check your database connection.");
     } finally {
@@ -502,7 +537,7 @@ export default function SiteContentPage() {
                               ) : (
                                 <Save className="w-4 h-4" />
                               )}
-                              {isSaving ? "Saving..." : isSaved ? "Saved to Moodle!" : "Save to Moodle"}
+                              {isSaving ? "Saving..." : isSaved ? "Saved!" : "Save"}
                             </button>
                           </div>
                         </div>

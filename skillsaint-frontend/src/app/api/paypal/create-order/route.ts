@@ -23,7 +23,7 @@ async function getPaypalAccessToken(): Promise<string> {
 
 export async function POST(req: NextRequest) {
   try {
-    const { courseId, userId, courseTitle, amount, currency, isApplication, plan, courses } = await req.json();
+    const { courseId, userId, courseTitle, amount, currency, isApplication, plan, courses, email } = await req.json();
 
     const token = await getPaypalAccessToken();
     const appUrl = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
           {
             reference_id: isApplication ? `app_${plan}_user_${userId}` : `course_${courseId}_user_${userId}`,
             description: courseTitle || (isApplication ? `IBI ${plan} Program` : `Course #${courseId}`),
-            custom_id: JSON.stringify({ courseId, userId, isApplication, plan, courses }),
+            custom_id: JSON.stringify({ courseId, userId, isApplication, plan, courses, email }),
             amount: {
               currency_code: (currency || 'USD').toUpperCase(),
               value: parseFloat(amount).toFixed(2),

@@ -282,20 +282,6 @@ class local_skillsaint_external extends external_api
             'quota_premium' => get_config('local_skillsaint', 'quota_premium'),
             'price_executive' => get_config('local_skillsaint', 'price_executive'),
             'security_note' => get_config('local_skillsaint', 'security_note'),
-
-            'highlight_curriculum_title' => get_config('local_skillsaint', 'highlight_curriculum_title'),
-            'highlight_curriculum_desc' => get_config('local_skillsaint', 'highlight_curriculum_desc'),
-            'highlight_apply_title' => get_config('local_skillsaint', 'highlight_apply_title'),
-            'highlight_apply_desc' => get_config('local_skillsaint', 'highlight_apply_desc'),
-            'footer_description' => get_config('local_skillsaint', 'footer_description'),
-            'home_hero_image' => get_config('local_skillsaint', 'home_hero_image'),
-            'programs_hero_image' => get_config('local_skillsaint', 'programs_hero_image'),
-            'home_floating_badge_1' => get_config('local_skillsaint', 'home_floating_badge_1'),
-            'home_floating_subtitle_1' => get_config('local_skillsaint', 'home_floating_subtitle_1'),
-            'home_floating_badge_2' => get_config('local_skillsaint', 'home_floating_badge_2'),
-            'programs_floating_badge_1' => get_config('local_skillsaint', 'programs_floating_badge_1'),
-            'programs_floating_subtitle_1' => get_config('local_skillsaint', 'programs_floating_subtitle_1'),
-            'programs_floating_badge_2' => get_config('local_skillsaint', 'programs_floating_badge_2'),
         );
     }
 
@@ -325,20 +311,6 @@ class local_skillsaint_external extends external_api
             'quota_premium' => new external_value(PARAM_TEXT, 'Premium Quota'),
             'price_executive' => new external_value(PARAM_TEXT, 'Executive Price'),
             'security_note' => new external_value(PARAM_TEXT, 'Security Note'),
-
-            'highlight_curriculum_title' => new external_value(PARAM_TEXT, 'Highlight curriculum title', VALUE_DEFAULT, ''),
-            'highlight_curriculum_desc' => new external_value(PARAM_RAW, 'Highlight curriculum desc', VALUE_DEFAULT, ''),
-            'highlight_apply_title' => new external_value(PARAM_TEXT, 'Highlight apply title', VALUE_DEFAULT, ''),
-            'highlight_apply_desc' => new external_value(PARAM_RAW, 'Highlight apply desc', VALUE_DEFAULT, ''),
-            'footer_description' => new external_value(PARAM_RAW, 'Footer description', VALUE_DEFAULT, ''),
-            'home_hero_image' => new external_value(PARAM_RAW, 'Home hero image URL', VALUE_DEFAULT, ''),
-            'programs_hero_image' => new external_value(PARAM_RAW, 'Programs hero image URL', VALUE_DEFAULT, ''),
-            'home_floating_badge_1' => new external_value(PARAM_TEXT, 'Home floating badge 1', VALUE_DEFAULT, ''),
-            'home_floating_subtitle_1' => new external_value(PARAM_TEXT, 'Home floating subtitle 1', VALUE_DEFAULT, ''),
-            'home_floating_badge_2' => new external_value(PARAM_TEXT, 'Home floating badge 2', VALUE_DEFAULT, ''),
-            'programs_floating_badge_1' => new external_value(PARAM_TEXT, 'Programs floating badge 1', VALUE_DEFAULT, ''),
-            'programs_floating_subtitle_1' => new external_value(PARAM_TEXT, 'Programs floating subtitle 1', VALUE_DEFAULT, ''),
-            'programs_floating_badge_2' => new external_value(PARAM_TEXT, 'Programs floating badge 2', VALUE_DEFAULT, ''),
         ));
     }
 
@@ -373,19 +345,6 @@ class local_skillsaint_external extends external_api
             'quota_premium' => new external_value(PARAM_TEXT, 'Premium quota', VALUE_DEFAULT, ''),
             'price_executive' => new external_value(PARAM_TEXT, 'Executive price', VALUE_DEFAULT, ''),
             'security_note' => new external_value(PARAM_TEXT, 'Security note', VALUE_DEFAULT, ''),
-            'highlight_curriculum_title' => new external_value(PARAM_TEXT, 'Highlight curriculum title', VALUE_DEFAULT, ''),
-            'highlight_curriculum_desc' => new external_value(PARAM_RAW, 'Highlight curriculum desc', VALUE_DEFAULT, ''),
-            'highlight_apply_title' => new external_value(PARAM_TEXT, 'Highlight apply title', VALUE_DEFAULT, ''),
-            'highlight_apply_desc' => new external_value(PARAM_RAW, 'Highlight apply desc', VALUE_DEFAULT, ''),
-            'footer_description' => new external_value(PARAM_RAW, 'Footer description', VALUE_DEFAULT, ''),
-            'home_hero_image' => new external_value(PARAM_RAW, 'Home hero image URL', VALUE_DEFAULT, ''),
-            'programs_hero_image' => new external_value(PARAM_RAW, 'Programs hero image URL', VALUE_DEFAULT, ''),
-            'home_floating_badge_1' => new external_value(PARAM_TEXT, 'Home floating badge 1', VALUE_DEFAULT, ''),
-            'home_floating_subtitle_1' => new external_value(PARAM_TEXT, 'Home floating subtitle 1', VALUE_DEFAULT, ''),
-            'home_floating_badge_2' => new external_value(PARAM_TEXT, 'Home floating badge 2', VALUE_DEFAULT, ''),
-            'programs_floating_badge_1' => new external_value(PARAM_TEXT, 'Programs floating badge 1', VALUE_DEFAULT, ''),
-            'programs_floating_subtitle_1' => new external_value(PARAM_TEXT, 'Programs floating subtitle 1', VALUE_DEFAULT, ''),
-            'programs_floating_badge_2' => new external_value(PARAM_TEXT, 'Programs floating badge 2', VALUE_DEFAULT, ''),
         ));
     }
 
@@ -414,20 +373,7 @@ class local_skillsaint_external extends external_api
         $price_premium,
         $quota_premium,
         $price_executive,
-        $security_note,
-        $highlight_curriculum_title = '',
-        $highlight_curriculum_desc = '',
-        $highlight_apply_title = '',
-        $highlight_apply_desc = '',
-        $footer_description = '',
-        $home_hero_image = '',
-        $programs_hero_image = '',
-        $home_floating_badge_1 = '',
-        $home_floating_subtitle_1 = '',
-        $home_floating_badge_2 = '',
-        $programs_floating_badge_1 = '',
-        $programs_floating_subtitle_1 = '',
-        $programs_floating_badge_2 = ''
+        $security_note
     ) {
         global $DB, $CFG;
 
@@ -469,19 +415,6 @@ class local_skillsaint_external extends external_api
             'quota_premium' => $quota_premium,
             'price_executive' => $price_executive,
             'security_note' => $security_note,
-            'highlight_curriculum_title' => $highlight_curriculum_title,
-            'highlight_curriculum_desc' => $highlight_curriculum_desc,
-            'highlight_apply_title' => $highlight_apply_title,
-            'highlight_apply_desc' => $highlight_apply_desc,
-            'footer_description' => $footer_description,
-            'home_hero_image' => $home_hero_image,
-            'programs_hero_image' => $programs_hero_image,
-            'home_floating_badge_1' => $home_floating_badge_1,
-            'home_floating_subtitle_1' => $home_floating_subtitle_1,
-            'home_floating_badge_2' => $home_floating_badge_2,
-            'programs_floating_badge_1' => $programs_floating_badge_1,
-            'programs_floating_subtitle_1' => $programs_floating_subtitle_1,
-            'programs_floating_badge_2' => $programs_floating_badge_2,
         );
 
         foreach ($fields as $key => $value) {

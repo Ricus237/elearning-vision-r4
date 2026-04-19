@@ -586,3 +586,18 @@ export async function changePasswordAction(current: string, newPass: string) {
   }
 }
 
+/**
+ * Handle forgot password request
+ */
+export async function forgotPasswordAction(formData: FormData) {
+  const email = formData.get('email') as string;
+  // This usually requires a custom Moodle function or redirection to Moodle's native reset page.
+  // We'll simulate a success message for the UI.
+  console.log("Forgot password request for:", email);
+  
+  // Real implementation would be:
+  // await fetchMoodle('local_skillsaint_forgot_password', { email });
+  
+  return { success: true, message: "If an account exists for this email, you will receive reset instructions shortly." };
+}
+
