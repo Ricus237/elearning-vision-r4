@@ -1315,11 +1315,12 @@ class local_skillsaint_external extends external_api
                     'text' => new external_value(PARAM_RAW, 'Answer text'),
                     'fraction' => new external_value(PARAM_FLOAT, 'Fraction (1.0 for correct, 0.0 for wrong)')
                 ))
-            )
+            ),
+            'mark' => new external_value(PARAM_FLOAT, 'Question mark/weight', VALUE_DEFAULT, 1.0)
         ));
     }
 
-    public static function create_question($courseid, $quizid, $name, $text, $answers)
+    public static function create_question($courseid, $quizid, $name, $text, $answers, $mark = 1.0)
     {
         global $DB, $USER, $CFG;
         require_once($CFG->libdir . '/questionlib.php');
@@ -1351,7 +1352,7 @@ class local_skillsaint_external extends external_api
         $question->questiontextformat = FORMAT_HTML;
         $question->generalfeedback = '';
         $question->generalfeedbackformat = FORMAT_HTML;
-        $question->defaultmark = 1.0;
+        $question->defaultmark = $mark;
         $question->penalty = 0.3333333;
         $question->qtype = 'multichoice';
         $question->length = 1;
@@ -1422,6 +1423,56 @@ class local_skillsaint_external extends external_api
         return new external_single_structure(array(
             'status' => new external_value(PARAM_ALPHA, 'Status of the operation'),
             'questionid' => new external_value(PARAM_INT, 'The created question ID')
+        ));
+    }
+
+    /**
+     * Delete a question from a quiz (removes from slots).
+     */
+    public static function delete_question_parameters()
+    {
+        return new external_function_parameters(array(
+            'quizid' => new external_value(PARAM_INT, 'Quiz ID'),
+            'questionid' => new external_value(PARAM_INT, 'Question ID')
+        ));
+    }
+
+    public static function delete_question($quizid, $questionid)
+    {
+        global $DB, $CFG;
+        require_once($CFG->dirroot . '/mod/quiz/locallib.php');
+
+        // 1. Trouver l'entrée dans la banque de questions
+        $qv = $DB->get_record('question_versions', array('questionid' => $questionid));
+        if (!$qv) {
+            return array('status' => 'success');
+        }
+
+        // 2. Trouver le numéro de slot dans le quiz pour cette question
+        $sql = "SELECT s.slot 
+                FROM {quiz_slots} s
+                JOIN {question_references} r ON r.itemid = s.id
+                WHERE s.quizid = ? 
+                  AND r.component = 'mod_quiz' 
+                  AND r.questionarea = 'slot'
+                  AND r.questionbankentryid = ?";
+                  
+        $slotnumber = $DB->get_field_sql($sql, array($quizid, $qv->questionbankentryid));
+        
+        if ($slotnumber) {
+            // Création de l'objet de paramètres attendu par Moodle 4.x
+            $quizobj = \mod_quiz\quiz_settings::create($quizid);
+            $structure = \mod_quiz\structure::create_for_quiz($quizobj);
+            $structure->delete_slot($slotnumber);
+        }
+
+        return array('status' => 'success');
+    }
+
+    public static function delete_question_returns()
+    {
+        return new external_single_structure(array(
+            'status' => new external_value(PARAM_ALPHA, 'success or error')
         ));
     }
 

@@ -15,6 +15,7 @@ const ManageCoursesPage = async () => {
     categoryid?: number; 
     overviewfiles?: { fileurl: string; filename: string }[];
     summaryfiles?: { fileurl: string; filename: string }[];
+    courseimage?: string;
   }[] = [];
   let categories: CategoryType[] = [];
 
@@ -34,8 +35,9 @@ const ManageCoursesPage = async () => {
 
 
   const moodleToken = process.env.MOODLE_TOKEN || "";
+  const moodleUrl = process.env.MOODLE_URL || "";
 
-  return <CoursesClient initialCourses={courses} initialCategories={categories} moodleToken={moodleToken} />;
+  return <CoursesClient initialCourses={courses} initialCategories={categories} moodleToken={moodleToken} moodleUrl={moodleUrl} />;
 };
 
 export default ManageCoursesPage;

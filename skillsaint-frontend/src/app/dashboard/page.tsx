@@ -17,7 +17,6 @@ const DashboardPage = async () => {
   const isActivated = isAdmin ? true : await checkActivation(userEmail);
 
   const moodleToken = process.env.MOODLE_TOKEN || "";
-  const moodleUserToken = cookieStore.get('moodle_token')?.value || "";
 
   // Fetch ALL public courses for the catalog view
   let allCourses: { id: number; fullname: string; image_url?: string; summary?: string }[] = [];
@@ -26,7 +25,7 @@ const DashboardPage = async () => {
     allCourses = publicCourses.map(c => ({
       id: parseInt(c.slug.current),
       fullname: c.title,
-      image_url: c.thumbnail,
+      cover_image: c.thumbnail,
       summary: c.shortDescription,
     }));
   } catch (e) {
@@ -48,14 +47,17 @@ const DashboardPage = async () => {
 
   console.log(`Dashboard: user=${userEmail}, plan=${data.plan}, enrolled=${data.courses.length}, total=${allCourses.length}`);
 
+  const moodleUrl = process.env.MOODLE_URL || "";
+  
   return (
     <DashboardClient
       initialData={data}
       userEmail={userEmail}
       isActivated={isActivated}
-      moodleToken={moodleUserToken || moodleToken}
+      moodleToken={moodleToken}
       allCourses={allCourses}
       planQuotas={planQuotas}
+      moodleUrl={moodleUrl}
     />
   );
 };

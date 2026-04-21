@@ -9,7 +9,11 @@ import {
   CheckCircle2, 
   HelpCircle,
   ChevronLeft,
-  BookOpen
+  BookOpen,
+  Lock,
+  Trophy,
+  ArrowRight,
+  AlertCircle
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -18,6 +22,7 @@ import { sendInquiryAction } from "@/lib/actions";
 
 interface MoodleModule {
   id: number;
+  instance?: number;
   name: string;
   modname: string;
   description?: string;
@@ -55,6 +60,8 @@ export default function CoursePageClient({
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [messageSent, setMessageSent] = useState(false);
   const [inquiryMessage, setInquiryMessage] = useState("");
+  const [quizModules, setQuizModules] = useState<MoodleModule[]>([]);
+  const [isQuizMode, setIsQuizMode] = useState(false);
 
   useEffect(() => {
     const fetchContents = async () => {
@@ -66,16 +73,24 @@ export default function CoursePageClient({
         });
         const data = await response.json();
         if (Array.isArray(data)) {
+          // Séparer les quiz du contenu normal
+          const allQuizzes: MoodleModule[] = [];
+          
           const filteredData = data
-            .map((section: MoodleSection) => ({
-              ...section,
-              modules: section.modules.filter(
-                (mod) => mod.modname !== "forum" && mod.modname !== "quiz"
-              ),
-            }))
+            .map((section: MoodleSection) => {
+              const quizzes = section.modules.filter((mod) => mod.modname === "quiz");
+              allQuizzes.push(...quizzes);
+              return {
+                ...section,
+                modules: section.modules.filter(
+                  (mod) => mod.modname !== "forum" && mod.modname !== "quiz"
+                ),
+              };
+            })
             .filter((section) => section.modules.length > 0);
 
           setSections(filteredData);
+          setQuizModules(allQuizzes);
           const firstSection = filteredData.find((s) => s.modules && s.modules.length > 0);
           if (firstSection) setActiveModule(firstSection.modules[0]);
         }
@@ -192,7 +207,8 @@ export default function CoursePageClient({
 
         <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
           {activeTab === "curriculum" ? (
-            <div className="space-y-8">
+            <>
+              <div className="space-y-8">
               {sections.length > 0 ? sections.map((section, sIdx) => (
                 <div key={sIdx} className="space-y-3">
                   <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 px-2">
@@ -202,17 +218,32 @@ export default function CoursePageClient({
                     {section.modules.map((mod, mIdx) => (
                       <button
                         key={mIdx}
-                        onClick={() => setActiveModule(mod)}
+                        onClick={() => {
+                          if (!isQuizMode) {
+                            setActiveModule(mod);
+                          }
+                        }}
+                        disabled={isQuizMode}
                         className={`w-full flex items-start gap-4 p-3 rounded-xl transition-all text-left group ${
-                          activeModule?.id === mod.id
+                          activeModule?.id === mod.id && !isQuizMode
                             ? "bg-purple-600 text-white shadow-md shadow-purple-100"
-                            : "hover:bg-purple-50 text-gray-600"
+                            : isQuizMode 
+                              ? "opacity-40 cursor-not-allowed text-gray-400"
+                              : "hover:bg-purple-50 text-gray-600"
                         }`}
                       >
-                        <div className={`mt-0.5 shrink-0 ${activeModule?.id === mod.id ? "text-white" : "text-purple-400 group-hover:text-purple-600"}`}>
-                          {mod.modname === "video" ? <PlayCircle size={14} /> : <FileText size={14} />}
+                        <div className={`mt-0.5 shrink-0 ${
+                          activeModule?.id === mod.id && !isQuizMode ? "text-white" 
+                          : isQuizMode ? "text-gray-300" 
+                          : "text-purple-400 group-hover:text-purple-600"
+                        }`}>
+                          {isQuizMode ? <Lock size={14} /> : mod.modname === "video" ? <PlayCircle size={14} /> : <FileText size={14} />}
                         </div>
-                        <span className={`text-[11px] font-black uppercase leading-snug ${activeModule?.id === mod.id ? "text-white" : "text-gray-700 group-hover:text-purple-700"}`}>
+                        <span className={`text-[11px] font-black uppercase leading-snug ${
+                          activeModule?.id === mod.id && !isQuizMode ? "text-white" 
+                          : isQuizMode ? "text-gray-400" 
+                          : "text-gray-700 group-hover:text-purple-700"
+                        }`}>
                           {mod.name}
                         </span>
                       </button>
@@ -226,6 +257,40 @@ export default function CoursePageClient({
                 </div>
               )}
             </div>
+
+            {/* ── Section Évaluations (Quiz) ── */}
+            {quizModules && quizModules.length > 0 && (
+              <div className="mt-6 pt-6 border-t-2 border-gray-50 space-y-3">
+                <h4 className="text-[10px] font-black text-purple-600 uppercase tracking-widest flex items-center gap-2 px-2">
+                  <Trophy size={12} />
+                  Évaluations
+                </h4>
+                <div className="space-y-1">
+                  {quizModules.map((quiz, qIdx) => (
+                    <button
+                      key={`quiz-${qIdx}`}
+                      onClick={() => {
+                        setActiveModule(quiz);
+                        setIsQuizMode(true);
+                      }}
+                      className={`w-full flex items-start gap-4 p-3 rounded-xl transition-all text-left group ${
+                        activeModule?.id === quiz.id && isQuizMode
+                          ? "bg-purple-600 text-white shadow-md shadow-purple-100"
+                          : "hover:bg-purple-50 text-gray-600"
+                      }`}
+                    >
+                      <div className={`mt-0.5 shrink-0 ${activeModule?.id === quiz.id && isQuizMode ? "text-white" : "text-purple-400 group-hover:text-purple-600"}`}>
+                        <FileText size={14} />
+                      </div>
+                      <span className={`text-[11px] font-black uppercase leading-snug ${activeModule?.id === quiz.id && isQuizMode ? "text-white" : "text-gray-700 group-hover:text-purple-700"}`}>
+                        {quiz.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            </>
           ) : (
             <div className="space-y-6">
               <div className="text-left mb-6 px-2">
@@ -295,6 +360,68 @@ export default function CoursePageClient({
               <div className="w-10 h-10 border-3 border-purple-600 border-t-transparent rounded-full animate-spin" />
               <p className="text-[9px] font-black uppercase tracking-widest text-gray-500">Syncing Assets...</p>
             </div>
+          ) : activeModule && isQuizMode ? (
+            /* ── Quiz Launch Screen ── */
+            <div className="p-6 md:p-12 lg:p-16 max-w-3xl mx-auto">
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-[2.5rem] md:rounded-[4rem] p-8 md:p-16 shadow-2xl shadow-gray-200/50 border border-white text-center"
+              >
+                <div className="w-20 h-20 bg-purple-50 rounded-3xl flex items-center justify-center mx-auto mb-8">
+                  <Trophy size={40} className="text-purple-600" />
+                </div>
+                
+                <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tighter leading-none mb-4">
+                  {activeModule?.name}
+                </h1>
+                <p className="text-[10px] font-black text-purple-400 uppercase tracking-[0.3em] mb-12">Assessment Session</p>
+
+                {/* Exam Protocol */}
+                <div className="bg-gray-50 rounded-3xl p-8 mb-10 text-left">
+                  <h3 className="text-sm font-black text-gray-900 flex items-center gap-3 mb-6">
+                    <AlertCircle size={18} className="text-purple-600" />
+                    Exam Protocol
+                  </h3>
+                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {[
+                      "Single-sitting completion required.",
+                      "Passing score threshold: 70%.",
+                      "Official IBI Board verification.",
+                      "Secure browser monitoring active."
+                    ].map((text, i) => (
+                      <li key={i} className="flex items-center gap-3">
+                        <div className="w-5 h-5 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shrink-0">
+                          <CheckCircle2 size={12} />
+                        </div>
+                        <p className="text-xs font-bold text-gray-500 uppercase tracking-tight">{text}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-col gap-4">
+                  <a 
+                    href={`/exam?quizId=${activeModule?.instance || activeModule?.id}`}
+                    className="w-full py-6 bg-gray-900 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-[10px] flex items-center justify-center gap-3 hover:bg-purple-600 transition-all shadow-xl shadow-gray-200 hover:shadow-purple-300"
+                  >
+                    Start Certification
+                    <ArrowRight size={18} />
+                  </a>
+                  <button
+                    onClick={() => {
+                      setIsQuizMode(false);
+                      const firstSection = sections.find((s) => s.modules && s.modules.length > 0);
+                      if (firstSection) setActiveModule(firstSection.modules[0]);
+                    }}
+                    className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-purple-600 transition-colors py-3"
+                  >
+                    ← Back to Course Content
+                  </button>
+                </div>
+              </motion.div>
+            </div>
           ) : activeModule ? (
             <div className="p-6 md:p-12 lg:p-16 max-w-5xl mx-auto">
               
@@ -306,7 +433,7 @@ export default function CoursePageClient({
                 <div className="mb-12">
                   <div className="h-1.5 w-16 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full mb-8 shadow-lg shadow-purple-100" />
                   <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-gray-900 tracking-tighter leading-none mb-6">
-                    {activeModule.name}
+                    {activeModule?.name}
                   </h1>
                   <p className="text-[10px] font-black text-purple-400 uppercase tracking-[0.3em]">Module Detail & Resources</p>
                 </div>
@@ -319,12 +446,12 @@ export default function CoursePageClient({
                 ) : (
                   <div
                     className="text-gray-600 leading-relaxed font-medium space-y-8 moodle-content site-content-render prose prose-slate max-w-none prose-headings:font-black prose-headings:tracking-tighter prose-p:leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: processHtml(moduleContent || activeModule.description || "") }}
+                    dangerouslySetInnerHTML={{ __html: processHtml(moduleContent || activeModule?.description || "") }}
                   />
                 )}
 
                 {/* Assets Section */}
-                {activeModule.contents && activeModule.contents.length > 0 && (
+                {activeModule?.contents && activeModule.contents.length > 0 && (
                   <div className="mt-20 pt-16 border-t border-gray-100">
                     <div className="flex items-center gap-6 mb-12">
                       <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600 shadow-inner">
@@ -338,7 +465,7 @@ export default function CoursePageClient({
                     </div>
 
                     <div className="grid grid-cols-1 gap-12">
-                      {activeModule.contents.map((file, idx) => {
+                      {activeModule?.contents?.map((file, idx) => {
                         let baseUrl = file.fileurl;
                         if (baseUrl.includes("pluginfile.php") && !baseUrl.includes("webservice/pluginfile.php")) {
                           baseUrl = baseUrl.replace("pluginfile.php", "webservice/pluginfile.php");

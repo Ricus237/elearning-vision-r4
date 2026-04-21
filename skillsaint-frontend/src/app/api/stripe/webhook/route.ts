@@ -47,7 +47,6 @@ async function handleEnrolment(session: Stripe.Checkout.Session) {
   const isApplication = meta.isApplication === 'true';
   const courseId = meta.courseId;
   const coursesString = meta.courses;
-  const plan = meta.plan;
 
   // 1. Handle New Applications (New candidate paying)
   if (isApplication && email) {

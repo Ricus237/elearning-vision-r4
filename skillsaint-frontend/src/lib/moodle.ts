@@ -216,10 +216,7 @@ export function mapMoodleCourseToCourseType(mCourse: {
       }
 
 
-      // 2. Priorité standard: courseimage
-      if (mCourse.courseimage) return mCourse.courseimage;
-      
-      // 3. overviewfiles (Fichiers de résumé du cours)
+      // 2. overviewfiles (Fichiers de résumé du cours - Priorité haute car ce sont les uploads réels)
       const files = mCourse.overviewfiles || mCourse.summaryfiles || [];
       if (files.length > 0) {
         const imageFile = files.find((f: { mimetype?: string, fileurl: string }) => f.mimetype && f.mimetype.startsWith('image/'));
@@ -229,19 +226,32 @@ export function mapMoodleCourseToCourseType(mCourse: {
             const base = MOODLE_URL?.endsWith('/') ? MOODLE_URL.slice(0, -1) : MOODLE_URL;
             url = `${base}${url}`;
           }
-          return `${url}${url.includes('?') ? '&' : '?'}token=${MOODLE_TOKEN}`;
+          
+          if (url.includes('pluginfile.php') && !url.includes('webservice/pluginfile.php')) {
+            url = url.replace('pluginfile.php', 'webservice/pluginfile.php');
+          }
+          
+          return `${url}${url.includes('?') ? '&' : '?'}token=${MOODLE_TOKEN}&forcedownload=0`;
         }
 
         // Fallback sur le premier fichier si pas de mimetype mais URL existante
         if (files[0].fileurl) {
            let url = files[0].fileurl;
-           if (url.startsWith('/')) {
-             const base = MOODLE_URL?.endsWith('/') ? MOODLE_URL.slice(0, -1) : MOODLE_URL;
-             url = `${base}${url}`;
-           }
-           return `${url}${url.includes('?') ? '&' : '?'}token=${MOODLE_TOKEN}`;
+            if (url.startsWith('/')) {
+              const base = MOODLE_URL?.endsWith('/') ? MOODLE_URL.slice(0, -1) : MOODLE_URL;
+              url = `${base}${url}`;
+            }
+            
+            if (url.includes('pluginfile.php') && !url.includes('webservice/pluginfile.php')) {
+              url = url.replace('pluginfile.php', 'webservice/pluginfile.php');
+            }
+            
+            return `${url}${url.includes('?') ? '&' : '?'}token=${MOODLE_TOKEN}&forcedownload=0`;
         }
       }
+
+      // 3. Priorité standard: courseimage (Peut contenir des patterns Moodle générés automatiquement)
+      if (mCourse.courseimage && !mCourse.courseimage.includes('pattern')) return mCourse.courseimage;
       
       // 4. Extraction depuis le summary HTML si nécessaire (moins fiable)
       if (mCourse.summary && mCourse.summary.includes('<img')) {
@@ -249,7 +259,7 @@ export function mapMoodleCourseToCourseType(mCourse: {
         if (match && match[1]) return match[1];
       }
 
-      return `https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=800&auto=format&fit=crop`;
+      return "";
     })(),
     instructor: {
        name: mCourse.contacts?.[0]?.fullname || "Our Instructors",
@@ -450,10 +460,15 @@ export function processMoodleHtml(html: string): string {
   const moodleFileRegex = /src="([^"]+pluginfile\.php\/[^"]+)"/g;
   
   processedHtml = processedHtml.replace(moodleFileRegex, (match, url) => {
-    const separator = url.includes('?') ? '&' : '?';
-    if (url.includes('token=')) return match;
+    let finalUrl = url;
+    if (finalUrl.includes('pluginfile.php') && !finalUrl.includes('webservice/pluginfile.php')) {
+      finalUrl = finalUrl.replace('pluginfile.php', 'webservice/pluginfile.php');
+    }
+    
+    const separator = finalUrl.includes('?') ? '&' : '?';
+    if (finalUrl.includes('token=')) return `src="${finalUrl}"`;
     const token = process.env.MOODLE_TOKEN || "";
-    return `src="${url}${separator}token=${token}"`;
+    return `src="${finalUrl}${separator}token=${token}"`;
   });
 
   // 2. S'assurer que les URLs sont absolues si elles commencent par /
@@ -483,7 +498,8 @@ export async function createQuestion(params: {
   quizid: number,
   name: string,
   text: string,
-  answers: Array<{ text: string, fraction: number }>
+  answers: Array<{ text: string, fraction: number }>,
+  mark?: number // Nouveau paramètre pour le poids de la question
 }) {
   return await fetchMoodle('local_skillsaint_create_question', params);
 }
@@ -500,4 +516,11 @@ export async function initExam(courseId: number, name: string = "Final Assessmen
  */
 export async function getQuizQuestions(quizId: number) {
   return await fetchMoodle('local_skillsaint_get_quiz_questions', { quizid: quizId });
+}
+
+/**
+ * Supprime une question d'un quiz Moodle.
+ */
+export async function deleteQuestion(quizId: number, questionId: number) {
+  return await fetchMoodle('local_skillsaint_delete_question', { quizid: quizId, questionid: questionId });
 }

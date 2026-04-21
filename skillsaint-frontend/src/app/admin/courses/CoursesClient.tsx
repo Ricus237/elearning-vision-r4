@@ -19,6 +19,7 @@ type Course = {
   categoryid?: number;
   overviewfiles?: { fileurl: string; filename: string }[];
   summaryfiles?: { fileurl: string; filename: string }[];
+  courseimage?: string;
 };
 
 import { CategoryType } from "@/types/CategoryType";
@@ -53,7 +54,14 @@ async function callMoodleAdmin(wsfunction: string, params: Record<string, unknow
   return res.json();
 }
 
-export default function CoursesClient({ initialCourses, initialCategories, moodleToken }: { initialCourses: Course[], initialCategories: CategoryType[], moodleToken: string }) {
+interface CoursesClientProps {
+  initialCourses: Course[];
+  initialCategories: CategoryType[];
+  moodleToken: string;
+  moodleUrl: string;
+}
+
+export default function CoursesClient({ initialCourses, initialCategories, moodleToken, moodleUrl }: CoursesClientProps) {
   const [courses, setCourses] = useState<Course[]>(initialCourses);
   const [isPending, startTransition] = useTransition();
 
@@ -145,6 +153,34 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
     });
   };
 
+  // Helper to format Moodle URLs for Web Service access
+  const formatMoodleImageUrl = (url?: string) => {
+    if (!url) return "";
+    if (url.startsWith('data:')) return url;
+    
+    let finalUrl = url;
+    // 1. Ensure absolute URL
+    if (finalUrl.startsWith('/')) {
+      const base = moodleUrl.endsWith('/') ? moodleUrl.slice(0, -1) : moodleUrl;
+      finalUrl = `${base}${finalUrl}`;
+    }
+    
+    // 2. Switch to webservice endpoint if it's a pluginfile
+    if (finalUrl.includes('pluginfile.php') && !finalUrl.includes('webservice/pluginfile.php')) {
+      finalUrl = finalUrl.replace('pluginfile.php', 'webservice/pluginfile.php');
+    }
+    
+    // 3. Append token
+    if (!finalUrl.includes('token=')) {
+      const separator = finalUrl.includes('?') ? '&' : '?';
+      finalUrl = `${finalUrl}${separator}token=${moodleToken}&forcedownload=0`;
+    } else if (!finalUrl.includes('forcedownload=')) {
+      finalUrl = `${finalUrl}&forcedownload=0`;
+    }
+    
+    return finalUrl;
+  };
+
   const handleOpenEdit = async (course: Course) => {
     setIsLoadingContents(true);
     // Re-fetch course to get all details including files if they were missing
@@ -159,16 +195,11 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
 
     setSelectedCourse(course);
     
-    const getAuthenticatedUrl = (file?: { fileurl: string }) => {
-      if (!file) return "";
-      const url = file.fileurl;
-      if (url.startsWith('data:')) return url;
-      if (url.includes('token=')) return url;
-      return `${url}${url.includes('?') ? '&' : '?'}token=${moodleToken}`;
-    };
-
-    const coverUrl = getAuthenticatedUrl(course.overviewfiles?.[0]);
-    const syllabusUrl = getAuthenticatedUrl(course.summaryfiles?.[0]);
+    const coverUrl = course.overviewfiles?.[0] 
+      ? formatMoodleImageUrl(course.overviewfiles[0].fileurl) 
+      : formatMoodleImageUrl(course.courseimage);
+    
+    const syllabusUrl = formatMoodleImageUrl(course.summaryfiles?.[0]?.fileurl);
 
     setFormData({
       fullname: course.fullname,
@@ -589,20 +620,25 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
                       {/* Course Header/Icon */}
                       <div className="flex justify-between items-start mb-10">
                         <div className="w-16 h-16 rounded-[2rem] bg-gradient-to-br from-white to-gray-50 dark:from-slate-800 dark:to-slate-900 shadow-inner flex items-center justify-center text-purple-600 dark:text-purple-400 group-hover:rotate-6 transition-transform duration-500 overflow-hidden border border-gray-50 dark:border-slate-800">
-                          {course.overviewfiles && course.overviewfiles.length > 0 ? (
-                            <Image 
-                              src={course.overviewfiles[0].fileurl.startsWith('data:') 
-                                ? course.overviewfiles[0].fileurl 
-                                : `${course.overviewfiles[0].fileurl}${course.overviewfiles[0].fileurl.includes('?') ? '&' : '?'}token=${moodleToken}`} 
-                              alt={course.fullname} 
-                              width={64}
-                              height={64}
-                              className="w-full h-full object-cover"
-                              unoptimized={course.overviewfiles[0].fileurl.startsWith('data:')}
-                            />
-                          ) : (
-                            <BookOpen className="w-8 h-8" />
-                          )}
+                          {(() => {
+                            const hasOverview = course.overviewfiles && course.overviewfiles.length > 0;
+                            const imageUrl = hasOverview ? course.overviewfiles![0].fileurl : course.courseimage;
+                            
+                            if (!imageUrl) return <BookOpen className="w-8 h-8" />;
+
+                            const finalUrl = formatMoodleImageUrl(imageUrl);
+
+                            return (
+                              <Image 
+                                src={finalUrl} 
+                                alt={course.fullname} 
+                                width={64}
+                                height={64}
+                                className="w-full h-full object-cover"
+                                unoptimized={true}
+                              />
+                            );
+                          })()}
                         </div>
                         <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${course.visible ? "bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400" : "bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-500"}`}>
                           {course.visible ? "Visible" : "Hidden"}

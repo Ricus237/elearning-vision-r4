@@ -2,7 +2,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_skillsaint';
-$plugin->version   = 2024041067;
+$plugin->version   = 2024041072;
 $plugin->requires  = 2022041900;
 $plugin->component = 'local_skillsaint';
 $plugin->release   = '1.31';

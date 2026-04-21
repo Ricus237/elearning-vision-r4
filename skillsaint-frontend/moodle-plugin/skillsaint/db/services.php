@@ -182,6 +182,15 @@ $functions = array(
         'ajax'        => true,
         'capabilities'=> 'moodle/site:config',
     ),
+    'local_skillsaint_delete_question' => array(
+        'classname'   => 'local_skillsaint_external',
+        'methodname'  => 'delete_question',
+        'classpath'   => 'local/skillsaint/externallib.php',
+        'description' => 'Delete a question from a quiz',
+        'type'        => 'write',
+        'ajax'        => true,
+        'capabilities'=> 'moodle/site:config',
+    ),
     'local_skillsaint_init_exam' => array(
         'classname'   => 'local_skillsaint_external',
         'methodname'  => 'init_exam',
@@ -314,6 +323,7 @@ $services = array(
             'local_skillsaint_get_courses_full',
             'local_skillsaint_get_exams',
             'local_skillsaint_create_question',
+            'local_skillsaint_delete_question',
             'local_skillsaint_init_exam',
             'local_skillsaint_get_quiz_questions',
             'local_skillsaint_save_site_data',

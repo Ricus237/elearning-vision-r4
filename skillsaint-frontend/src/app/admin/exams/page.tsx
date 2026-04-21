@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { PlusCircle, FileQuestion, Trash2, CheckCircle, ChevronDown, X, Loader2 } from "lucide-react";
 import AdminSidebar from "@/components/dashboard/AdminSidebar";
-import { getExamsFull, getPublicCourses, createQuestion, initExam, getQuizQuestions } from "@/lib/moodle";
+import { getExamsFull, getPublicCourses, createQuestion, initExam, getQuizQuestions, deleteQuestion } from "@/lib/moodle";
 import { CourseType } from "@/types/CourseType";
 
 interface MoodleExam {
@@ -135,7 +135,8 @@ const ManageExamsPage = () => {
         quizid: exam.id,
         name: newQuestion.name,
         text: newQuestion.question,
-        answers: answers
+        answers: answers,
+        mark: 1 // On définit un point par défaut pour que le quiz soit notable
       });
 
       if (res && res.status === "success") {
@@ -155,6 +156,24 @@ const ManageExamsPage = () => {
       console.error("Creation error:", error);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteQuestion = async (quizId: number, questionId: number) => {
+    if (!confirm("Are you sure you want to delete this question?")) return;
+    try {
+      const res = await deleteQuestion(quizId, questionId);
+      if (res && res.status === "success") {
+        // Refresh local state by removing the question
+        setQuizQuestions(prev => ({
+          ...prev,
+          [quizId]: (prev[quizId] || []).filter(q => q.id !== questionId)
+        }));
+      } else {
+        alert("Failed to delete question");
+      }
+    } catch (error) {
+      console.error("Delete error:", error);
     }
   };
 
@@ -350,7 +369,10 @@ const ManageExamsPage = () => {
                                         </div>
                                       </div>
                                       <div className="shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                                        <button className="w-9 h-9 bg-white dark:bg-slate-800 text-gray-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 border border-gray-100 dark:border-slate-700 rounded-xl flex items-center justify-center transition-all">
+                                        <button 
+                                          onClick={(e) => { e.stopPropagation(); handleDeleteQuestion(courseExam.id, q.id); }}
+                                          className="w-9 h-9 bg-white dark:bg-slate-800 text-gray-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 border border-gray-100 dark:border-slate-700 rounded-xl flex items-center justify-center transition-all"
+                                        >
                                           <Trash2 className="w-4 h-4" />
                                         </button>
                                       </div>

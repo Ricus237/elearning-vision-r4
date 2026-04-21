@@ -10,6 +10,7 @@ import {
   BookOpen,
   Sparkles,
   Plus,
+  RefreshCw,
 } from "lucide-react";
 import StudentSidebar from "@/components/dashboard/StudentSidebar";
 import { useState, useMemo, useEffect } from "react";
@@ -19,10 +20,12 @@ import Image from "next/image";
 import { activateAccount } from "@/lib/data";
 
 interface EnrolledCourse {
+  cover_image?: string;
   id: number;
   fullname: string;
-  image_url?: string;
   summary?: string;
+  overviewfiles?: Array<{ fileurl: string; filename: string }>;
+  courseimage?: string;
 }
 
 interface DashboardData {
@@ -44,24 +47,60 @@ const PLAN_QUOTA: Record<string, number> = {
   none: 0,
 };
 
-const getAuthenticatedUrl = (url?: string, token?: string) => {
-  if (!url) return "/images/course/course-1.png";
-  if (url.startsWith("data:") || url.includes("token=")) return url;
-  if (!url.includes("pluginfile.php")) return url;
-  return `${url}${url.includes("?") ? "&" : "?"}token=${token}`;
+// Helper to format Moodle image URLs via server-side proxy
+const formatMoodleImageUrl = (course: EnrolledCourse, token: string, moodleUrl: string) => {
+  // Déterminer la meilleure URL source
+  const hasOverview = course.overviewfiles && course.overviewfiles.length > 0;
+  let url = course.cover_image || (hasOverview ? course.overviewfiles?.[0].fileurl : course.courseimage);
+
+  // Les SVG générés par Moodle nécessitent une session (cookie), pas un token API
+  // Ils ne sont pas accessibles via webservice → on les ignore
+  if (url && (url.includes('generated') || url.includes('default_course'))) {
+    return null;
+  }
+
+  if (!url) return null;
+  if (url.startsWith('data:')) return url;
+
+  // Si l'URL est relative, la rendre absolue
+  if (url.startsWith('/')) {
+    const base = moodleUrl.endsWith('/') ? moodleUrl.slice(0, -1) : moodleUrl;
+    url = `${base}${url}`;
+  }
+
+  // Router via le proxy serveur pour contourner les restrictions de permissions Moodle
+  if (url.includes('pluginfile.php') || url.includes('moodle')) {
+    return `/api/moodle-image?url=${encodeURIComponent(url)}`;
+  }
+
+  return url;
 };
+
+// Génère un gradient coloré unique basé sur le nom du cours (fallback pour cours sans cover)
+const generateCourseGradient = (name: string) => {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const h1 = Math.abs(hash % 360);
+  const h2 = (h1 + 40 + Math.abs((hash >> 8) % 30)) % 360;
+  const h3 = (h1 + 160 + Math.abs((hash >> 16) % 40)) % 360;
+  return `linear-gradient(135deg, hsl(${h1}, 70%, 60%) 0%, hsl(${h2}, 65%, 50%) 50%, hsl(${h3}, 75%, 45%) 100%)`;
+};
+
+
 
 // ─── Course Card ────────────────────────────────────────────────────────────
 interface CourseCardProps {
   course: EnrolledCourse;
   isEnrolled: boolean;
   canAdd: boolean;
-  moodleToken: string;
   onClick: () => void;
+  moodleToken: string;
 }
 
-const CourseCard = ({ course, isEnrolled, canAdd, moodleToken, onClick }: CourseCardProps) => {
-  const imgSrc = getAuthenticatedUrl(course.image_url, moodleToken);
+const CourseCard = ({ course, isEnrolled, canAdd, moodleToken, moodleUrl, onClick }: CourseCardProps & { moodleUrl: string }) => {
+  const imgSrc = formatMoodleImageUrl(course, moodleToken, moodleUrl);
 
   return (
     <motion.div
@@ -82,15 +121,23 @@ const CourseCard = ({ course, isEnrolled, canAdd, moodleToken, onClick }: Course
         <div className="absolute inset-0 bg-gradient-to-br from-purple-50/60 to-indigo-50/40 rounded-[3rem] pointer-events-none" />
       )}
 
-      {/* Image */}
-      <div className="relative h-44 w-full rounded-[2.5rem] overflow-hidden mb-6">
-        <Image
-          src={imgSrc}
-          alt={course.fullname}
-          fill
-          className={`object-cover transition-transform duration-700 ${isEnrolled ? "group-hover:scale-110" : "opacity-70"}`}
-          unoptimized
-        />
+      <div className="relative h-44 w-full rounded-[2.5rem] overflow-hidden mb-6 bg-gray-50 flex items-center justify-center text-gray-200">
+        {imgSrc ? (
+          <Image
+            src={imgSrc}
+            alt={course.fullname}
+            fill
+            className={`object-cover transition-transform duration-700 ${isEnrolled ? "group-hover:scale-110" : "opacity-70"}`}
+            unoptimized
+          />
+        ) : (
+          <div 
+            className="absolute inset-0 flex items-center justify-center"
+            style={{ background: generateCourseGradient(course.fullname) }}
+          >
+            <BookOpen size={40} className="text-white/40" />
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
         {/* Status badge on image */}
@@ -116,9 +163,8 @@ const CourseCard = ({ course, isEnrolled, canAdd, moodleToken, onClick }: Course
 
       <div className="px-4 relative z-10">
         <h3
-          className={`text-lg font-black tracking-tight leading-tight mb-2 transition-colors ${
-            isEnrolled ? "text-gray-900 group-hover:text-purple-600" : "text-gray-500"
-          }`}
+          className={`text-lg font-black tracking-tight leading-tight mb-2 transition-colors ${isEnrolled ? "text-gray-900 group-hover:text-purple-600" : "text-gray-500"
+            }`}
         >
           {course.fullname}
         </h3>
@@ -162,6 +208,7 @@ const DashboardClient = ({
   moodleToken,
   allCourses = [],
   planQuotas,
+  moodleUrl,
 }: {
   initialData: DashboardData;
   userEmail: string;
@@ -169,6 +216,7 @@ const DashboardClient = ({
   moodleToken: string;
   allCourses?: EnrolledCourse[];
   planQuotas?: PlanQuotas;
+  moodleUrl: string;
 }) => {
   const router = useRouter();
   const [showActivationWall, setShowActivationWall] = useState(!serverIsActivated);
@@ -176,7 +224,8 @@ const DashboardClient = ({
   const [isActivating, setIsActivating] = useState(false);
   const [activationError, setActivationError] = useState("");
   const [search, setSearch] = useState("");
-  const [activeFilter, setActiveFilter] = useState<"all" | "enrolled" | "available">("all");
+  const [activeFilter, setActiveFilter] = useState<"all" | "enrolled">("all");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const enrolledCourses = useMemo(() => initialData?.courses || [], [initialData]);
   const userPlan = initialData?.plan || "none";
@@ -202,7 +251,20 @@ const DashboardClient = ({
     // First add ALL catalog courses
     allCourses.forEach((c) => map.set(c.id, c));
     // Override/add enrolled courses (they may have richer data)
-    enrolledCourses.forEach((c) => map.set(c.id, c));
+    enrolledCourses.forEach((c) => {
+      const existing = map.get(c.id);
+      if (existing) {
+        // Fusion douce : on garde la cover_image du catalogue si elle existe
+        map.set(c.id, { 
+          ...existing, 
+          ...c, 
+          cover_image: existing.cover_image || c.cover_image 
+        });
+      } else {
+        // En dernier recours s'il n'est pas dans le catalogue (rare)
+        map.set(c.id, c);
+      }
+    });
     return Array.from(map.values());
   }, [allCourses, enrolledCourses]);
 
@@ -211,14 +273,14 @@ const DashboardClient = ({
     let list = catalogCourses;
 
     if (activeFilter === "enrolled") list = list.filter((c) => enrolledIds.has(c.id));
-    if (activeFilter === "available") list = list.filter((c) => !enrolledIds.has(c.id));
 
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(
         (c) =>
           c.fullname.toLowerCase().includes(q) ||
-          (c.summary || "").toLowerCase().includes(q)
+          (c.summary || "").toLowerCase().includes(q) ||
+          (c.cover_image || "").toLowerCase().includes(q)
       );
     }
 
@@ -298,7 +360,7 @@ const DashboardClient = ({
                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Enrolled</p>
                   <p className="text-4xl font-black text-gray-900">{enrolledCount}</p>
                 </div>
-               
+
                 {userQuota !== Infinity && (
                   <>
                     <div className="h-10 w-px bg-gray-200 hidden sm:block" />
@@ -316,11 +378,10 @@ const DashboardClient = ({
             {/* ── Quota banner if restricted ── */}
             {(userPlan === "standard" || userPlan === "premium") && (
               <div className="animate-in fade-in duration-700">
-                <div className={`flex flex-col sm:flex-row items-start sm:items-center gap-4 px-8 py-5 rounded-3xl border-2 ${
-                  slotsLeft > 0
+                <div className={`flex flex-col sm:flex-row items-start sm:items-center gap-4 px-8 py-5 rounded-3xl border-2 ${slotsLeft > 0
                     ? "bg-emerald-50 border-emerald-100 text-emerald-700"
                     : "bg-amber-50 border-amber-100 text-amber-700"
-                }`}>
+                  }`}>
                   <Sparkles size={20} className="shrink-0 mt-0.5" />
                   <div>
                     {slotsLeft > 0 ? (
@@ -369,21 +430,31 @@ const DashboardClient = ({
 
               {/* Filter tabs */}
               <div className="flex items-center gap-2 flex-wrap">
-                {(["all", "enrolled", "available"] as const).map((f) => (
+                {(["all", "enrolled"] as const).map((f) => (
                   <button
                     key={f}
                     onClick={() => setActiveFilter(f)}
-                    className={`px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
-                      activeFilter === f
+                    className={`px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeFilter === f
                         ? "bg-gray-900 text-white shadow-lg"
                         : "bg-white border border-gray-100 text-gray-500 hover:border-gray-300"
-                    }`}
+                      }`}
                   >
                     {f === "all" && `All (${catalogCourses.length})`}
                     {f === "enrolled" && `My Courses (${enrolledCount})`}
-                    {f === "available" && `Catalog (${catalogCourses.length - enrolledCount})`}
                   </button>
                 ))}
+
+                {/* Bouton Refresh */}
+                <button
+                  onClick={async () => {
+                    setIsRefreshing(true);
+                    window.location.reload();
+                  }}
+                  className={`ml-auto flex items-center gap-2 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all bg-white border border-gray-100 text-gray-500 hover:border-purple-300 hover:text-purple-600 hover:bg-purple-50`}
+                >
+                  <RefreshCw size={12} className={isRefreshing ? "animate-spin" : ""} />
+                  Refresh
+                </button>
 
                 {search && (
                   <span className="ml-auto text-[10px] font-black text-gray-400 uppercase tracking-widest">
@@ -407,6 +478,7 @@ const DashboardClient = ({
                           isEnrolled={isEnrolled}
                           canAdd={!isEnrolled && canAddMore}
                           moodleToken={moodleToken}
+                          moodleUrl={moodleUrl}
                           onClick={() => handleCourseClick(course)}
                         />
                       );

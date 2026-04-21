@@ -322,6 +322,8 @@ export async function getStudentDashboardAction() {
     fullname: string;
     image_url?: string;
     summary?: string;
+    overviewfiles?: Array<{ fileurl: string; filename: string }>;
+    courseimage?: string;
   }
 
   interface DashboardExam {
@@ -375,7 +377,8 @@ export async function getStudentDashboardAction() {
           id: parseInt(c.slug.current),
           fullname: c.title,
           image_url: c.thumbnail,
-          summary: c.shortDescription
+          summary: c.shortDescription,
+          courseimage: c.thumbnail // Mapped from computed thumbnail
         }));
       } else {
         // Ultimate fallback if even public courses are empty

@@ -7,7 +7,6 @@ import {
   Settings,
   User,
   LogOut,
-  Lock,
   MessageSquare,
   Menu,
   X
@@ -16,8 +15,7 @@ import { logoutAction } from "@/lib/actions";
 
 const navItems = [
   { href: "/dashboard", label: "Program Courses", icon: BookOpen },
-  { href: "/dashboard/exams", label: "My Assessments", icon: Lock },
-  { href: "/dashboard/notifications", label: "Notifications", icon: MessageSquare },
+  { href: "/dashboard/notifications", label: "Messagerie", icon: MessageSquare },
 ];
 
 const managementItems = [
