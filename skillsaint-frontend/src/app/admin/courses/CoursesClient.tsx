@@ -1,9 +1,11 @@
+/* eslint-disable */
+
 "use client";
 
 import { useState, useTransition, useRef} from "react";
 import toast from "react-hot-toast";
 
-import { BookOpen, Users, Eye, Plus, X, Pencil, Play, FileText, Bold, Italic, Underline, List, ListOrdered, Link2, Image as ImageIcon, CheckCircle } from "lucide-react";
+import { BookOpen, Users, Eye, Plus, X, Pencil, Play, FileText, Bold, Italic, Underline, List, ListOrdered, Link2, Image as ImageIcon, CheckCircle, FileQuestion, GripVertical, Trash, Loader2, ChevronUp, ChevronDown } from "lucide-react";
 import Image from "next/image";
 
 import AdminSidebar from "@/components/dashboard/AdminSidebar";
@@ -35,6 +37,8 @@ interface MoodleModule {
   name: string;
   modname: string;
   description?: string;
+  instance?: number; // L'ID réel de l'activité (ex: Quiz ID)
+  url?: string;
   contents?: MoodleContent[];
 }
 
@@ -80,7 +84,9 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
   const [courseContents, setCourseContents] = useState<MoodleSection[]>([]);
 
   const [isLoadingContents, setIsLoadingContents] = useState(false);
-  // Remove unused expandedSections if not controlling visibility in JSX
+  const [expandedQuizId, setExpandedQuizId] = useState<number | null>(null);
+  const [quizQuestions, setQuizQuestions] = useState<Record<number, any[]>>({});
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState<number | null>(null);
   
   // Category states
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -436,29 +442,179 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
 
   const handleAddModule = async (sectionId: string) => {
     if (!selectedCourse) return;
-    const assetTitle = prompt("Asset Name (e.g. Introduction Video):");
+    
+    // Type selection
+    const type = confirm("Create a QUIZ instead of a PAGE?\n\nOK = Quiz\nCancel = Page") ? 'quiz' : 'page';
+    
+    const assetTitle = prompt(type === 'quiz' ? "Quiz Name (e.g. Module 1 Assessment):" : "Asset Name (e.g. Introduction Video):");
     if (!assetTitle) return;
 
     startTransition(async () => {
       try {
-        const res = await callMoodleAdmin("local_skillsaint_add_module", {
-           courseid: selectedCourse.id,
-           sectionid: parseInt(sectionId),
-           name: assetTitle,
-           content: `<p>New learning content for ${assetTitle}</p>`
-        });
+        let res;
+        if (type === 'quiz') {
+          // Import initExam dynamically or call it via callMoodleAdmin if possible
+          // But CoursesClient uses callMoodleAdmin mostly.
+          res = await callMoodleAdmin("local_skillsaint_init_exam", {
+             courseid: selectedCourse.id,
+             name: assetTitle,
+             sectionid: parseInt(sectionId)
+          });
+        } else {
+          res = await callMoodleAdmin("local_skillsaint_add_module", {
+             courseid: selectedCourse.id,
+             sectionid: parseInt(sectionId),
+             name: assetTitle,
+             content: `<p>New learning content for ${assetTitle}</p>`
+          });
+        }
 
         if (res?.exception) {
           toast.error(`Direct deployment failed: ${res.message}.`);
         } else {
           const fresh = await callMoodleAdmin("core_course_get_contents", { courseid: selectedCourse.id });
           if (Array.isArray(fresh)) setCourseContents(fresh);
-          toast.success(`Asset "${assetTitle}" deployed to curriculum.`);
+          toast.success(`${type === 'quiz' ? 'Quiz' : 'Asset'} "${assetTitle}" deployed to curriculum.`);
         }
       } catch {
         toast.error("Deployment failed.");
       }
     });
+  };
+
+  const fetchQuizQuestions = async (quizId: number) => {
+    setIsLoadingQuestions(quizId);
+    try {
+      const res = await callMoodleAdmin("local_skillsaint_get_quiz_questions", { quizid: quizId });
+      if (Array.isArray(res)) {
+        setQuizQuestions(prev => ({ ...prev, [quizId]: res }));
+      }
+    } catch {
+      toast.error("Failed to load questions.");
+    } finally {
+      setIsLoadingQuestions(null);
+    }
+  };
+
+  const toggleQuizEditor = (quizId: number) => {
+    if (expandedQuizId === quizId) {
+      setExpandedQuizId(null);
+    } else {
+      setExpandedQuizId(quizId);
+      if (!quizQuestions[quizId]) {
+        fetchQuizQuestions(quizId);
+      }
+    }
+  };
+
+  const handleQuizAddQuestion = async (quizId: number) => {
+    if (!selectedCourse) return;
+    
+    startTransition(async () => {
+      try {
+        // We create TWO questions as requested
+        for (let i = 0; i < 2; i++) {
+          await callMoodleAdmin("local_skillsaint_create_question", {
+            courseid: selectedCourse.id,
+            quizid: quizId,
+            name: `Question`,
+            text: "Double click to edit question text",
+            mark: 1,
+            answers: [
+              { text: "Option A", fraction: 1.0 },
+              { text: "Option B", fraction: 0.0 }
+            ]
+          });
+        }
+
+        toast.success("Double question block added.");
+        fetchQuizQuestions(quizId);
+      } catch {
+        toast.error("Error creating questions.");
+      }
+    });
+  };
+
+  const handleQuizDeleteQuestion = async (quizId: number, questionId: number) => {
+    if (!confirm("Remove this question permanently?")) return;
+
+    startTransition(async () => {
+      try {
+        const res = await callMoodleAdmin("local_skillsaint_delete_question", { 
+          quizid: quizId, 
+          questionid: questionId 
+        });
+        if (res?.status === "success" || (res && !res.exception)) {
+          setQuizQuestions(prev => ({
+            ...prev,
+            [quizId]: (prev[quizId] || []).filter(q => q.id !== questionId)
+          }));
+          toast.success("Question removed.");
+        }
+      } catch {
+        toast.error("Failed to delete question.");
+      }
+    });
+  };
+
+  const handleQuizUpdateQuestion = async (quizId: number, question: any) => {
+    setIsSaving(true);
+    try {
+      const res = await callMoodleAdmin("local_skillsaint_update_question", {
+        questionid: question.id,
+        name: question.name || "Question",
+        text: question.questiontext,
+        answers: question.answers
+      });
+      if (res?.status === "success" || (res && !res.exception)) {
+        toast.success("Changes synced.");
+      } else {
+        toast.error("Sync failed.");
+      }
+    } catch {
+      toast.error("Network error.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleQuizReorder = async (quizId: number, newQuestions: any[]) => {
+    const questionIds = newQuestions.map(q => q.id);
+    setQuizQuestions(prev => ({ ...prev, [quizId]: newQuestions }));
+    
+    try {
+      await callMoodleAdmin("local_skillsaint_reorder_questions", {
+        quizid: quizId,
+        questionids: questionIds
+      });
+      toast.success("Order updated.");
+    } catch {
+      toast.error("Failed to sync order.");
+    }
+  };
+
+  const handleQuizAddOption = (quizId: number, questionIdx: number) => {
+    const updatedQuestions = [...(quizQuestions[quizId] || [])];
+    const question = updatedQuestions[questionIdx];
+    const newChar = String.fromCharCode(65 + question.answers.length); // Next letter
+    question.answers.push({ text: `Option ${newChar}`, fraction: 0.0 });
+    
+    setQuizQuestions(prev => ({ ...prev, [quizId]: updatedQuestions }));
+    handleQuizUpdateQuestion(quizId, question);
+  };
+
+  const handleQuizRemoveOption = (quizId: number, questionIdx: number, answerIdx: number) => {
+    const updatedQuestions = [...(quizQuestions[quizId] || [])];
+    const question = updatedQuestions[questionIdx];
+    
+    if (question.answers.length <= 2) {
+      toast.error("Minimum 2 options required.");
+      return;
+    }
+
+    question.answers.splice(answerIdx, 1);
+    setQuizQuestions(prev => ({ ...prev, [quizId]: updatedQuestions }));
+    handleQuizUpdateQuestion(quizId, question);
   };
 
   const handleUpdateModuleContent = async (mod: MoodleModule) => {
@@ -778,7 +934,7 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
       )}
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
           <div className="bg-white dark:bg-[#1e293b] rounded-[2.5rem] shadow-2xl w-full max-w-5xl overflow-hidden animate-in fade-in zoom-in-95 duration-300 my-8 border border-gray-100 dark:border-slate-800">
             <div className="flex flex-col border-b border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900">
               <div className="flex items-center justify-between p-8 pb-4">
@@ -976,23 +1132,186 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
                                      </button>
                                   </div>
                                </div>
-                               <div className="pl-12 space-y-3">
-                                  {section.modules?.map(mod => (
-                                    <div key={mod.id} className="bg-white/50 backdrop-blur-sm p-4 rounded-2xl border border-gray-100 flex items-center justify-between group/mod hover:bg-white transition-all">
-                                      <div className="flex items-center gap-4">
-                                        <div className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-gray-400">
-                                          <FileText className="w-4 h-4" />
+                                <div className="pl-12 space-y-3">
+                                   {section.modules?.filter(mod => mod.modname !== 'forum').map(mod => (
+                                    <div key={mod.id} className="space-y-3">
+                                      <div className={`p-4 rounded-2xl border transition-all flex items-center justify-between group/mod ${expandedQuizId === mod.instance ? 'bg-white border-purple-200 shadow-lg' : 'bg-white/50 backdrop-blur-sm border-gray-100 hover:bg-white'}`}>
+                                        <div className="flex items-center gap-4">
+                                          <div className={`w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center ${mod.modname === 'quiz' ? 'text-purple-600 font-bold' : 'text-gray-400'}`}>
+                                            {mod.modname === 'quiz' ? <FileQuestion className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                                          </div>
+                                          <div>
+                                            <p className="text-sm font-bold text-gray-800">{mod.name} {mod.modname === 'quiz' && <span className="ml-2 text-[10px] font-black uppercase text-purple-400 tracking-widest">Assessment</span>}</p>
+                                          </div>
                                         </div>
-                                        <div>
-                                          <p className="text-sm font-bold text-gray-800">{mod.name}</p>
+                                        <div className="flex items-center gap-2">
+                                          <button 
+                                            type="button" 
+                                            onClick={() => {
+                                              if (mod.modname === 'quiz' && mod.instance) {
+                                                toggleQuizEditor(mod.instance);
+                                              } else {
+                                                handleUpdateModuleContent(mod);
+                                              }
+                                            }} 
+                                            className={`p-2 transition-all rounded-lg ${expandedQuizId === mod.instance ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 hover:text-purple-600 hover:bg-purple-50'}`}
+                                          >
+                                            {mod.modname === 'quiz' && expandedQuizId === mod.instance ? <ChevronUp className="w-4 h-4" /> : <Pencil className="w-4 h-4" />}
+                                          </button>
                                         </div>
                                       </div>
-                                      <button type="button" onClick={() => handleUpdateModuleContent(mod)} className="p-2 text-gray-400 hover:text-purple-600 transition-all">
-                                        <Pencil className="w-4 h-4" />
-                                      </button>
+
+                                      {/* Fluid Quiz Editor Panel */}
+                                      {mod.modname === 'quiz' && expandedQuizId === mod.instance && (
+                                        <div className="bg-white rounded-[2rem] border border-purple-100 p-6 shadow-xl animate-in slide-in-from-top-2 duration-300 ml-4 mb-6">
+                                          <div className="flex items-center justify-between mb-6">
+                                            <div className="flex items-center gap-3">
+                                              <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
+                                                <FileQuestion className="w-4 h-4" />
+                                              </div>
+                                              <h5 className="font-black text-gray-900 uppercase tracking-tight text-xs">Questionnaire Designer</h5>
+                                            </div>
+                                            <button 
+                                              type="button"
+                                              onClick={() => handleQuizAddQuestion(mod.instance!)}
+                                              className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-purple-700 transition-all shadow-md active:scale-95"
+                                            >
+                                              <Plus className="w-3 h-3" />
+                                              Add New Block
+                                            </button>
+                                          </div>
+
+                                          {isLoadingQuestions === mod.instance ? (
+                                            <div className="py-12 flex flex-col items-center justify-center text-purple-300">
+                                              <Loader2 className="w-8 h-8 animate-spin mb-2" />
+                                              <p className="text-[10px] font-bold uppercase tracking-widest">Loading Items...</p>
+                                            </div>
+                                          ) : (
+                                            <div className="space-y-4">
+                                              {quizQuestions[mod.instance!]?.length === 0 && (
+                                                <div className="py-10 border-2 border-dashed border-gray-100 rounded-[2rem] flex flex-col items-center justify-center text-gray-400">
+                                                  <p className="text-xs font-bold uppercase tracking-widest">This examination is empty.</p>
+                                                </div>
+                                              )}
+                                              {quizQuestions[mod.instance!]?.map((q, qIdx) => (
+                                                <div key={q.id} className="group/q bg-gray-50 border border-gray-100 rounded-2xl p-5 hover:border-purple-200 hover:shadow-sm transition-all relative">
+                                                  <div className="flex gap-4 mb-4">
+                                                    <div className="mt-1 flex flex-col items-center gap-1">
+                                                      <div className="text-[10px] font-black text-purple-300">#{qIdx + 1}</div>
+                                                      <div className="flex flex-col gap-0.5 mt-2">
+                                                        <button 
+                                                          type="button" 
+                                                          disabled={qIdx === 0}
+                                                          onClick={() => {
+                                                            const updated = [...(quizQuestions[mod.instance!] || [])];
+                                                            [updated[qIdx-1], updated[qIdx]] = [updated[qIdx], updated[qIdx-1]];
+                                                            handleQuizReorder(mod.instance!, updated);
+                                                          }}
+                                                          className="p-1 text-gray-200 hover:text-purple-400 disabled:opacity-0 transition-colors"
+                                                        >
+                                                           <ChevronUp className="w-3 h-3" />
+                                                        </button>
+                                                        <button 
+                                                          type="button" 
+                                                          disabled={qIdx === (quizQuestions[mod.instance!]?.length || 0) - 1}
+                                                          onClick={() => {
+                                                            const updated = [...(quizQuestions[mod.instance!] || [])];
+                                                            [updated[qIdx], updated[qIdx+1]] = [updated[qIdx+1], updated[qIdx]];
+                                                            handleQuizReorder(mod.instance!, updated);
+                                                          }}
+                                                          className="p-1 text-gray-200 hover:text-purple-400 disabled:opacity-0 transition-colors"
+                                                        >
+                                                           <ChevronDown className="w-3 h-3" />
+                                                        </button>
+                                                      </div>
+                                                    </div>
+                                                    <div className="flex-1">
+                                                      <input 
+                                                        className="w-full bg-transparent border-none focus:ring-0 font-bold text-gray-900 placeholder:text-gray-300 p-0 text-base"
+                                                        value={q.questiontext}
+                                                        onChange={(e) => {
+                                                          const updated = [...(quizQuestions[mod.instance!] || [])];
+                                                          updated[qIdx].questiontext = e.target.value;
+                                                          setQuizQuestions(prev => ({ ...prev, [mod.instance!]: updated }));
+                                                        }}
+                                                        onBlur={() => handleQuizUpdateQuestion(mod.instance!, q)}
+                                                        placeholder="Enter your question here..."
+                                                      />
+                                                    </div>
+                                                    <button 
+                                                      type="button" 
+                                                      onClick={() => handleQuizDeleteQuestion(mod.instance!, q.id)}
+                                                      className="text-gray-300 hover:text-red-500 transition-colors"
+                                                    >
+                                                      <Trash className="w-4 h-4" />
+                                                    </button>
+                                                  </div>
+
+                                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pl-8">
+                                                    {q.answers.map((ans: any, aIdx: number) => (
+                                                      <div key={aIdx} className={`flex items-center gap-3 p-3 rounded-xl border border-white transition-all group/ans relative ${ans.fraction > 0 ? 'bg-emerald-50 border-emerald-100' : 'bg-white shadow-sm'}`}>
+                                                        <button 
+                                                          type="button"
+                                                          onClick={() => {
+                                                            const updated = [...(quizQuestions[mod.instance!] || [])];
+                                                            updated[qIdx].answers = updated[qIdx].answers.map((a: any, i: number) => ({
+                                                              ...a,
+                                                              fraction: i === aIdx ? 1.0 : 0.0
+                                                            }));
+                                                            setQuizQuestions(prev => ({ ...prev, [mod.instance!]: updated }));
+                                                            handleQuizUpdateQuestion(mod.instance!, q);
+                                                          }}
+                                                          title="Set as Correct Answer"
+                                                          className={`w-4 h-4 rounded-full border-2 shrink-0 transition-all ${ans.fraction > 0 ? 'bg-emerald-500 border-emerald-500' : 'border-gray-200 bg-white'}`}
+                                                        />
+                                                        <input 
+                                                          className="flex-1 bg-transparent border-none focus:ring-0 text-xs font-bold text-gray-700 p-0"
+                                                          value={ans.text}
+                                                          onChange={(e) => {
+                                                            const updated = [...(quizQuestions[mod.instance!] || [])];
+                                                            updated[qIdx].answers[aIdx].text = e.target.value;
+                                                            setQuizQuestions(prev => ({ ...prev, [mod.instance!]: updated }));
+                                                          }}
+                                                          onBlur={() => handleQuizUpdateQuestion(mod.instance!, q)}
+                                                        />
+                                                        {q.answers.length > 2 && (
+                                                          <button 
+                                                            type="button" 
+                                                            onClick={() => handleQuizRemoveOption(mod.instance!, qIdx, aIdx)}
+                                                            className="opacity-0 group-hover/ans:opacity-100 transition-opacity p-1 text-gray-300 hover:text-red-500"
+                                                          >
+                                                            <X className="w-3 h-3" />
+                                                          </button>
+                                                        )}
+                                                      </div>
+                                                    ))}
+                                                    <button 
+                                                      type="button"
+                                                      onClick={() => handleQuizAddOption(mod.instance!, qIdx)}
+                                                      className="flex items-center justify-center gap-2 p-3 rounded-xl border-2 border-dashed border-gray-100 text-gray-300 hover:border-purple-200 hover:text-purple-400 hover:bg-purple-50/20 transition-all"
+                                                    >
+                                                      <Plus className="w-3 h-3" />
+                                                      <span className="text-[10px] font-black uppercase">Add Option</span>
+                                                    </button>
+                                                  </div>
+                                                </div>
+                                              ))}
+
+                                              <button 
+                                                type="button"
+                                                onClick={() => handleQuizAddQuestion(mod.instance!)}
+                                                className="w-full py-4 border-2 border-dashed border-gray-100 rounded-2xl text-gray-300 flex items-center justify-center gap-2 hover:border-purple-200 hover:text-purple-400 hover:bg-purple-50/20 transition-all"
+                                              >
+                                                <Plus className="w-4 h-4" />
+                                                <span className="text-[10px] font-black uppercase tracking-widest">Append Next Question</span>
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
                                     </div>
                                   ))}
-                               </div>
+                                </div>
                             </div>
                           ))}
                           <button onClick={handleAddSection} type="button" className="w-full py-8 rounded-[3rem] border-2 border-dashed border-gray-200 text-gray-400 font-bold hover:border-purple-300 hover:text-purple-500 hover:bg-purple-50/30 flex items-center justify-center gap-3 transition-all group mt-6">

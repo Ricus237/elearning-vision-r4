@@ -54,7 +54,6 @@ $functions = array(
         'description' => 'Get live admin dashboard statistics from Moodle DB',
         'type'        => 'read',
         'ajax'        => true,
-        'capabilities'=> 'moodle/site:config',
     ),
     'local_skillsaint_get_all_admin_users' => array(
         'classname'   => 'local_skillsaint_external',
@@ -208,6 +207,24 @@ $functions = array(
         'type'        => 'read',
         'ajax'        => true,
     ),
+    'local_skillsaint_reorder_questions' => array(
+        'classname'   => 'local_skillsaint_external',
+        'methodname'  => 'reorder_questions',
+        'classpath'   => 'local/skillsaint/externallib.php',
+        'description' => 'Reorder questions in a quiz',
+        'type'        => 'write',
+        'ajax'        => true,
+        'capabilities'=> 'moodle/site:config',
+    ),
+    'local_skillsaint_update_question' => array(
+        'classname'   => 'local_skillsaint_external',
+        'methodname'  => 'update_question',
+        'classpath'   => 'local/skillsaint/externallib.php',
+        'description' => 'Update an existing multichoice question',
+        'type'        => 'write',
+        'ajax'        => true,
+        'capabilities'=> 'moodle/site:config',
+    ),
     'local_skillsaint_save_site_data' => array(
         'classname'   => 'local_skillsaint_external',
         'methodname'  => 'save_site_data',
@@ -304,7 +321,7 @@ $functions = array(
 );
 
 $services = array(
-    'Skillsaint Site Service' => array(
+    'Skillsaint Core Services' => array(
         'functions' => array(
             'local_skillsaint_get_all_site_data',
             'local_skillsaint_save_application',
@@ -326,6 +343,8 @@ $services = array(
             'local_skillsaint_delete_question',
             'local_skillsaint_init_exam',
             'local_skillsaint_get_quiz_questions',
+            'local_skillsaint_reorder_questions',
+            'local_skillsaint_update_question',
             'local_skillsaint_save_site_data',
             'local_skillsaint_get_student_dashboard_data',
             'local_skillsaint_send_inquiry',

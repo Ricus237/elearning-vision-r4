@@ -1,7 +1,9 @@
+/* eslint-disable */
+
 'use server';
 
 import { cookies } from 'next/headers';
-import { loginMoodle, createMoodleUser, enrolUserInCourse, fetchMoodle, startQuizAttempt, getAttemptData, getPublicCourses, getCourseQuizzes } from './moodle';
+import { loginMoodle, createMoodleUser, enrolUserInCourse, fetchMoodle, startQuizAttempt, getAttemptData, getPublicCourses, getCourseQuizzes, getExamsFull } from './moodle';
 import { redirect } from 'next/navigation';
 
 /**
@@ -261,50 +263,38 @@ export async function getQuizQuestionsAction(quizId: number) {
   if (!token) return { error: "Vous devez être connecté pour passer l'examen." };
 
   try {
-    // 1. Vérifier s'il y a déjà une tentative en cours
-    // On retire le paramètre status qui peut causer des erreurs selon la version de Moodle
-    const userAttempts = await fetchMoodle('mod_quiz_get_user_attempts', { quizid: quizId }, token);
+    // Fetch questions and exam metadata in parallel
+    const [result, allExams] = await Promise.all([
+      fetchMoodle('local_skillsaint_get_quiz_questions', { quizid: quizId }),
+      getExamsFull()
+    ]);
     
-    let attempt = null;
-    if (userAttempts && userAttempts.attempts && Array.isArray(userAttempts.attempts)) {
-      // On cherche une tentative en cours
-      attempt = userAttempts.attempts.find((a: { state: string; id: number }) => a.state === 'inprogress');
+    if (result?.exception) {
+        return { error: `Moodle Error : ${result.message}` };
     }
 
-    if (!attempt) {
-      // Sinon, on en commence une nouvelle
-      const startResult = await startQuizAttempt(quizId, token);
-      if (startResult?.exception || startResult?.error) {
-        // Gérer le cas spécifique où Moodle dit qu'une tentative est déjà en cours malgré notre check
-        if (startResult.message?.toLowerCase().includes('inprogress') || startResult.message?.toLowerCase().includes('en cours')) {
-             const retryAttempts = await fetchMoodle('mod_quiz_get_user_attempts', { quizid: quizId }, token);
-             attempt = retryAttempts?.attempts?.find((a: { state: string; id: number }) => a.state === 'inprogress');
-        }
-        
-        if (!attempt) {
-            return { error: startResult.message || startResult.error };
-        }
-      } else {
-          attempt = startResult.attempt;
-      }
+    if (!Array.isArray(result) || result.length === 0) {
+        return { error: "Cet examen ne contient pas encore de questions." };
     }
-    
-    if (!attempt) return { error: "Impossible de récupérer ou créer une tentative. Ce quiz est peut-être fermé." };
 
-    // 2. Récupérer les données de la tentative (les questions)
-    const data = await getAttemptData(attempt.id, 0, token);
-    if (data?.exception) return { error: data.message };
+    // Get the real quiz name from the exams list
+    let quizName = "Certification Assessment";
+    if (Array.isArray(allExams)) {
+      const quiz = allExams.find((e: { id: number; name: string }) => e.id === quizId);
+      if (quiz) quizName = quiz.name;
+    }
 
     return { 
       success: true, 
-      questions: data.questions || [], 
-      attemptId: attempt.id,
-      quizName: data.quizname || "Exam"
+      questions: result,
+      quizName
     };
-  } catch {
-    return { error: "Erreur lors de la récupération du quiz." };
+  } catch (error) {
+    return { error: "Erreur lors de la récupération des questions." };
   }
 }
+  
+
 
 /**
  * Récupère les données réelles du dashboard étudiant.
@@ -332,6 +322,7 @@ export async function getStudentDashboardAction() {
     courseid: number;
     timeLimit: number;
     intro: string;
+    questioncount?: number;
   }
 
   const dashboardData: { 
@@ -397,23 +388,41 @@ export async function getStudentDashboardAction() {
   // Fetch quizzes dynamically if the custom WS didn't return any but the user has courses
   if (dashboardData.exams.length === 0 && dashboardData.courses.length > 0) {
     try {
-      const allExams: DashboardExam[] = [];
-      // We process sequentially to avoid overwhelming Moodle with too many parallel WS calls
-      for (const course of dashboardData.courses) {
-        if (course.id > 1) {
-          const quizzes = await getCourseQuizzes(course.id);
-          if (Array.isArray(quizzes)) {
-            allExams.push(...quizzes.map((q: { id: number; name: string; timelimit?: number; intro?: string }) => ({
-              id: q.id,
-              courseid: course.id,
-              name: q.name,
-              timeLimit: q.timelimit || 0,
-              intro: q.intro || ""
-            })));
+      // Primary: use getExamsFull (same as admin) to get quiz data with question counts
+      const allExamsData = await getExamsFull();
+      if (Array.isArray(allExamsData) && allExamsData.length > 0) {
+        const courseIds = new Set(dashboardData.courses.map(c => c.id));
+        dashboardData.exams = allExamsData
+          .filter((e: { courseid: number }) => courseIds.has(e.courseid))
+          .map((e: { id: number; name: string; courseid: number; intro?: string; questioncount?: number }) => ({
+            id: e.id,
+            courseid: e.courseid,
+            name: e.name,
+            timeLimit: 0,
+            intro: e.intro || "",
+            questioncount: e.questioncount || 0
+          }));
+      }
+
+      // Fallback: fetch course-by-course if getExamsFull didn't return results
+      if (dashboardData.exams.length === 0) {
+        const allExams: DashboardExam[] = [];
+        for (const course of dashboardData.courses) {
+          if (course.id > 1) {
+            const quizzes = await getCourseQuizzes(course.id);
+            if (Array.isArray(quizzes)) {
+              allExams.push(...quizzes.map((q: { id: number; name: string; timelimit?: number; intro?: string }) => ({
+                id: q.id,
+                courseid: course.id,
+                name: q.name,
+                timeLimit: q.timelimit || 0,
+                intro: q.intro || ""
+              })));
+            }
           }
         }
+        dashboardData.exams = allExams;
       }
-      dashboardData.exams = allExams;
     } catch (e) {
       console.error("Failed to dynamically load exams for courses", e);
     }

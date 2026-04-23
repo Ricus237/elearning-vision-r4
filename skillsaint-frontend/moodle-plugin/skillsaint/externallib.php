@@ -1411,8 +1411,10 @@ class local_skillsaint_external extends external_api
 
         // 6. Link to quiz
         if ($quizid) {
+            require_once($CFG->dirroot . '/mod/quiz/locallib.php');
             $quiz = $DB->get_record('quiz', array('id' => $quizid), '*', MUST_EXIST);
             quiz_add_quiz_question($question->id, $quiz);
+            quiz_update_sumgrades($quiz);
         }
 
         return array('status' => 'success', 'questionid' => $question->id);
@@ -1464,6 +1466,13 @@ class local_skillsaint_external extends external_api
             $quizobj = \mod_quiz\quiz_settings::create($quizid);
             $structure = \mod_quiz\structure::create_for_quiz($quizobj);
             $structure->delete_slot($slotnumber);
+
+            // Update sumgrades
+            $quiz = $DB->get_record('quiz', array('id' => $quizid));
+            if ($quiz) {
+                require_once($CFG->dirroot . '/mod/quiz/locallib.php');
+                quiz_update_sumgrades($quiz);
+            }
         }
 
         return array('status' => 'success');
@@ -1472,7 +1481,113 @@ class local_skillsaint_external extends external_api
     public static function delete_question_returns()
     {
         return new external_single_structure(array(
-            'status' => new external_value(PARAM_ALPHA, 'success or error')
+            'status' => new external_value(PARAM_ALPHA, 'Status of the operation')
+        ));
+    }
+
+    /**
+     * Reorder questions in a quiz.
+     */
+    public static function reorder_questions_parameters()
+    {
+        return new external_function_parameters(array(
+            'quizid' => new external_value(PARAM_INT, 'Quiz ID'),
+            'questionids' => new external_multiple_structure(new external_value(PARAM_INT, 'Question ID'))
+        ));
+    }
+
+    public static function reorder_questions($quizid, $questionids)
+    {
+        global $DB;
+        self::validate_parameters(self::reorder_questions_parameters(), array('quizid' => $quizid, 'questionids' => $questionids));
+        self::validate_context(context_system::instance());
+
+        $quizobj = \mod_quiz\quiz_settings::create($quizid);
+        $structure = \mod_quiz\structure::create_for_quiz($quizobj);
+        
+        $current_slots = $structure->get_slots();
+        
+        foreach ($questionids as $index => $questionid) {
+            $newslot = $index + 1;
+            
+            // Find current slot for this question
+            foreach ($current_slots as $slot) {
+                if ($slot->questionid == $questionid) {
+                    if ($slot->slot != $newslot) {
+                        $structure->move_slot($slot->slot, $newslot);
+                    }
+                    break;
+                }
+            }
+        }
+
+        return array('status' => 'success');
+    }
+
+    public static function reorder_questions_returns()
+    {
+        return new external_single_structure(array(
+            'status' => new external_value(PARAM_ALPHA, 'Status of the operation')
+        ));
+    }
+
+    /**
+     * Update an existing multichoice question.
+     */
+    public static function update_question_parameters()
+    {
+        return new external_function_parameters(array(
+            'questionid' => new external_value(PARAM_INT, 'Question ID'),
+            'name' => new external_value(PARAM_TEXT, 'Question name'),
+            'text' => new external_value(PARAM_RAW, 'Question text (HTML)'),
+            'answers' => new external_multiple_structure(
+                new external_single_structure(array(
+                    'text' => new external_value(PARAM_RAW, 'Answer text'),
+                    'fraction' => new external_value(PARAM_FLOAT, 'Grade fraction (1.0 for correct, 0.0 for wrong)')
+                ))
+            )
+        ));
+    }
+
+    public static function update_question($questionid, $name, $text, $answers)
+    {
+        global $DB;
+        self::validate_parameters(self::update_question_parameters(), array(
+            'questionid' => $questionid, 
+            'name' => $name, 
+            'text' => $text, 
+            'answers' => $answers
+        ));
+        self::validate_context(context_system::instance());
+
+        // 1. Update question record
+        $question = $DB->get_record('question', array('id' => $questionid), '*', MUST_EXIST);
+        $question->name = $name;
+        $question->questiontext = $text;
+        $DB->update_record('question', $question);
+
+        // 2. Clear old answers
+        $DB->delete_records('question_answers', array('question' => $questionid));
+
+        // 3. Insert new answers
+        foreach ($answers as $a) {
+            $ans = new stdClass();
+            $ans->question = $questionid;
+            $ans->answer = $a['text'];
+            $ans->answerformat = FORMAT_HTML;
+            $ans->fraction = (float) $a['fraction'];
+            $ans->feedback = '';
+            $ans->feedbackformat = FORMAT_HTML;
+            $DB->insert_record('question_answers', $ans);
+        }
+
+        return array('status' => 'success');
+    }
+
+    public static function update_question_returns()
+    {
+        return new external_single_structure(array(
+            'status' => new external_value(PARAM_ALPHA, 'Status of the operation')
         ));
     }
 
@@ -1485,22 +1600,20 @@ class local_skillsaint_external extends external_api
             array(
                 'courseid' => new external_value(PARAM_INT, 'The course ID'),
                 'name' => new external_value(PARAM_TEXT, 'The quiz name', VALUE_DEFAULT, 'Final Assessment'),
+                'sectionid' => new external_value(PARAM_INT, 'The section ID to place the quiz in', VALUE_DEFAULT, 0),
             )
         );
     }
 
-    public static function init_exam($courseid, $name)
+    public static function init_exam($courseid, $name, $sectionid = 0)
     {
         global $DB, $CFG;
         require_once($CFG->dirroot . '/mod/quiz/lib.php');
         require_once($CFG->dirroot . '/course/lib.php');
 
-        // On vérifie si un quiz existe déjà pour éviter les doublons
-        $existing = $DB->get_record('quiz', array('course' => $courseid, 'name' => $name));
-        if ($existing) {
-            return array('status' => 'success', 'quizid' => $existing->id);
-        }
-
+        // Allow multiple quizzes by not checking just by name/course if section is specified
+        // or just let it create a new one if it doesn't exist in that specific section.
+        
         $course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
 
         // Configuration de base du quiz
@@ -1561,8 +1674,14 @@ class local_skillsaint_external extends external_api
 
         $cm->id = add_course_module($cm);
 
-        // Placer dans la section 0
-        $section = $DB->get_record('course_sections', array('course' => $courseid, 'section' => 0));
+        // Placer dans la section souhaitée
+        $section = null;
+        if ($sectionid > 0) {
+            $section = $DB->get_record('course_sections', array('id' => $sectionid));
+        } else {
+            $section = $DB->get_record('course_sections', array('course' => $courseid, 'section' => 0));
+        }
+
         if ($section) {
             $modorder = trim($section->sequence);
             if ($modorder) {
@@ -1571,6 +1690,9 @@ class local_skillsaint_external extends external_api
                 $modorder = $cm->id;
             }
             $DB->set_field('course_sections', 'sequence', $modorder, array('id' => $section->id));
+            
+            // Update the CM's section field to match reality
+            $DB->set_field('course_modules', 'section', $section->id, array('id' => $cm->id));
         }
 
         // Reconstruire le cache du cours
@@ -1602,7 +1724,18 @@ class local_skillsaint_external extends external_api
 
     public static function get_quiz_questions($quizid)
     {
-        global $DB;
+        global $DB, $USER;
+        $params = self::validate_parameters(self::get_quiz_questions_parameters(), array('quizid' => $quizid));
+        $quizid = $params['quizid'];
+
+        // Validation du contexte système (minimum requis pour WS)
+        self::validate_context(context_system::instance());
+
+        // Si l'ID est un CMID, on récupère l'instance du quiz
+        $cm = $DB->get_record('course_modules', array('id' => $quizid, 'module' => $DB->get_field('modules', 'id', array('name' => 'quiz'))));
+        if ($cm) {
+            $quizid = (int)$cm->instance;
+        }
 
         $slots = $DB->get_records('quiz_slots', array('quizid' => $quizid), 'slot ASC');
         $questions = array();

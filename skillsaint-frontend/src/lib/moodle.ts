@@ -507,8 +507,8 @@ export async function createQuestion(params: {
 /**
  * Initialise un nouvel examen (Quiz) dans un cours Moodle.
  */
-export async function initExam(courseId: number, name: string = "Final Assessment") {
-  return await fetchMoodle('local_skillsaint_init_exam', { courseid: courseId, name });
+export async function initExam(courseId: number, name: string = "Final Assessment", sectionId: number = 0) {
+  return await fetchMoodle('local_skillsaint_init_exam', { courseid: courseId, name, sectionid: sectionId });
 }
 
 /**
@@ -523,4 +523,26 @@ export async function getQuizQuestions(quizId: number) {
  */
 export async function deleteQuestion(quizId: number, questionId: number) {
   return await fetchMoodle('local_skillsaint_delete_question', { quizid: quizId, questionid: questionId });
+}
+
+/**
+ * Reorder questions in a quiz.
+ */
+export async function reorderQuestions(quizid: number, questionids: number[]) {
+  return await fetchMoodle('local_skillsaint_reorder_questions', { 
+    quizid, 
+    questionids 
+  });
+}
+
+/**
+ * Update an existing multichoice question.
+ */
+export async function updateQuestion(data: { 
+  questionid: number, 
+  name: string, 
+  text: string, 
+  answers: Array<{text: string, fraction: number}> 
+}) {
+  return await fetchMoodle('local_skillsaint_update_question', data);
 }

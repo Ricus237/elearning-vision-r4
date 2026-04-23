@@ -19,6 +19,7 @@ interface Exam {
   name: string;
   timeLimit: number;
   intro: string;
+  questioncount?: number;
 }
 
 const ExamsClient = ({ initialExams }: { initialExams: Exam[] }) => {
@@ -83,57 +84,68 @@ const ExamsClient = ({ initialExams }: { initialExams: Exam[] }) => {
         {/* Exam Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 animate-in fade-in duration-1000 delay-300 pb-20">
            {initialExams.length > 0 ? (
-             initialExams.map((exam) => (
-               <div 
-                 key={exam.id}
-                 className="group relative p-10 rounded-[4rem] border-2 border-gray-50 bg-white hover:border-purple-600 shadow-sm hover:shadow-2xl hover:shadow-purple-50 hover:-translate-y-2 transition-all duration-500 cursor-pointer overflow-hidden"
-               >
-                 <div className="relative z-10 flex flex-col h-full">
-                    <div className="flex items-center justify-between mb-10">
-                       <div className="w-16 h-16 bg-gray-900 text-white rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-gray-200 group-hover:bg-purple-600 group-hover:scale-110 transition-all">
-                          <FileText size={28} />
-                       </div>
-                       <span className="px-5 py-2 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest shadow-sm">
-                          Ready
-                       </span>
-                    </div>
+             initialExams.map((exam) => {
+               const qCount = exam.questioncount || 0;
+               const estimatedMinutes = qCount > 0 ? qCount * 2 : 0;
+               
+               return (
+                 <div 
+                   key={exam.id}
+                   className="group relative p-10 rounded-[4rem] border-2 border-gray-50 bg-white hover:border-purple-600 shadow-sm hover:shadow-2xl hover:shadow-purple-50 hover:-translate-y-2 transition-all duration-500 cursor-pointer overflow-hidden"
+                 >
+                   <div className="relative z-10 flex flex-col h-full">
+                      <div className="flex items-center justify-between mb-10">
+                         <div className="w-16 h-16 bg-gray-900 text-white rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-gray-200 group-hover:bg-purple-600 group-hover:scale-110 transition-all">
+                            <FileText size={28} />
+                         </div>
+                         <span className="px-5 py-2 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest shadow-sm">
+                            Ready
+                         </span>
+                      </div>
 
-                    <h3 className="text-2xl font-black text-gray-900 tracking-tighter leading-none mb-3 group-hover:text-purple-600 transition-colors">
-                      {exam.name}
-                    </h3>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-10">Moodle Quiz #{exam.id}</p>
+                      <h3 className="text-2xl font-black text-gray-900 tracking-tighter leading-none mb-3 group-hover:text-purple-600 transition-colors">
+                        {exam.name}
+                      </h3>
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-10">Moodle Quiz #{exam.id}</p>
 
-                    <div className="grid grid-cols-2 gap-6 mb-12">
-                       <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400">
-                             <Clock size={16} />
-                          </div>
-                          <span className="text-xs font-black text-gray-500 uppercase tracking-tight">
-                            {exam.timeLimit > 0 ? `${Math.floor(exam.timeLimit / 60)} Min` : "Unlimited"}
-                          </span>
-                       </div>
-                       <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400">
-                             <HelpCircle size={16} />
-                          </div>
-                          <span className="text-xs font-black text-gray-500 uppercase tracking-tight">Standard Format</span>
-                       </div>
-                    </div>
+                      <div className="grid grid-cols-2 gap-6 mb-12">
+                         <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400">
+                               <Clock size={16} />
+                            </div>
+                            <span className="text-xs font-black text-gray-500 uppercase tracking-tight">
+                              {exam.timeLimit > 0 
+                                ? `${Math.floor(exam.timeLimit / 60)} Min` 
+                                : estimatedMinutes > 0 
+                                  ? `~${estimatedMinutes} Min`
+                                  : "Unlimited"}
+                            </span>
+                         </div>
+                         <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400">
+                               <HelpCircle size={16} />
+                            </div>
+                            <span className="text-xs font-black text-gray-500 uppercase tracking-tight">
+                              {qCount > 0 ? `${qCount} Questions` : "Standard Format"}
+                            </span>
+                         </div>
+                      </div>
 
-                    <div className="mt-auto">
-                       <Link href={`/exam?quizId=${exam.id}`} className="w-full">
-                         <button className="w-full py-6 bg-gray-900 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-[10px] flex items-center justify-center gap-3 group-hover:bg-purple-600 transition-all shadow-xl shadow-gray-200 group-hover:shadow-purple-300">
-                           Start Certification
-                           <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
-                         </button>
-                       </Link>
-                    </div>
+                      <div className="mt-auto">
+                         <Link href={`/exam?quizId=${exam.id}`} className="w-full">
+                           <button className="w-full py-6 bg-gray-900 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-[10px] flex items-center justify-center gap-3 group-hover:bg-purple-600 transition-all shadow-xl shadow-gray-200 group-hover:shadow-purple-300">
+                             Start Certification
+                             <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
+                           </button>
+                         </Link>
+                      </div>
+                   </div>
+
+                   {/* Background decoration */}
+                   <div className="absolute -right-16 -bottom-16 w-56 h-56 bg-purple-100/30 rounded-full blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity" />
                  </div>
-
-                 {/* Background decoration */}
-                 <div className="absolute -right-16 -bottom-16 w-56 h-56 bg-purple-100/30 rounded-full blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity" />
-               </div>
-             ))
+               );
+             })
            ) : (
              <div className="col-span-full py-24 bg-gray-50 rounded-[4rem] border-2 border-dashed border-gray-100 flex flex-col items-center justify-center text-center">
                 <Lock className="text-gray-200 mb-8" size={64} />

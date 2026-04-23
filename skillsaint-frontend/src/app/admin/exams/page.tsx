@@ -23,7 +23,8 @@ const ManageExamsPage = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isInitializing, setIsInitializing] = useState<number | null>(null);
-  const [selectedCourseId, setSelectedCourseId] = useState<number | "">("");
+  const [selectedCourseId, setSelectedCourseId] = useState<number>(0);
+  const [selectedQuizId, setSelectedQuizId] = useState<number>(0);
 
   const [newQuestion, setNewQuestion] = useState({
     name: "",
@@ -54,12 +55,16 @@ const ManageExamsPage = () => {
   }, [fetchData]);
 
   const toggleExpand = async (courseId: number, quizId: number) => {
-    if (expandedCourse === courseId) {
+    if (expandedCourse === quizId) {
       setExpandedCourse(null);
+      setSelectedQuizId(0);
       return;
     }
-    setExpandedCourse(courseId);
-    // Load questions if not already loaded
+    
+    setExpandedCourse(quizId);
+    setSelectedQuizId(quizId);
+    setSelectedCourseId(courseId);
+    
     if (!quizQuestions[quizId]) {
       const data = await getQuizQuestions(quizId);
       if (Array.isArray(data)) {
@@ -114,7 +119,7 @@ const ManageExamsPage = () => {
       return;
     }
 
-    const exam = exams.find(e => e.courseid === Number(selectedCourseId));
+    const exam = exams.find(e => e.id === Number(selectedQuizId));
     if (!exam) {
       alert("No quiz found for this course. Please initialize the exam first.");
       return;
@@ -257,132 +262,118 @@ const ManageExamsPage = () => {
                 <div className="grid grid-cols-1 gap-6 pb-20">
                   {courses.map((course, index) => {
                     const courseIdNum = Number(course.slug.current);
-                    const courseExam = exams.find(e => e.courseid === courseIdNum);
-                    const hasExam = !!courseExam;
-                    const isExpanded = expandedCourse === courseIdNum;
-
+                    const courseExams = exams.filter(e => e.courseid === courseIdNum);
+                    const hasExams = courseExams.length > 0;
+                    
                     return (
                       <div 
                         key={course._id} 
-                        className={`group bg-white dark:bg-[#1e293b] rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden transition-all duration-500 ${isExpanded ? 'ring-2 ring-purple-100 dark:ring-purple-900 shadow-xl' : 'hover:shadow-lg hover:-translate-y-1'}`}
+                        className={`group bg-white dark:bg-[#1e293b] rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden transition-all duration-500 hover:shadow-lg`}
                         style={{ animationDelay: `${index * 50}ms` }}
                       >
-                        <div
-                          className={`p-8 flex items-center justify-between cursor-pointer transition-colors ${isExpanded ? 'bg-purple-50/30 dark:bg-purple-900/10' : 'hover:bg-gray-50/50 dark:hover:bg-slate-800/50'}`}
-                          onClick={() => hasExam && toggleExpand(courseIdNum, courseExam.id)}
-                        >
-                          <div className="flex items-center gap-6">
-                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 ${hasExam ? "bg-white dark:bg-slate-800 shadow-sm text-emerald-500 dark:text-emerald-400 group-hover:rotate-3" : "bg-gray-50 dark:bg-slate-900 text-gray-300 dark:text-slate-600"}`}>
-                              {hasExam ? <CheckCircle className="w-7 h-7" /> : <PlusCircle className="w-7 h-7" />}
-                            </div>
-                            <div>
-                              <h3 className="text-lg font-black text-gray-900 dark:text-white leading-tight mb-1">{course.title}</h3>
-                              <div className="flex items-center gap-2">
-                                {hasExam ? (
-                                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-md">
-                                    {courseExam.questioncount} Questions
-                                  </span>
-                                ) : (
-                                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-300 dark:text-slate-600 bg-gray-50 dark:bg-slate-900 px-2 py-0.5 rounded-md italic">
-                                   Quiz Not Found
-                                  </span>
-                                )}
+                        <div className="p-8 pb-4">
+                          <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-6">
+                              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 ${hasExams ? "bg-white dark:bg-slate-800 shadow-sm text-emerald-500 dark:text-emerald-400 group-hover:rotate-3" : "bg-gray-50 dark:bg-slate-900 text-gray-300 dark:text-slate-600"}`}>
+                                {hasExams ? <CheckCircle className="w-7 h-7" /> : <PlusCircle className="w-7 h-7" />}
+                              </div>
+                              <div>
+                                <h3 className="text-lg font-black text-gray-900 dark:text-white leading-tight mb-1">{course.title}</h3>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500">{courseExams.length} Active Assessments</p>
                               </div>
                             </div>
+                            <button
+                              onClick={() => {
+                                const name = prompt("New Quiz name:", `${course.title} - Assessment`);
+                                if (name) handleInitExam(courseIdNum, name);
+                              }}
+                              disabled={isInitializing === courseIdNum}
+                              className="px-6 py-3 bg-purple-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-purple-700 transition-all shadow-lg shadow-purple-200 dark:shadow-none"
+                            >
+                              {isInitializing === courseIdNum ? "Creating..." : "Initialize New Quiz"}
+                            </button>
                           </div>
-                          <div className="flex items-center gap-4">
-                            {!hasExam && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleInitExam(courseIdNum, course.title); }}
-                                disabled={isInitializing === courseIdNum}
-                                className={`px-6 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${
-                                  isInitializing === courseIdNum 
-                                    ? "bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-600 cursor-not-allowed" 
-                                    : "bg-purple-600 text-white hover:bg-purple-700 shadow-lg shadow-purple-200 dark:shadow-none"
-                                }`}
-                              >
-                                {isInitializing === courseIdNum ? (
-                                  <div className="flex items-center gap-2">
-                                    <Loader2 className="w-3 h-3 animate-spin" />
-                                    <span>Creating...</span>
-                                  </div>
-                                ) : (
-                                  "Initialize Exam"
-                                )}
-                              </button>
-                            )}
-                            {hasExam && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); setSelectedCourseId(courseIdNum); setShowCreateModal(true); }}
-                                className="px-6 py-3 bg-gray-900 dark:bg-purple-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-purple-600 dark:hover:bg-purple-700 transition-all shadow-lg shadow-gray-200 dark:shadow-none"
-                              >
-                                Add Question
-                              </button>
-                            )}
-                            {hasExam && (
-                              <div className={`p-3 rounded-full transition-all duration-500 ${isExpanded ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rotate-180' : 'bg-gray-50 dark:bg-slate-800 text-gray-400 group-hover:bg-gray-100 dark:group-hover:bg-slate-700'}`}>
-                                <ChevronDown className="w-5 h-5" />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {hasExam && isExpanded && (
-                          <div className="border-t border-gray-100 dark:border-slate-800 animate-in slide-in-from-top duration-500">
-                            <div className="px-10 py-4 bg-gray-50/50 dark:bg-slate-900/50 flex items-center justify-between">
-                              <span className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-[0.2em]">Questions • {(quizQuestions[courseExam.id] || []).length} Items</span>
-                              <button
-                                onClick={() => { setSelectedCourseId(courseIdNum); setShowCreateModal(true); }}
-                                className="text-[10px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest hover:text-purple-700 bg-white dark:bg-slate-800 px-4 py-2 rounded-xl shadow-sm border border-purple-100 dark:border-purple-900 transition-all"
-                              >
-                                + New Question
-                              </button>
+                          
+                          {!hasExams ? (
+                            <div className="py-8 bg-gray-50/30 dark:bg-slate-900/10 rounded-2xl border border-dashed border-gray-200 dark:border-slate-800 flex flex-col items-center justify-center">
+                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">No quizzes found for this module</p>
                             </div>
-                            {(quizQuestions[courseExam.id] || []).length === 0 ? (
-                              <div className="flex flex-col items-center justify-center py-10 text-center">
-                                <FileQuestion className="w-10 h-10 text-gray-200 dark:text-slate-800 mb-3" />
-                                <p className="text-sm font-medium text-gray-400 dark:text-slate-600">No questions yet. Add your first QCM above.</p>
-                              </div>
-                            ) : (
-                              <div className="divide-y divide-gray-50 dark:divide-slate-800 px-4 md:px-10 pb-8 bg-gray-50/20 dark:bg-slate-900/20">
-                                {(quizQuestions[courseExam.id] || []).map((q, idx) => (
-                                  <div key={q.id} className="py-6 group/item">
-                                    <div className="flex items-start justify-between gap-6">
-                                      <div className="flex-1">
-                                        <div className="flex items-center gap-3 mb-3">
-                                          <span className="text-xs font-black bg-gray-900 dark:bg-purple-600 text-white w-7 h-7 flex items-center justify-center rounded-lg">{idx + 1}</span>
-                                          <span className="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">{q.name}</span>
+                          ) : (
+                            <div className="space-y-3">
+                              {courseExams.map(exam => {
+                                const isExpanded = expandedCourse === exam.id;
+                                return (
+                                  <div key={exam.id} className={`border border-gray-100 dark:border-slate-800 rounded-2xl overflow-hidden transition-all ${isExpanded ? 'ring-2 ring-purple-100 dark:ring-purple-900 shadow-lg' : ''}`}>
+                                    <div 
+                                      className={`p-5 flex items-center justify-between cursor-pointer ${isExpanded ? 'bg-purple-50/50 dark:bg-purple-900/20' : 'hover:bg-gray-50/50 dark:hover:bg-slate-800/20'}`}
+                                      onClick={() => toggleExpand(courseIdNum, exam.id)}
+                                    >
+                                      <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center text-purple-600 shadow-sm">
+                                          <FileQuestion className="w-5 h-5" />
                                         </div>
-                                        <p className="text-base font-black text-gray-900 dark:text-white mb-4 leading-tight">{q.questiontext}</p>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-w-3xl">
-                                          {q.answers.map((ans, aIdx) => (
-                                            <div key={aIdx} className={`px-4 py-3 rounded-xl flex items-center gap-2 text-sm transition-all ${
-                                              ans.fraction >= 1.0
-                                                ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-900 dark:text-emerald-400 border-2 border-emerald-100 dark:border-emerald-900/50 font-bold"
-                                                : "bg-white dark:bg-slate-800 text-gray-500 dark:text-slate-400 border border-gray-100 dark:border-slate-700 font-medium"
-                                            }`}>
-                                              <div className={`w-2 h-2 rounded-full shrink-0 ${ans.fraction >= 1.0 ? 'bg-emerald-500' : 'bg-gray-200'}`} />
-                                              {ans.text}
-                                              {ans.fraction >= 1.0 && <CheckCircle className="w-3.5 h-3.5 text-emerald-500 ml-auto" />}
-                                            </div>
-                                          ))}
+                                        <div>
+                                          <h4 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight">{exam.name}</h4>
+                                          <span className="text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-widest">{exam.questioncount} Questions</span>
                                         </div>
                                       </div>
-                                      <div className="shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                                        <button 
-                                          onClick={(e) => { e.stopPropagation(); handleDeleteQuestion(courseExam.id, q.id); }}
-                                          className="w-9 h-9 bg-white dark:bg-slate-800 text-gray-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 border border-gray-100 dark:border-slate-700 rounded-xl flex items-center justify-center transition-all"
+                                      <div className="flex items-center gap-3">
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); setSelectedCourseId(courseIdNum); setSelectedQuizId(exam.id); setShowCreateModal(true); }}
+                                          className="px-4 py-2 bg-gray-900 dark:bg-purple-600 text-white text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-purple-600 transition-all"
                                         >
-                                          <Trash2 className="w-4 h-4" />
+                                          Add Question
                                         </button>
+                                        <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-500 ${isExpanded ? 'rotate-180' : ''}`} />
                                       </div>
                                     </div>
+                                    
+                                    {isExpanded && (
+                                      <div className="border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-[#1e293b]">
+                                        <div className="p-6">
+                                          {(quizQuestions[exam.id] || []).length === 0 ? (
+                                            <div className="py-8 text-center bg-gray-50/50 dark:bg-slate-900/50 rounded-xl">
+                                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-loose">
+                                                Intelligence void detected.<br/>Add questions to activate this node.
+                                              </p>
+                                            </div>
+                                          ) : (
+                                            <div className="space-y-4">
+                                              {(quizQuestions[exam.id] || []).map((q, qIdx) => (
+                                                <div key={q.id} className="group/item flex items-start justify-between gap-4 p-4 hover:bg-gray-50/50 dark:hover:bg-slate-900/50 rounded-xl transition-all">
+                                                  <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                      <span className="text-[10px] font-black bg-gray-900 text-white w-5 h-5 flex items-center justify-center rounded-md">{qIdx + 1}</span>
+                                                      <p className="text-sm font-black text-gray-900 dark:text-white">{q.questiontext}</p>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2 mt-2">
+                                                      {q.answers.map((ans, aIdx) => (
+                                                        <div key={aIdx} className={`px-3 py-2 rounded-lg text-[10px] border ${ans.fraction >= 1.0 ? 'bg-emerald-50 border-emerald-100 text-emerald-700 font-bold' : 'bg-white border-gray-100 text-gray-400 font-medium'}`}>
+                                                          {ans.text}
+                                                        </div>
+                                                      ))}
+                                                    </div>
+                                                  </div>
+                                                  <button 
+                                                    onClick={(e) => { e.stopPropagation(); handleDeleteQuestion(exam.id, q.id); }}
+                                                    className="p-2 text-gray-300 hover:text-red-500 opacity-0 group-hover/item:opacity-100 transition-all"
+                                                  >
+                                                    <Trash2 className="w-4 h-4" />
+                                                  </button>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-8 pt-0" />
                       </div>
                     );
                   })}
@@ -414,16 +405,16 @@ const ManageExamsPage = () => {
 
             <div className="space-y-8">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest ml-1">Target Masterclass</label>
+                <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest ml-1">Target Assessment</label>
                 <div className="relative group">
                   <select 
-                    value={selectedCourseId}
-                    onChange={(e) => setSelectedCourseId(Number(e.target.value))}
+                    value={selectedQuizId}
+                    onChange={(e) => setSelectedQuizId(Number(e.target.value))}
                     className="w-full h-16 px-8 bg-gray-50 dark:bg-slate-800 border-none rounded-2xl text-base font-bold text-gray-900 dark:text-white focus:ring-4 focus:ring-purple-100 dark:focus:ring-purple-900/20 transition-all appearance-none cursor-pointer"
                   >
-                    <option value="">Select a course...</option>
-                    {courses.map(c => (
-                      <option key={c._id} value={c.slug.current}>{c.title}</option>
+                    <option value="">Select a quiz...</option>
+                    {exams.map(e => (
+                      <option key={e.id} value={e.id}>{e.coursename} - {e.name}</option>
                     ))}
                   </select>
                   <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-slate-600 pointer-events-none group-focus-within:rotate-180 transition-transform" />

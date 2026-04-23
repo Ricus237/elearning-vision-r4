@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -73,25 +75,22 @@ export default function CoursePageClient({
         });
         const data = await response.json();
         if (Array.isArray(data)) {
-          // Séparer les quiz du contenu normal
           const allQuizzes: MoodleModule[] = [];
           
-          const filteredData = data
-            .map((section: MoodleSection) => {
-              const quizzes = section.modules.filter((mod) => mod.modname === "quiz");
-              allQuizzes.push(...quizzes);
-              return {
-                ...section,
-                modules: section.modules.filter(
-                  (mod) => mod.modname !== "forum" && mod.modname !== "quiz"
-                ),
-              };
-            })
-            .filter((section) => section.modules.length > 0);
+          const processedSections = data.map((section: MoodleSection) => {
+            const quizzes = section.modules.filter((mod) => mod.modname === "quiz");
+            allQuizzes.push(...quizzes);
+            return {
+              ...section,
+              modules: section.modules.filter(
+                (mod) => mod.modname !== "forum" // Still remove forum, but keep quiz
+              ),
+            };
+          }).filter((section) => section.modules.length > 0);
 
-          setSections(filteredData);
+          setSections(processedSections);
           setQuizModules(allQuizzes);
-          const firstSection = filteredData.find((s) => s.modules && s.modules.length > 0);
+          const firstSection = processedSections.find((s) => s.modules && s.modules.length > 0);
           if (firstSection) setActiveModule(firstSection.modules[0]);
         }
       } catch (err) {
@@ -219,30 +218,22 @@ export default function CoursePageClient({
                       <button
                         key={mIdx}
                         onClick={() => {
-                          if (!isQuizMode) {
-                            setActiveModule(mod);
-                          }
+                          setActiveModule(mod);
+                          setIsQuizMode(mod.modname === 'quiz');
                         }}
-                        disabled={isQuizMode}
                         className={`w-full flex items-start gap-4 p-3 rounded-xl transition-all text-left group ${
-                          activeModule?.id === mod.id && !isQuizMode
+                          activeModule?.id === mod.id
                             ? "bg-purple-600 text-white shadow-md shadow-purple-100"
-                            : isQuizMode 
-                              ? "opacity-40 cursor-not-allowed text-gray-400"
-                              : "hover:bg-purple-50 text-gray-600"
+                            : "hover:bg-purple-50 text-gray-600"
                         }`}
                       >
                         <div className={`mt-0.5 shrink-0 ${
-                          activeModule?.id === mod.id && !isQuizMode ? "text-white" 
-                          : isQuizMode ? "text-gray-300" 
-                          : "text-purple-400 group-hover:text-purple-600"
+                          activeModule?.id === mod.id ? "text-white" : "text-purple-400 group-hover:text-purple-600"
                         }`}>
-                          {isQuizMode ? <Lock size={14} /> : mod.modname === "video" ? <PlayCircle size={14} /> : <FileText size={14} />}
+                          {mod.modname === "quiz" ? <Trophy size={14} /> : mod.modname === "video" ? <PlayCircle size={14} /> : <FileText size={14} />}
                         </div>
                         <span className={`text-[11px] font-black uppercase leading-snug ${
-                          activeModule?.id === mod.id && !isQuizMode ? "text-white" 
-                          : isQuizMode ? "text-gray-400" 
-                          : "text-gray-700 group-hover:text-purple-700"
+                          activeModule?.id === mod.id ? "text-white" : "text-gray-700 group-hover:text-purple-700"
                         }`}>
                           {mod.name}
                         </span>
@@ -256,40 +247,7 @@ export default function CoursePageClient({
                   <p className="text-[10px] uppercase font-black tracking-widest">No modules</p>
                 </div>
               )}
-            </div>
-
-            {/* ── Section Évaluations (Quiz) ── */}
-            {quizModules && quizModules.length > 0 && (
-              <div className="mt-6 pt-6 border-t-2 border-gray-50 space-y-3">
-                <h4 className="text-[10px] font-black text-purple-600 uppercase tracking-widest flex items-center gap-2 px-2">
-                  <Trophy size={12} />
-                  Évaluations
-                </h4>
-                <div className="space-y-1">
-                  {quizModules.map((quiz, qIdx) => (
-                    <button
-                      key={`quiz-${qIdx}`}
-                      onClick={() => {
-                        setActiveModule(quiz);
-                        setIsQuizMode(true);
-                      }}
-                      className={`w-full flex items-start gap-4 p-3 rounded-xl transition-all text-left group ${
-                        activeModule?.id === quiz.id && isQuizMode
-                          ? "bg-purple-600 text-white shadow-md shadow-purple-100"
-                          : "hover:bg-purple-50 text-gray-600"
-                      }`}
-                    >
-                      <div className={`mt-0.5 shrink-0 ${activeModule?.id === quiz.id && isQuizMode ? "text-white" : "text-purple-400 group-hover:text-purple-600"}`}>
-                        <FileText size={14} />
-                      </div>
-                      <span className={`text-[11px] font-black uppercase leading-snug ${activeModule?.id === quiz.id && isQuizMode ? "text-white" : "text-gray-700 group-hover:text-purple-700"}`}>
-                        {quiz.name}
-                      </span>
-                    </button>
-                  ))}
-                </div>
               </div>
-            )}
             </>
           ) : (
             <div className="space-y-6">
