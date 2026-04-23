@@ -5,8 +5,6 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Mail, 
-  Phone, 
-  MapPin, 
   ArrowRight, 
   MessageSquare,
   Zap,
@@ -142,13 +140,6 @@ export default function ContactClient({ siteData }: ContactClientProps) {
                 </div>
               </motion.div>
 
-              <motion.div variants={fadeIn} className="p-8 rounded-[2.5rem] bg-purple-600 text-white shadow-2xl shadow-purple-200">
-                <h3 className="text-xl font-bold mb-4">Student Portal</h3>
-                <p className="text-purple-100 text-sm mb-6">Already a student? Access your courses and community directly.</p>
-                <Button variant="outline" className="w-full bg-white/10 border-white/20 hover:bg-white/20 text-white rounded-2xl h-14 font-bold">
-                    Go to Dashboard
-                </Button>
-              </motion.div>
             </motion.div>
 
             {/* Right: Contact Form */}

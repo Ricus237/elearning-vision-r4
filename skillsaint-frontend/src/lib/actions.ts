@@ -476,7 +476,7 @@ export async function sendContactAction(data: { name: string; email: string; sub
   
   // If user is not logged in, we use ID 2 (Admin/Guest) for the join to work in Moodle
   // but we prepend their real info to the message using markers for the admin UI to parse.
-  const senderInfo = userId ? "" : `--- GUEST CONTACT INFO ---\nName: ${data.name}\nEmail: ${data.email}\n-------------------------\n\n`;
+  const senderInfo = userId ? "" : `GUEST CONTACT INFO:\nNAME: ${data.name}\nEMAIL: ${data.email}\n\n`;
   const finalMessage = `${senderInfo}${data.message}`;
   
   const result = await fetchMoodle('local_skillsaint_send_inquiry', {
