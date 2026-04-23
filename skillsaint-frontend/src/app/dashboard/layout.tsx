@@ -18,5 +18,11 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     redirect(`/login?callbackUrl=${encodeURIComponent(pathname)}`);
   }
 
+  // Lock the user if an exam is in progress
+  const activeExamId = cookieStore.get("ibi_exam_active")?.value;
+  if (activeExamId) {
+    redirect(`/exam?quizId=${activeExamId}`);
+  }
+
   return <>{children}</>;
 }

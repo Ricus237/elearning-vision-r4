@@ -191,6 +191,8 @@ const ExamContent = () => {
   const [showExitWarning, setShowExitWarning] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [initialTime, setInitialTime] = useState<number | null>(null);
 
   useEffect(() => {
     async function loadQuiz() {
@@ -211,6 +213,28 @@ const ExamContent = () => {
         if (mapped.length > 0) {
           setQuestions(mapped);
           setQuizName(result.quizName || "Assessment");
+          
+          if (result.timeLimit && result.timeLimit > 0) {
+            // Check for persistent end time
+            const storageKey = `ibi_exam_end_${quizIdStr}`;
+            const existingEnd = localStorage.getItem(storageKey);
+            let endTime: number;
+
+            if (existingEnd) {
+              endTime = parseInt(existingEnd);
+            } else {
+              endTime = Date.now() + result.timeLimit * 1000;
+              localStorage.setItem(storageKey, endTime.toString());
+            }
+
+            const remaining = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
+            setTimeLeft(remaining);
+            setInitialTime(result.timeLimit);
+
+            if (remaining === 0 && !isSubmitted) {
+              setIsSubmitted(true);
+            }
+          }
         } else {
           setError("Cet examen ne contient aucune question.");
         }
@@ -220,7 +244,57 @@ const ExamContent = () => {
       setIsLoading(false);
     }
     loadQuiz();
-  }, [quizIdStr]);
+  }, [quizIdStr, isSubmitted]);
+
+  // Lockdown & Protection Effect
+  useEffect(() => {
+    if (!quizIdStr || isSubmitted || isLoading) return;
+
+    // Set lockdown cookie
+    document.cookie = `ibi_exam_active=${quizIdStr}; path=/; max-age=7200`;
+
+    // Prevent accidental reload/navigation
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+      return '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [quizIdStr, isSubmitted, isLoading]);
+
+  const clearExamSession = () => {
+    if (quizIdStr) {
+      localStorage.removeItem(`ibi_exam_end_${quizIdStr}`);
+      document.cookie = "ibi_exam_active=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    }
+  };
+
+  // Countdown Timer Effect
+  useEffect(() => {
+    if (timeLeft === null || timeLeft <= 0 || isSubmitted) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev !== null && prev <= 1) {
+          clearInterval(timer);
+          clearExamSession();
+          setIsSubmitted(true); // Auto-submit
+          return 0;
+        }
+        return prev !== null ? prev - 1 : null;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [timeLeft, isSubmitted]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const answeredCount = Object.keys(selectedAnswers).length;
   const progressPct = questions.length > 0 ? Math.round((answeredCount / questions.length) * 100) : 0;
@@ -299,6 +373,12 @@ const ExamContent = () => {
             <h1 className="text-sm md:text-lg font-black text-gray-900 truncate max-w-[200px] md:max-w-none">{quizName}</h1>
           </div>
           <div className="flex items-center gap-4">
+            {timeLeft !== null && (
+              <div className={`flex items-center gap-2 px-4 py-2 rounded-full font-black text-xs uppercase tracking-widest transition-colors ${timeLeft < 60 ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-gray-100 text-gray-700'}`}>
+                <Clock size={14} />
+                <span>{formatTime(timeLeft)}</span>
+              </div>
+            )}
             <button onClick={() => setShowMobileNav(true)} className="lg:hidden p-2.5 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all">
               <Grid3X3 size={18} className="text-gray-500" />
             </button>
@@ -414,7 +494,7 @@ const ExamContent = () => {
               <button onClick={() => setShowSubmitConfirm(false)} className="flex-1 px-6 py-4 bg-gray-50 hover:bg-gray-100 text-gray-700 font-bold rounded-2xl transition-colors text-sm">
                 Continue Exam
               </button>
-              <button onClick={() => { setShowSubmitConfirm(false); setIsSubmitted(true); }} className="flex-1 px-6 py-4 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-2xl transition-colors shadow-lg shadow-purple-200 text-sm">
+              <button onClick={() => { setShowSubmitConfirm(false); clearExamSession(); setIsSubmitted(true); }} className="flex-1 px-6 py-4 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-2xl transition-colors shadow-lg shadow-purple-200 text-sm">
                 Confirm Submit
               </button>
             </div>

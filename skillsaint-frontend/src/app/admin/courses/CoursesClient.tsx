@@ -5,7 +5,7 @@
 import { useState, useTransition, useRef} from "react";
 import toast from "react-hot-toast";
 
-import { BookOpen, Users, Eye, Plus, X, Pencil, Play, FileText, Bold, Italic, Underline, List, ListOrdered, Link2, Image as ImageIcon, CheckCircle, FileQuestion, GripVertical, Trash, Loader2, ChevronUp, ChevronDown } from "lucide-react";
+import { BookOpen, Users, Eye, Plus, X, Pencil, Play, FileText, Bold, Italic, Underline, List, ListOrdered, Link2, Image as ImageIcon, CheckCircle, FileQuestion, GripVertical, Trash, Loader2, ChevronUp, ChevronDown, Video, Upload, Clock } from "lucide-react";
 import Image from "next/image";
 
 import AdminSidebar from "@/components/dashboard/AdminSidebar";
@@ -87,6 +87,29 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
   const [expandedQuizId, setExpandedQuizId] = useState<number | null>(null);
   const [quizQuestions, setQuizQuestions] = useState<Record<number, any[]>>({});
   const [isLoadingQuestions, setIsLoadingQuestions] = useState<number | null>(null);
+
+  // Add Module Modal
+  const [addModuleModal, setAddModuleModal] = useState<{
+    isOpen: boolean;
+    sectionId: string;
+    type: 'page' | 'quiz' | 'video' | 'pdf' | null;
+    name: string;
+    videoUrl: string;
+    pdfBase64: string | null;
+    pdfName: string;
+    timelimit: number;
+    isCreating: boolean;
+  }>({
+    isOpen: false,
+    sectionId: '',
+    type: null,
+    name: '',
+    videoUrl: '',
+    pdfBase64: null,
+    pdfName: '',
+    timelimit: 0,
+    isCreating: false,
+  });
   
   // Category states
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -440,46 +463,97 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
     });
   };
 
-  const handleAddModule = async (sectionId: string) => {
-    if (!selectedCourse) return;
-    
-    // Type selection
-    const type = confirm("Create a QUIZ instead of a PAGE?\n\nOK = Quiz\nCancel = Page") ? 'quiz' : 'page';
-    
-    const assetTitle = prompt(type === 'quiz' ? "Quiz Name (e.g. Module 1 Assessment):" : "Asset Name (e.g. Introduction Video):");
-    if (!assetTitle) return;
-
-    startTransition(async () => {
-      try {
-        let res;
-        if (type === 'quiz') {
-          // Import initExam dynamically or call it via callMoodleAdmin if possible
-          // But CoursesClient uses callMoodleAdmin mostly.
-          res = await callMoodleAdmin("local_skillsaint_init_exam", {
-             courseid: selectedCourse.id,
-             name: assetTitle,
-             sectionid: parseInt(sectionId)
-          });
-        } else {
-          res = await callMoodleAdmin("local_skillsaint_add_module", {
-             courseid: selectedCourse.id,
-             sectionid: parseInt(sectionId),
-             name: assetTitle,
-             content: `<p>New learning content for ${assetTitle}</p>`
-          });
-        }
-
-        if (res?.exception) {
-          toast.error(`Direct deployment failed: ${res.message}.`);
-        } else {
-          const fresh = await callMoodleAdmin("core_course_get_contents", { courseid: selectedCourse.id });
-          if (Array.isArray(fresh)) setCourseContents(fresh);
-          toast.success(`${type === 'quiz' ? 'Quiz' : 'Asset'} "${assetTitle}" deployed to curriculum.`);
-        }
-      } catch {
-        toast.error("Deployment failed.");
-      }
+  const openAddModuleModal = (sectionId: string) => {
+    setAddModuleModal({
+      isOpen: true,
+      sectionId,
+      type: null,
+      name: '',
+      videoUrl: '',
+      pdfBase64: null,
+      pdfName: '',
+      timelimit: 0,
+      isCreating: false,
     });
+  };
+
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const base64 = await toBase64(file);
+    setAddModuleModal(prev => ({ ...prev, pdfBase64: base64, pdfName: file.name }));
+  };
+
+  const handleCreateModule = async () => {
+    if (!selectedCourse || !addModuleModal.type || !addModuleModal.name.trim()) {
+      toast.error("Please select a type and enter a name.");
+      return;
+    }
+
+    setAddModuleModal(prev => ({ ...prev, isCreating: true }));
+
+    try {
+      let res;
+      const { type, name, sectionId, videoUrl, pdfBase64, timelimit } = addModuleModal;
+
+      if (type === 'quiz') {
+        res = await callMoodleAdmin("local_skillsaint_init_exam", {
+          courseid: selectedCourse.id,
+          name: name.trim(),
+          sectionid: parseInt(sectionId),
+          timelimit: timelimit * 60 // Convert minutes to seconds for Moodle
+        });
+      } else if (type === 'video') {
+        // Convert YouTube/Vimeo URL to embed
+        let embedHtml = '';
+        const url = videoUrl.trim();
+        const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([\w-]+)/);
+        const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+        if (ytMatch) {
+          embedHtml = `<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" style="position:absolute;top:0;left:0;width:100%;height:100%;" frameborder="0" allowfullscreen></iframe></div>`;
+        } else if (vimeoMatch) {
+          embedHtml = `<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;"><iframe src="https://player.vimeo.com/video/${vimeoMatch[1]}" style="position:absolute;top:0;left:0;width:100%;height:100%;" frameborder="0" allowfullscreen></iframe></div>`;
+        } else if (url) {
+          embedHtml = `<video controls width="100%" style="border-radius:12px;"><source src="${url}" type="video/mp4">Your browser does not support video.</video>`;
+        }
+        res = await callMoodleAdmin("local_skillsaint_add_module", {
+          courseid: selectedCourse.id,
+          sectionid: parseInt(sectionId),
+          name: name.trim(),
+          content: embedHtml || `<p>Video: ${name.trim()}</p>`
+        });
+      } else if (type === 'pdf' && pdfBase64) {
+        const embedHtml = `<embed src="${pdfBase64}" type="application/pdf" width="100%" height="800px" style="border-radius:12px;border:1px solid #e5e7eb;" />`;
+        res = await callMoodleAdmin("local_skillsaint_add_module", {
+          courseid: selectedCourse.id,
+          sectionid: parseInt(sectionId),
+          name: name.trim(),
+          content: embedHtml
+        });
+      } else {
+        // Default: Page
+        res = await callMoodleAdmin("local_skillsaint_add_module", {
+          courseid: selectedCourse.id,
+          sectionid: parseInt(sectionId),
+          name: name.trim(),
+          content: `<p>New learning content for ${name.trim()}</p>`
+        });
+      }
+
+      if (res?.exception) {
+        toast.error(`Deployment failed: ${res.message}.`);
+      } else {
+        const fresh = await callMoodleAdmin("core_course_get_contents", { courseid: selectedCourse.id });
+        if (Array.isArray(fresh)) setCourseContents(fresh);
+        const typeLabel = type === 'quiz' ? 'Assessment' : type === 'video' ? 'Video' : type === 'pdf' ? 'Document' : 'Page';
+        toast.success(`${typeLabel} "${name.trim()}" deployed successfully.`);
+        setAddModuleModal(prev => ({ ...prev, isOpen: false }));
+      }
+    } catch {
+      toast.error("Deployment failed.");
+    } finally {
+      setAddModuleModal(prev => ({ ...prev, isCreating: false }));
+    }
   };
 
   const fetchQuizQuestions = async (quizId: number) => {
@@ -768,7 +842,7 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
                   {courses.map(course => (
                     <div 
                       key={course.id} 
-                      className="group relative bg-white dark:bg-[#1e293b] rounded-[3rem] p-8 shadow-sm border border-gray-50 dark:border-slate-800 hover:border-purple-100 dark:hover:border-purple-900 hover:shadow-2xl hover:shadow-purple-500/5 transition-all duration-500 hover:-translate-y-2 flex flex-col overflow-hidden animate-in fade-in duration-700 slide-in-from-bottom-5"
+                      className="group relative bg-white dark:bg-[#1e293b] rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-800 hover:border-purple-100 dark:hover:border-purple-900 hover:shadow-2xl hover:shadow-purple-500/5 transition-all duration-500 hover:-translate-y-1 flex flex-col overflow-hidden animate-in fade-in duration-700 slide-in-from-bottom-5"
                     >
                       {/* Visual Accent */}
                       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-500/5 to-indigo-500/5 rounded-bl-[5rem] group-hover:scale-150 transition-transform duration-700" />
@@ -826,31 +900,30 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
 
                       {/* Quick Stats/Actions */}
                       <div className="flex items-center justify-between pt-6 border-t border-gray-50 dark:border-slate-800 relative z-10">
-                        <div className="flex -space-x-3">
-                           <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-slate-900 border-2 border-white dark:border-slate-800 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-sm">
-                             <Users className="w-4 h-4" />
-                           </div>
-                           <div className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-slate-800 border-2 border-white dark:border-slate-700 flex items-center justify-center text-gray-300 dark:text-slate-600 shadow-sm">
-                             <Plus className="w-3 h-3" />
-                           </div>
-                        </div>
-                        
                         <div className="flex items-center gap-2">
                           <button 
                             onClick={(e) => { e.stopPropagation(); handleOpenView(course); }} 
-                            className="w-11 h-11 rounded-2xl bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:bg-gray-900 dark:hover:bg-purple-600 hover:text-white dark:hover:text-white transition-all duration-300 flex items-center justify-center shadow-sm"
+                            className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:bg-gray-900 dark:hover:bg-purple-600 hover:text-white dark:hover:text-white transition-all duration-300 flex items-center justify-center shadow-sm"
                             title="Structure Overview"
                           >
                             <Eye className="w-5 h-5" />
                           </button>
                           <button 
                             onClick={(e) => { e.stopPropagation(); handleOpenEdit(course); }} 
-                            className="w-11 h-11 rounded-2xl bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:bg-purple-600 dark:hover:bg-purple-500 hover:text-white dark:hover:text-white transition-all duration-300 flex items-center justify-center shadow-sm"
+                            className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:bg-purple-600 dark:hover:bg-purple-500 hover:text-white dark:hover:text-white transition-all duration-300 flex items-center justify-center shadow-sm"
                             title="Core Settings"
                           >
                             <Pencil className="w-5 h-5" />
                           </button>
                         </div>
+
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleDelete(course); }} 
+                          className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-900/10 text-red-400 hover:bg-red-500 hover:text-white transition-all duration-300 flex items-center justify-center shadow-sm"
+                          title="Delete Course"
+                        >
+                          <Trash className="w-5 h-5" />
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -1121,7 +1194,7 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
                                      </div>
                                   </div>
                                    <div className="flex gap-2">
-                                     <button onClick={() => selectedCourse && handleAddModule(section.id)} type="button" className="w-10 h-10 rounded-full bg-gray-50 dark:bg-slate-900 flex items-center justify-center text-gray-400 dark:text-slate-500 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-slate-800 transition-all" title="Add Asset">
+                                     <button onClick={() => selectedCourse && openAddModuleModal(section.id)} type="button" className="w-10 h-10 rounded-full bg-gray-50 dark:bg-slate-900 flex items-center justify-center text-gray-400 dark:text-slate-500 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-slate-800 transition-all" title="Add Asset">
                                         <Plus className="w-5 h-5" />
                                      </button>
                                      <button onClick={() => handleRenameSection(section.id, section.name)} type="button" className="w-10 h-10 rounded-full bg-gray-50 dark:bg-slate-900 flex items-center justify-center text-gray-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-slate-800 transition-all" title="Rename Chapter">
@@ -1351,29 +1424,150 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
           </div>
         </div>
       )}
-
       {isViewModalOpen && selectedCourse && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#1e293b] max-w-6xl w-full max-h-[90vh] rounded-[2rem] shadow-2xl flex flex-col overflow-hidden relative border border-gray-100 dark:border-slate-800">
-             <div className="flex justify-between items-start p-8 border-b border-gray-100 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900">
-                <h2 className="text-2xl font-black text-gray-900 dark:text-white">{selectedCourse.fullname}</h2>
-                <button onClick={() => setIsViewModalOpen(false)} className="p-2.5 bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-slate-500 hover:text-gray-900 dark:hover:text-white rounded-full">
-                  <X className="w-5 h-5" />
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-[#0b1120] max-w-5xl w-full max-h-[90vh] rounded-[3rem] shadow-[0_0_50px_rgba(0,0,0,0.3)] flex flex-col overflow-hidden relative border border-gray-100 dark:border-slate-800 animate-in zoom-in-95 duration-300">
+             
+             {/* Hero Header Area */}
+             <div className="relative h-48 md:h-56 shrink-0 overflow-hidden">
+                {(() => {
+                   const hasOverview = selectedCourse.overviewfiles && selectedCourse.overviewfiles.length > 0;
+                   const imageUrl = hasOverview ? selectedCourse.overviewfiles![0].fileurl : selectedCourse.courseimage;
+                   const finalUrl = formatMoodleImageUrl(imageUrl);
+                   
+                   if (finalUrl) {
+                     return (
+                       <Image 
+                         src={finalUrl} 
+                         alt={selectedCourse.fullname} 
+                         fill
+                         className="object-cover"
+                         unoptimized={true}
+                       />
+                     );
+                   }
+                   return <div className="w-full h-full bg-gradient-to-br from-purple-600 to-indigo-900" />;
+                })()}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                
+                <button onClick={() => setIsViewModalOpen(false)} className="absolute top-8 right-8 p-3 bg-white/10 backdrop-blur-md text-white hover:bg-white/20 rounded-2xl transition-all border border-white/20">
+                  <X className="w-6 h-6" />
                 </button>
-             </div>
-             <div className="flex-1 overflow-y-auto w-full p-8 bg-gray-50/50 dark:bg-slate-900/50">
-                {courseContents.map(section => (
-                   <div key={section.id} className="mb-6 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-6">
-                      <h3 className="font-bold text-lg dark:text-white mb-4">{section.name}</h3>
-                      {section.modules?.map(mod => (
-                        <div key={mod.id} className="p-4 bg-gray-50 dark:bg-slate-900 rounded-xl mb-2 dark:text-slate-300">{mod.name}</div>
-                      ))}
+
+                <div className="absolute bottom-10 left-10 right-10">
+                   <div className="flex items-center gap-3 mb-4">
+                      <span className="px-4 py-1.5 rounded-full bg-purple-600 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-purple-500/30">
+                        {categories.find(c => parseInt(c.slug.current) === selectedCourse.categoryid)?.title || "General"}
+                      </span>
+                      <span className="px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-widest border border-white/20">
+                        REF: {selectedCourse.shortname}
+                      </span>
                    </div>
-                ))}
+                   <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-none drop-shadow-2xl">{selectedCourse.fullname}</h2>
+                </div>
              </div>
-             <div className="flex items-center justify-between p-6 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
-                <button onClick={() => handleDelete(selectedCourse)} className="text-red-500 hover:text-red-700 dark:hover:text-red-400 px-4 py-2 rounded-xl text-sm font-bold">Delete Course</button>
-                <button onClick={() => { setIsViewModalOpen(false); handleOpenEdit(selectedCourse); }} className="bg-indigo-600 dark:bg-purple-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold">Edit Course</button>
+
+             <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+                {/* Left: Summary & Metadata */}
+                <div className="w-full md:w-80 border-r border-gray-100 dark:border-slate-800 p-8 overflow-y-auto bg-gray-50/30 dark:bg-slate-900/30 shrink-0">
+                   <h4 className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-4">Course Narrative</h4>
+                   <p className="text-sm text-gray-600 dark:text-slate-400 leading-relaxed font-medium mb-8">
+                     {selectedCourse.summary.replace(/<[^>]*>/g, '') || "No specialized summary available for this architectural build."}
+                   </p>
+
+                   <div className="space-y-4">
+                      <div className="flex items-center gap-4 p-4 bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700">
+                         <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-600">
+                            <BookOpen size={20} />
+                         </div>
+                         <div>
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Curriculum</p>
+                            <p className="text-xs font-bold text-gray-900 dark:text-white">{courseContents.length} Major Chapters</p>
+                         </div>
+                      </div>
+                      <div className="flex items-center gap-4 p-4 bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700">
+                         <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600">
+                            <Users size={20} />
+                         </div>
+                         <div>
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Status</p>
+                            <p className="text-xs font-bold text-gray-900 dark:text-white">{selectedCourse.visible ? "Public Distribution" : "Internal Archive"}</p>
+                         </div>
+                      </div>
+                   </div>
+                </div>
+
+                {/* Right: Curriculum View */}
+                <div className="flex-1 overflow-y-auto p-8 bg-white dark:bg-[#0b1120]">
+                   <div className="flex items-center justify-between mb-8">
+                      <h4 className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">Academic Architecture</h4>
+                      {isLoadingContents && <Loader2 className="w-4 h-4 text-purple-600 animate-spin" />}
+                   </div>
+
+                   {isLoadingContents ? (
+                      <div className="space-y-4">
+                         {[1,2,3].map(i => (
+                           <div key={i} className="h-20 bg-gray-50 dark:bg-slate-900 rounded-[2rem] animate-pulse" />
+                         ))}
+                      </div>
+                   ) : courseContents.length === 0 ? (
+                      <div className="py-20 text-center">
+                         <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">No curriculum modules deployed.</p>
+                      </div>
+                   ) : (
+                      <div className="space-y-6">
+                         {courseContents.map((section, sIdx) => (
+                            <div key={section.id} className="group/section">
+                               <div className="flex items-center gap-4 mb-4">
+                                  <div className="w-8 h-8 rounded-full bg-gray-900 text-white flex items-center justify-center text-[10px] font-black">
+                                     {sIdx + 1}
+                                  </div>
+                                  <h3 className="font-black text-gray-900 dark:text-white text-lg tracking-tight uppercase">{section.name || "Untitled Segment"}</h3>
+                               </div>
+                               <div className="grid grid-cols-1 gap-3 pl-12">
+                                  {section.modules?.filter(m => m.modname !== 'forum').map(mod => (
+                                     <div key={mod.id} className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-slate-900 rounded-2xl border border-transparent hover:border-purple-100 dark:hover:border-purple-900 hover:bg-white dark:hover:bg-slate-800 transition-all group/mod">
+                                        <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center text-gray-400 group-hover/mod:text-purple-600 transition-colors">
+                                           {mod.modname === 'quiz' ? <FileQuestion size={16} /> : <FileText size={16} />}
+                                        </div>
+                                        <span className="text-sm font-bold text-gray-700 dark:text-slate-300 group-hover/mod:text-gray-900 dark:group-hover/mod:text-white transition-colors">{mod.name}</span>
+                                        {mod.modname === 'quiz' && (
+                                           <span className="ml-auto text-[8px] font-black bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded-full uppercase tracking-widest">Exam</span>
+                                        )}
+                                     </div>
+                                  ))}
+                                  {(!section.modules || section.modules.length === 0) && (
+                                     <p className="text-[10px] text-gray-400 italic">No assets in this chapter.</p>
+                                  )}
+                               </div>
+                            </div>
+                         ))}
+                      </div>
+                   )}
+                </div>
+             </div>
+
+             <div className="p-8 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between shrink-0">
+                <button 
+                  onClick={() => handleDelete(selectedCourse)} 
+                  className="px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all"
+                >
+                  Terminate Course
+                </button>
+                <div className="flex gap-4">
+                   <button 
+                     onClick={() => setIsViewModalOpen(false)} 
+                     className="px-8 py-4 rounded-2xl bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest hover:bg-gray-100 transition-all"
+                   >
+                     Close Overview
+                   </button>
+                   <button 
+                     onClick={() => { setIsViewModalOpen(false); handleOpenEdit(selectedCourse); }} 
+                     className="px-8 py-4 rounded-2xl bg-gray-900 dark:bg-purple-600 text-white text-[10px] font-black uppercase tracking-widest shadow-xl shadow-gray-200 dark:shadow-none hover:bg-purple-600 dark:hover:bg-purple-700 transition-all active:scale-95"
+                   >
+                     Enter Design Studio
+                   </button>
+                </div>
              </div>
           </div>
         </div>
@@ -1492,6 +1686,163 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
                  <Plus className="w-4 h-4" /> Add New Domain
                </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Add Module Modal */}
+      {addModuleModal.isOpen && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-[#1e293b] rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden border border-gray-100 dark:border-slate-800 p-10 relative animate-in zoom-in-95 duration-300">
+            <button onClick={() => setAddModuleModal(prev => ({ ...prev, isOpen: false }))} className="absolute top-8 right-8 text-gray-400 dark:text-slate-500 hover:text-gray-900 dark:hover:text-white transition-colors">
+              <X className="w-6 h-6" />
+            </button>
+
+            <div className="mb-8">
+              <div className="w-14 h-14 rounded-2xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-600 dark:text-purple-400 mb-4">
+                <Plus className="w-7 h-7" />
+              </div>
+              <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Deploy New Asset</h2>
+              <p className="text-gray-400 dark:text-slate-500 text-sm mt-1 font-medium">Choose the asset type and configure it below.</p>
+            </div>
+
+            {/* Type Selector */}
+            <div className="grid grid-cols-4 gap-3 mb-8">
+              {[
+                { key: 'page' as const, icon: FileText, label: 'Page', color: 'blue' },
+                { key: 'quiz' as const, icon: FileQuestion, label: 'Quiz', color: 'purple' },
+                { key: 'video' as const, icon: Video, label: 'Video', color: 'rose' },
+                { key: 'pdf' as const, icon: Upload, label: 'Document', color: 'amber' },
+              ].map(item => {
+                const isActive = addModuleModal.type === item.key;
+                const colorMap: Record<string, string> = {
+                  blue: isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 dark:shadow-none' : 'bg-gray-50 dark:bg-slate-800 text-gray-400 hover:bg-blue-50 hover:text-blue-600',
+                  purple: isActive ? 'bg-purple-600 text-white shadow-lg shadow-purple-200 dark:shadow-none' : 'bg-gray-50 dark:bg-slate-800 text-gray-400 hover:bg-purple-50 hover:text-purple-600',
+                  rose: isActive ? 'bg-rose-600 text-white shadow-lg shadow-rose-200 dark:shadow-none' : 'bg-gray-50 dark:bg-slate-800 text-gray-400 hover:bg-rose-50 hover:text-rose-600',
+                  amber: isActive ? 'bg-amber-600 text-white shadow-lg shadow-amber-200 dark:shadow-none' : 'bg-gray-50 dark:bg-slate-800 text-gray-400 hover:bg-amber-50 hover:text-amber-600',
+                };
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => setAddModuleModal(prev => ({ ...prev, type: item.key }))}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-2xl transition-all duration-300 ${colorMap[item.color]}`}
+                  >
+                    <item.icon className="w-6 h-6" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Name Input */}
+            {addModuleModal.type && (
+              <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest ml-1">Asset Name *</label>
+                  <input
+                    type="text"
+                    value={addModuleModal.name}
+                    onChange={e => setAddModuleModal(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder={addModuleModal.type === 'quiz' ? 'e.g. Module 1 Assessment' : addModuleModal.type === 'video' ? 'e.g. Introduction Lecture' : addModuleModal.type === 'pdf' ? 'e.g. Course Syllabus' : 'e.g. Chapter Overview'}
+                    className="w-full px-5 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-4 focus:ring-purple-100 dark:focus:ring-purple-900/20 text-gray-900 dark:text-white transition-all font-bold placeholder:font-normal dark:placeholder:text-slate-600"
+                    autoFocus
+                  />
+                </div>
+
+                {/* Video URL Field */}
+                {addModuleModal.type === 'video' && (
+                  <div className="space-y-2 animate-in fade-in duration-200">
+                    <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest ml-1">Video URL</label>
+                    <input
+                      type="url"
+                      value={addModuleModal.videoUrl}
+                      onChange={e => setAddModuleModal(prev => ({ ...prev, videoUrl: e.target.value }))}
+                      placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..."
+                      className="w-full px-5 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-4 focus:ring-rose-100 dark:focus:ring-rose-900/20 text-gray-900 dark:text-white transition-all font-bold placeholder:font-normal dark:placeholder:text-slate-600"
+                    />
+                    <p className="text-[10px] text-gray-400 ml-1 font-medium">YouTube, Vimeo, or direct MP4 link supported.</p>
+                  </div>
+                )}
+
+                {/* Time Limit Field for Quiz */}
+                {addModuleModal.type === 'quiz' && (
+                  <div className="space-y-2 animate-in fade-in duration-200">
+                    <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest ml-1">Time Limit (Minutes)</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        value={addModuleModal.timelimit}
+                        onChange={e => setAddModuleModal(prev => ({ ...prev, timelimit: parseInt(e.target.value) || 0 }))}
+                        placeholder="e.g. 60"
+                        className="w-full px-5 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-4 focus:ring-purple-100 dark:focus:ring-purple-900/20 text-gray-900 dark:text-white font-bold"
+                      />
+                      <Clock className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-300 w-5 h-5" />
+                    </div>
+                    <p className="text-[10px] text-gray-400 ml-1 font-medium">Set to 0 for no time limit.</p>
+                  </div>
+                )}
+
+                {/* PDF Upload Field */}
+                {addModuleModal.type === 'pdf' && (
+                  <div className="space-y-2 animate-in fade-in duration-200">
+                    <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest ml-1">Upload Document</label>
+                    <label className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-2xl cursor-pointer transition-all group ${
+                      addModuleModal.pdfBase64 ? 'border-amber-200 bg-amber-50/30 dark:border-amber-800 dark:bg-amber-900/10' : 'border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 hover:border-amber-300 hover:bg-amber-50/20'
+                    }`}>
+                      <div className="flex flex-col items-center justify-center py-4">
+                        {addModuleModal.pdfBase64 ? (
+                          <>
+                            <CheckCircle className="w-6 h-6 text-amber-600 mb-1" />
+                            <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest">{addModuleModal.pdfName}</p>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-6 h-6 text-gray-300 dark:text-slate-600 mb-1 group-hover:text-amber-500 transition-colors" />
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Choose PDF file</p>
+                          </>
+                        )}
+                      </div>
+                      <input type="file" className="hidden" accept=".pdf" onChange={handlePdfUpload} />
+                    </label>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setAddModuleModal(prev => ({ ...prev, isOpen: false }))}
+                    className="flex-1 px-4 py-4 rounded-2xl bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-slate-400 font-black tracking-widest uppercase text-[10px] hover:bg-gray-100 dark:hover:bg-slate-700 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCreateModule}
+                    disabled={addModuleModal.isCreating || !addModuleModal.name.trim() || (addModuleModal.type === 'pdf' && !addModuleModal.pdfBase64)}
+                    className="flex-[2] px-4 py-4 rounded-2xl bg-purple-600 text-white font-black tracking-widest uppercase text-[10px] shadow-lg shadow-purple-200 dark:shadow-none hover:bg-purple-700 hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50 disabled:hover:translate-y-0 flex items-center justify-center gap-2"
+                  >
+                    {addModuleModal.isCreating ? (
+                      <>
+                        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Deploying...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        Deploy {addModuleModal.type === 'quiz' ? 'Assessment' : addModuleModal.type === 'video' ? 'Video' : addModuleModal.type === 'pdf' ? 'Document' : 'Page'}
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Empty State */}
+            {!addModuleModal.type && (
+              <p className="text-center text-sm text-gray-300 dark:text-slate-600 font-bold py-4">Select an asset type above to continue.</p>
+            )}
           </div>
         </div>
       )}

@@ -1265,7 +1265,7 @@ class local_skillsaint_external extends external_api
     {
         global $DB;
         $quizzes = $DB->get_records_sql("
-            SELECT q.id, q.course, q.name, q.intro, c.fullname as coursename,
+            SELECT q.id, q.course, q.name, q.intro, q.timelimit, c.fullname as coursename,
                    (SELECT COUNT(*) FROM {quiz_slots} WHERE quizid = q.id) as questioncount
             FROM {quiz} q
             JOIN {course} c ON c.id = q.course
@@ -1280,6 +1280,7 @@ class local_skillsaint_external extends external_api
                 'coursename' => $q->coursename,
                 'name' => $q->name,
                 'intro' => $q->intro,
+                'timelimit' => (int) $q->timelimit,
                 'questioncount' => (int) $q->questioncount
             );
         }
@@ -1295,6 +1296,7 @@ class local_skillsaint_external extends external_api
                 'coursename' => new external_value(PARAM_TEXT, 'Course Fullname'),
                 'name' => new external_value(PARAM_TEXT, 'Quiz Name'),
                 'intro' => new external_value(PARAM_RAW, 'Quiz Intro'),
+                'timelimit' => new external_value(PARAM_INT, 'Time limit in seconds'),
                 'questioncount' => new external_value(PARAM_INT, 'Number of questions')
             ))
         );
@@ -1601,11 +1603,12 @@ class local_skillsaint_external extends external_api
                 'courseid' => new external_value(PARAM_INT, 'The course ID'),
                 'name' => new external_value(PARAM_TEXT, 'The quiz name', VALUE_DEFAULT, 'Final Assessment'),
                 'sectionid' => new external_value(PARAM_INT, 'The section ID to place the quiz in', VALUE_DEFAULT, 0),
+                'timelimit' => new external_value(PARAM_INT, 'The time limit in seconds', VALUE_DEFAULT, 0),
             )
         );
     }
 
-    public static function init_exam($courseid, $name, $sectionid = 0)
+    public static function init_exam($courseid, $name, $sectionid = 0, $timelimit = 0)
     {
         global $DB, $CFG;
         require_once($CFG->dirroot . '/mod/quiz/lib.php');
@@ -1624,7 +1627,7 @@ class local_skillsaint_external extends external_api
         $quiz->introformat = FORMAT_HTML;
         $quiz->timeopen = 0;
         $quiz->timeclose = 0;
-        $quiz->timelimit = 0;
+        $quiz->timelimit = $timelimit;
         $quiz->overduehandling = 'autosubmit';
         $quiz->graceperiod = 0;
         $quiz->preferredbehaviour = 'deferredfeedback';

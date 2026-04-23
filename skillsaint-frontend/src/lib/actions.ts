@@ -277,17 +277,22 @@ export async function getQuizQuestionsAction(quizId: number) {
         return { error: "Cet examen ne contient pas encore de questions." };
     }
 
-    // Get the real quiz name from the exams list
+    // Get the real quiz name and timelimit from the exams list
     let quizName = "Certification Assessment";
+    let timeLimit = 0;
     if (Array.isArray(allExams)) {
-      const quiz = allExams.find((e: { id: number; name: string }) => e.id === quizId);
-      if (quiz) quizName = quiz.name;
+      const quiz = allExams.find((e: { id: number; name: string; timelimit?: number; timeLimit?: number }) => e.id === quizId);
+      if (quiz) {
+        quizName = quiz.name;
+        timeLimit = quiz.timelimit || quiz.timeLimit || 0;
+      }
     }
 
     return { 
       success: true, 
       questions: result,
-      quizName
+      quizName,
+      timeLimit
     };
   } catch (error) {
     return { error: "Erreur lors de la récupération des questions." };
@@ -394,11 +399,11 @@ export async function getStudentDashboardAction() {
         const courseIds = new Set(dashboardData.courses.map(c => c.id));
         dashboardData.exams = allExamsData
           .filter((e: { courseid: number }) => courseIds.has(e.courseid))
-          .map((e: { id: number; name: string; courseid: number; intro?: string; questioncount?: number }) => ({
+          .map((e: { id: number; name: string; courseid: number; intro?: string; questioncount?: number; timelimit?: number; timeLimit?: number }) => ({
             id: e.id,
             courseid: e.courseid,
             name: e.name,
-            timeLimit: 0,
+            timeLimit: e.timelimit || e.timeLimit || 0,
             intro: e.intro || "",
             questioncount: e.questioncount || 0
           }));
