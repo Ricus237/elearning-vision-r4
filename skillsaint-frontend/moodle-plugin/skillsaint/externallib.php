@@ -1878,6 +1878,19 @@ class local_skillsaint_external extends external_api
             }
         }
 
+        // 4. User Results
+        $results_raw = $DB->get_records('local_skillsaint_exam_results', array('userid' => $userid), 'timecreated DESC');
+        $results = array();
+        foreach ($results_raw as $r) {
+            $results[] = array(
+                'id' => (int) $r->id,
+                'quizid' => (int) $r->quizid,
+                'score' => (float) $r->score,
+                'attempt' => (int) $r->attempt_number,
+                'date' => (int) $r->timecreated,
+            );
+        }
+
         return array(
             'plan' => $plan,
             'phone' => $phone,
@@ -1886,6 +1899,7 @@ class local_skillsaint_external extends external_api
             'spiritual_bg' => $spiritual_bg,
             'courses' => $enrolled_courses,
             'exams' => $exams,
+            'results' => $results,
         );
     }
 
@@ -1913,6 +1927,15 @@ class local_skillsaint_external extends external_api
                     'name' => new external_value(PARAM_TEXT, 'Quiz name'),
                     'timeLimit' => new external_value(PARAM_INT, 'Time limit in seconds'),
                     'intro' => new external_value(PARAM_RAW, 'Intro text'),
+                ))
+            ),
+            'results' => new external_multiple_structure(
+                new external_single_structure(array(
+                    'id' => new external_value(PARAM_INT, 'Record ID'),
+                    'quizid' => new external_value(PARAM_INT, 'Quiz ID'),
+                    'score' => new external_value(PARAM_FLOAT, 'Score'),
+                    'attempt' => new external_value(PARAM_INT, 'Attempt number'),
+                    'date' => new external_value(PARAM_INT, 'Timestamp'),
                 ))
             ),
         ));
@@ -2459,6 +2482,110 @@ class local_skillsaint_external extends external_api
             'status'  => new external_value(PARAM_TEXT, 'success or error'),
             'message' => new external_value(PARAM_TEXT, 'Status message'),
         ));
+    }
+
+    /**
+     * Save an exam attempt result.
+     */
+    public static function save_exam_result_parameters()
+    {
+        return new external_function_parameters(array(
+            'userid' => new external_value(PARAM_INT, 'User ID'),
+            'quizid' => new external_value(PARAM_INT, 'Quiz ID'),
+            'score' => new external_value(PARAM_FLOAT, 'Calculated score (percentage)'),
+            'total_questions' => new external_value(PARAM_INT, 'Total number of questions'),
+            'correct_count' => new external_value(PARAM_INT, 'Number of correct answers'),
+        ));
+    }
+
+    public static function save_exam_result($userid, $quizid, $score, $total_questions, $correct_count)
+    {
+        global $DB;
+
+        // Calculate attempt number
+        $attempt_count = $DB->count_records('local_skillsaint_exam_results', array('userid' => $userid, 'quizid' => $quizid));
+        
+        $record = new stdClass();
+        $record->userid = $userid;
+        $record->quizid = $quizid;
+        $record->score = $score;
+        $record->total_questions = $total_questions;
+        $record->correct_count = $correct_count;
+        $record->attempt_number = $attempt_count + 1;
+        $record->timecreated = time();
+
+        $id = $DB->insert_record('local_skillsaint_exam_results', $record);
+
+        return array('status' => 'success', 'attempt_id' => $id);
+    }
+
+    public static function save_exam_result_returns()
+    {
+        return new external_single_structure(array(
+            'status' => new external_value(PARAM_TEXT, 'success or error'),
+            'attempt_id' => new external_value(PARAM_INT, 'The record ID'),
+        ));
+    }
+
+    /**
+     * Get all exam results for admin view.
+     */
+    public static function get_all_results_parameters()
+    {
+        return new external_function_parameters(array());
+    }
+
+    public static function get_all_results()
+    {
+        global $DB;
+        $sql = "
+            SELECT r.*, u.firstname, u.lastname, u.email, q.name as quizname, c.fullname as coursename
+            FROM {local_skillsaint_exam_results} r
+            JOIN {user} u ON u.id = r.userid
+            JOIN {quiz} q ON q.id = r.quizid
+            JOIN {course} c ON c.id = q.course
+            ORDER BY r.timecreated DESC
+        ";
+        $records = $DB->get_records_sql($sql);
+
+        $results = array();
+        foreach ($records as $r) {
+            $results[] = array(
+                'id' => (int) $r->id,
+                'userid' => (int) $r->userid,
+                'username' => trim($r->firstname . ' ' . $r->lastname),
+                'useremail' => $r->email,
+                'quizid' => (int) $r->quizid,
+                'quizname' => $r->quizname,
+                'coursename' => $r->coursename,
+                'score' => (float) $r->score,
+                'correct_count' => (int) $r->correct_count,
+                'total_questions' => (int) $r->total_questions,
+                'attempt_number' => (int) $r->attempt_number,
+                'timecreated' => (int) $r->timecreated,
+            );
+        }
+        return $results;
+    }
+
+    public static function get_all_results_returns()
+    {
+        return new external_multiple_structure(
+            new external_single_structure(array(
+                'id' => new external_value(PARAM_INT, 'Record ID'),
+                'userid' => new external_value(PARAM_INT, 'User ID'),
+                'username' => new external_value(PARAM_TEXT, 'Student name'),
+                'useremail' => new external_value(PARAM_TEXT, 'Student email'),
+                'quizid' => new external_value(PARAM_INT, 'Quiz ID'),
+                'quizname' => new external_value(PARAM_TEXT, 'Quiz name'),
+                'coursename' => new external_value(PARAM_TEXT, 'Course name'),
+                'score' => new external_value(PARAM_FLOAT, 'Score'),
+                'correct_count' => new external_value(PARAM_INT, 'Correct count'),
+                'total_questions' => new external_value(PARAM_INT, 'Total questions'),
+                'attempt_number' => new external_value(PARAM_INT, 'Attempt number'),
+                'timecreated' => new external_value(PARAM_INT, 'Unix timestamp'),
+            ))
+        );
     }
 
 }

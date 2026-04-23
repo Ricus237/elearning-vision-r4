@@ -61,5 +61,23 @@
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
       </KEYS>
     </TABLE>
+    <TABLE NAME="local_skillsaint_exam_results" COMMENT="Track user exam attempts and scores">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+        <FIELD NAME="quizid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+        <FIELD NAME="score" TYPE="number" LENGTH="10" DECIMALS="2" NOTNULL="true" DEFAULT="0.00"/>
+        <FIELD NAME="correct_count" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+        <FIELD NAME="total_questions" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+        <FIELD NAME="attempt_number" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="1"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="user_quiz_idx" UNIQUE="false" FIELDS="userid, quizid"/>
+      </INDEXES>
+    </TABLE>
   </TABLES>
 </XMLDB>

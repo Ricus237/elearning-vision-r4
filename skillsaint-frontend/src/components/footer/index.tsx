@@ -52,10 +52,6 @@ const Footer = ({ siteName, description }: FooterProps) => {
                   Made by <a href="https://visionca.com/" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:text-purple-800 transition-colors font-black">Vision/R4</a>
                 </p>
              </div>
-             <div className="flex gap-8">
-                <Link href="#" className="hover:text-purple-600 transition-colors">Privacy</Link>
-                <Link href="#" className="hover:text-slate-900 transition-colors">Terms</Link>
-             </div>
           </div>
         </div>
       </div>

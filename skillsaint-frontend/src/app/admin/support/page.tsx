@@ -4,10 +4,10 @@ import { useState, useEffect, useCallback } from "react";
 import {
   MessageCircle, CheckCircle2, Clock, Send, Filter,
   User, AlertCircle, RefreshCw, ChevronRight,
-  ArrowLeft, ShieldCheck,
+  ArrowLeft, ShieldCheck, Trash2, Mail, Loader2
 } from "lucide-react";
 import AdminSidebar from "@/components/dashboard/AdminSidebar";
-import { getAdminInquiriesAction, replyInquiryAction } from "@/lib/actions";
+import { getAdminInquiriesAction, replyInquiryAction, deleteInquiryAction } from "@/lib/actions";
 
 interface Inquiry {
   id: number;
@@ -51,24 +51,27 @@ export default function AdminSupportPage() {
   const [isSending, setIsSending] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<number | null>(null);
 
   const loadInquiries = useCallback(async (filter = "all") => {
     setIsLoading(true);
     try {
       const data = await getAdminInquiriesAction(filter);
-      setInquiries(data as Inquiry[]);
+      const inquiriesArray = data as Inquiry[];
+      setInquiries(inquiriesArray);
       
       // If we have a selected inquiry, refresh its data too
-      if (selectedInquiry) {
-        const updated = (data as Inquiry[]).find(i => i.id === selectedInquiry.id);
-        if (updated) setSelectedInquiry(updated);
-      }
+      setSelectedInquiry(prev => {
+        if (!prev) return null;
+        const updated = inquiriesArray.find(i => i.id === prev.id);
+        return updated || prev;
+      });
     } catch (err) {
       console.error(err);
     } finally {
       setIsLoading(false);
     }
-  }, [selectedInquiry]);
+  }, []);
 
   useEffect(() => { loadInquiries(activeFilter); }, [activeFilter, loadInquiries]);
 
@@ -83,6 +86,29 @@ export default function AdminSupportPage() {
     // Note: replyText is kept empty for new replies in a thread
     setReplyText(""); 
     setShowDetail(true);
+  };
+
+  const handleDelete = async (e: React.MouseEvent, inquiry: Inquiry) => {
+    e.stopPropagation();
+    if (!confirm("Are you sure you want to delete this conversation?")) return;
+    
+    setIsDeleting(inquiry.id);
+    try {
+      const result = await deleteInquiryAction(inquiry.id, inquiry.userid);
+      if (result.success) {
+        if (selectedInquiry?.id === inquiry.id) {
+          setSelectedInquiry(null);
+          setShowDetail(false);
+        }
+        await loadInquiries(activeFilter);
+      } else {
+        alert(result.error || "Failed to delete inquiry.");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsDeleting(null);
+    }
   };
 
   const handleSendReply = async (newStatus: "replied" | "resolved") => {
@@ -185,16 +211,20 @@ export default function AdminSupportPage() {
                     <button
                       key={inq.id}
                       onClick={() => handleSelect(inq)}
-                      className={`w-full text-left p-5 border-b border-gray-50 dark:border-slate-800 flex items-start gap-4 transition-colors group ${
+                      className={`w-full text-left p-5 border-b border-gray-50 dark:border-slate-800 flex items-start gap-4 transition-colors group relative ${
                         selectedInquiry?.id === inq.id
                           ? "bg-purple-50 dark:bg-purple-900/10 border-l-4 border-l-purple-600"
                           : "hover:bg-gray-50 dark:hover:bg-slate-800/30 border-l-4 border-l-transparent"
                       }`}
                     >
                       <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 text-sm font-black ${
-                        selectedInquiry?.id === inq.id ? "bg-purple-600 text-white" : "bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400"
+                        selectedInquiry?.id === inq.id 
+                        ? "bg-purple-600 text-white" 
+                        : inq.courseid === 0 
+                          ? "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600" 
+                          : "bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400"
                       }`}>
-                        {inq.student_name.charAt(0)}
+                        {inq.courseid === 0 ? <Mail size={16} /> : inq.student_name.charAt(0)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
@@ -204,15 +234,30 @@ export default function AdminSupportPage() {
                             {inq.status}
                           </span>
                         </div>
-                        <p className="text-[10px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest truncate mb-1">
-                          {inq.coursename}
-                        </p>
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className={`text-[10px] font-black uppercase tracking-widest truncate ${
+                            inq.courseid === 0 ? "text-indigo-600 dark:text-indigo-400" : "text-purple-600 dark:text-purple-400"
+                          }`}>
+                            {inq.courseid === 0 ? "Contact Form" : inq.coursename}
+                          </p>
+                          {inq.courseid === 0 && (
+                            <span className="px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 text-[8px] font-black rounded uppercase">Public</span>
+                          )}
+                        </div>
                         <p className="text-xs text-gray-500 dark:text-slate-500 font-medium truncate italic">{inq.subject}</p>
-                        <p className="text-[9px] text-gray-300 dark:text-slate-600 mt-1">
-                          {new Date(inq.timecreated * 1000).toLocaleDateString()}
-                        </p>
+                        <div className="flex items-center justify-between mt-2">
+                           <p className="text-[9px] text-gray-300 dark:text-slate-600">
+                            {new Date(inq.timecreated * 1000).toLocaleDateString()}
+                          </p>
+                          <button 
+                            onClick={(e) => handleDelete(e, inq)}
+                            disabled={isDeleting === inq.id}
+                            className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all opacity-0 group-hover:opacity-100"
+                          >
+                            {isDeleting === inq.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                          </button>
+                        </div>
                       </div>
-                      <ChevronRight size={16} className="text-gray-300 dark:text-slate-700 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors mt-1 shrink-0" />
                     </button>
                   ))
                 )}
@@ -230,11 +275,18 @@ export default function AdminSupportPage() {
                   >
                     <ArrowLeft size={18} />
                   </button>
-                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white font-black flex items-center justify-center text-sm">
-                    {selectedInquiry.student_name.charAt(0)}
+                  <div className={`w-10 h-10 rounded-2xl text-white font-black flex items-center justify-center text-sm ${
+                    selectedInquiry.courseid === 0 ? "bg-indigo-600 shadow-indigo-100" : "bg-gradient-to-br from-purple-600 to-indigo-600 shadow-purple-100"
+                  }`}>
+                    {selectedInquiry.courseid === 0 ? <Mail size={18} /> : selectedInquiry.student_name.charAt(0)}
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-black text-gray-900 dark:text-white leading-tight">{selectedInquiry.student_name}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-black text-gray-900 dark:text-white leading-tight">{selectedInquiry.student_name}</h3>
+                      {selectedInquiry.courseid === 0 && (
+                        <span className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 text-[8px] font-black rounded-full border border-indigo-100 dark:border-indigo-900/50 uppercase tracking-widest">Public Request</span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-3 mt-0.5">
                       <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500">{selectedInquiry.student_email}</p>
                       <span className={`inline-flex items-center gap-1 text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${statusColors[selectedInquiry.status]}`}>
@@ -242,14 +294,26 @@ export default function AdminSupportPage() {
                       </span>
                     </div>
                   </div>
+                  <button 
+                    onClick={(e) => handleDelete(e, selectedInquiry)}
+                    disabled={isDeleting === selectedInquiry.id}
+                    className="p-3 rounded-2xl text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all border border-gray-100 dark:border-slate-700"
+                    title="Delete Conversation"
+                  >
+                    {isDeleting === selectedInquiry.id ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
+                  </button>
                 </div>
 
                 {/* Messages Area (Chat Style) */}
                 <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 custom-scrollbar">
                     {/* Course Context */}
                     <div className="flex justify-center mb-4">
-                      <span className="px-4 py-1.5 bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] rounded-full">
-                        Inquiry regarding {selectedInquiry.coursename}
+                      <span className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] rounded-full ${
+                        selectedInquiry.courseid === 0 
+                        ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400" 
+                        : "bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400"
+                      }`}>
+                        {selectedInquiry.courseid === 0 ? "General Support Inquiry" : `Inquiry regarding ${selectedInquiry.coursename}`}
                       </span>
                     </div>
 
@@ -281,7 +345,22 @@ export default function AdminSupportPage() {
                                 ? "bg-white dark:bg-slate-800 border-gray-100 dark:border-slate-700 text-gray-800 dark:text-slate-200 rounded-tl-sm" 
                                 : "bg-purple-600 text-white border-purple-600 rounded-tr-sm shadow-purple-100 dark:shadow-none"
                               }`}>
-                                {msg.message}
+                                {msg.message.includes("--- GUEST CONTACT INFO ---") ? (
+                                  <div className="space-y-4">
+                                    <div className="p-4 bg-indigo-50 dark:bg-indigo-950/40 rounded-2xl border border-indigo-100 dark:border-indigo-900/50 text-indigo-900 dark:text-indigo-200 font-medium">
+                                      <p className="text-[10px] font-black uppercase tracking-widest mb-3 opacity-60">Sender Details</p>
+                                      {msg.message.split('--- GUEST CONTACT INFO ---')[1].split('-------------------------')[0].trim().split('\n').map((line, lidx) => (
+                                        <p key={lidx} className="flex items-center gap-2 mb-1">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+                                          {line}
+                                        </p>
+                                      ))}
+                                    </div>
+                                    <div className="pt-2">
+                                      {msg.message.split('-------------------------')[1]?.trim()}
+                                    </div>
+                                  </div>
+                                ) : msg.message}
                               </div>
                             </div>
                           </div>

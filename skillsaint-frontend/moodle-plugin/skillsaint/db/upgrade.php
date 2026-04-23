@@ -89,5 +89,27 @@ function xmldb_local_skillsaint_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2024041060, 'local', 'skillsaint');
     }
 
+    if ($oldversion < 2024041085) {
+        $table = new xmldb_table('local_skillsaint_exam_results');
+
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('quizid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('score', XMLDB_TYPE_NUMBER, '10, 2', null, XMLDB_NOTNULL, null, '0.00');
+        $table->add_field('correct_count', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('total_questions', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('attempt_number', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '1');
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+        $table->add_index('user_quiz_idx', XMLDB_INDEX_NOTUNIQUE, array('userid', 'quizid'));
+
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        upgrade_plugin_savepoint(true, 2024041085, 'local', 'skillsaint');
+    }
+
     return true;
 }

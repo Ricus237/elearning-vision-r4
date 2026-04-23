@@ -8,6 +8,7 @@ import {
   Users,
   BookOpen,
   FileQuestion,
+  Trophy,
   Globe,
   LogOut,
   Settings,
@@ -21,6 +22,7 @@ const navItems = [
   { href: "/admin/students", label: "Manage Students", icon: Users },
   { href: "/admin/courses", label: "Manage Courses", icon: BookOpen },
   { href: "/admin/exams", label: "Manage Exams", icon: FileQuestion },
+  { href: "/admin/exams/results", label: "Exam Results", icon: Trophy },
   { href: "/admin/support", label: "Support Inbox", icon: MessageCircle },
   { href: "/admin/site-content", label: "Site Content", icon: Globe },
 ];
@@ -30,7 +32,15 @@ const AdminSidebar = () => {
   const pathname = usePathname();
   const isActive = (href: string) => {
     if (href === "/admin/dashboard") return pathname === "/admin/dashboard";
-    return pathname.startsWith(href);
+    
+    // Check if there's a more specific nav item that matches the current pathname
+    const isMoreSpecificMatch = navItems.some(item => 
+      item.href !== href && 
+      item.href.startsWith(href) && 
+      pathname.startsWith(item.href)
+    );
+
+    return pathname.startsWith(href) && !isMoreSpecificMatch;
   };
 
   return (
@@ -55,11 +65,11 @@ const AdminSidebar = () => {
 
       {/* Sidebar Content */}
       <aside
-        className={`fixed md:sticky top-0 left-0 z-[100] w-72 h-screen bg-white dark:bg-[#0b1120] border-r border-gray-100 dark:border-slate-800 px-6 py-8 flex flex-col shrink-0 transition-transform duration-500 ease-in-out ${
+        className={`fixed md:sticky top-0 left-0 z-[100] w-64 h-screen bg-white dark:bg-[#0b1120] border-r border-gray-100 dark:border-slate-800 px-4 py-6 flex flex-col shrink-0 transition-transform duration-500 ease-in-out ${
           isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
       >
-      <div className="flex items-center gap-4 px-2 py-6 mb-10 border-b-2 border-gray-50 dark:border-slate-800/50">
+      <div className="flex items-center gap-4 px-2 py-4 mb-6 border-b-2 border-gray-50 dark:border-slate-800/50">
         <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white font-black text-2xl shadow-xl shadow-purple-200 dark:shadow-none rotate-3 group-hover:rotate-0 transition-transform">
           I
         </div>
@@ -70,13 +80,13 @@ const AdminSidebar = () => {
         </div>
       </div>
 
-      <nav className="flex-1 space-y-2">
-        <p className="px-4 text-[9px] font-black text-gray-300 dark:text-slate-600 uppercase tracking-[0.2em] mb-4">Operations</p>
+      <nav className="flex-1 space-y-1">
+        <p className="px-4 text-[9px] font-black text-gray-300 dark:text-slate-600 uppercase tracking-[0.2em] mb-2">Operations</p>
         {navItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}
-            className={`group flex items-center gap-4 px-4 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all duration-300 ${
+            className={`group flex items-center gap-4 px-4 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all duration-300 ${
               isActive(item.href)
                 ? "bg-gray-900 dark:bg-purple-600 text-white shadow-xl shadow-gray-200 dark:shadow-none -translate-y-0.5"
                 : "text-gray-400 dark:text-slate-500 hover:bg-purple-50 dark:hover:bg-slate-800/50 hover:text-purple-600 dark:hover:text-purple-400"
@@ -88,11 +98,11 @@ const AdminSidebar = () => {
         ))}
       </nav>
 
-      <div className="mt-auto pt-8 border-t border-gray-50 dark:border-slate-800/50 flex flex-col gap-2">
-        <p className="px-4 text-[9px] font-black text-gray-300 dark:text-slate-600 uppercase tracking-[0.2em] mb-2">Management</p>
+      <div className="mt-auto pt-4 border-t border-gray-50 dark:border-slate-800/50 flex flex-col gap-1">
+        <p className="px-4 text-[9px] font-black text-gray-300 dark:text-slate-600 uppercase tracking-[0.2em] mb-1">Management</p>
         <Link
           href="/admin/settings"
-          className="group flex items-center gap-4 px-4 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] text-gray-400 dark:text-slate-500 hover:bg-gray-50 dark:hover:bg-slate-800/50 hover:text-gray-900 dark:hover:text-white transition-all duration-300"
+          className="group flex items-center gap-4 px-4 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] text-gray-400 dark:text-slate-500 hover:bg-gray-50 dark:hover:bg-slate-800/50 hover:text-gray-900 dark:hover:text-white transition-all duration-300"
         >
           <Settings className="w-5 h-5 group-hover:rotate-90 transition-transform duration-700" />
           Settings
@@ -100,7 +110,7 @@ const AdminSidebar = () => {
         <form action={logoutAction}>
           <button
             type="submit"
-            className="group flex items-center gap-4 px-4 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 hover:text-red-600 transition-all duration-300 w-full text-left cursor-pointer"
+            className="group flex items-center gap-4 px-4 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 hover:text-red-600 transition-all duration-300 w-full text-left cursor-pointer"
           >
             <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
             Sign Out

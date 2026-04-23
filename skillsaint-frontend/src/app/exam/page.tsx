@@ -8,7 +8,7 @@ import {
   AlertTriangle, Clock, Trophy, Grid3X3, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { getQuizQuestionsAction } from "@/lib/actions";
+import { getQuizQuestionsAction, saveExamResultAction } from "@/lib/actions";
 
 interface QuestionType {
   id: number;
@@ -194,6 +194,46 @@ const ExamContent = () => {
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [initialTime, setInitialTime] = useState<number | null>(null);
 
+  const clearExamSession = () => {
+    if (quizIdStr) {
+      localStorage.removeItem(`ibi_exam_end_${quizIdStr}`);
+      document.cookie = "ibi_exam_active=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    }
+  };
+
+  const handleFinalSubmit = async (finalAnswers: Record<number, number>) => {
+    if (isSubmitted) return;
+
+    // Calculate results
+    let correct = 0;
+    questions.forEach((q, idx) => {
+      if (finalAnswers[idx] === q.correct) correct++;
+    });
+
+    const score = questions.length > 0 ? (correct / questions.length) * 100 : 0;
+
+    // Get User ID from cookies
+    const userIdMatch = document.cookie.match(/moodle_user_id=([^;]+)/);
+    const userId = userIdMatch ? parseInt(userIdMatch[1]) : 0;
+
+    if (userId && quizIdStr) {
+      try {
+        await saveExamResultAction({
+          userid: userId,
+          quizid: parseInt(quizIdStr),
+          score: score,
+          total_questions: questions.length,
+          correct_count: correct
+        });
+      } catch (err) {
+        console.error("Error saving exam result:", err);
+      }
+    }
+
+    clearExamSession();
+    setIsSubmitted(true);
+  };
+
   useEffect(() => {
     async function loadQuiz() {
       if (!quizIdStr) {
@@ -210,6 +250,7 @@ const ExamContent = () => {
           options: q.answers.map((a) => a.text),
           correct: q.correct,
         }));
+        
         if (mapped.length > 0) {
           setQuestions(mapped);
           setQuizName(result.quizName || "Assessment");
@@ -231,7 +272,28 @@ const ExamContent = () => {
             setTimeLeft(remaining);
             setInitialTime(result.timeLimit);
 
-            if (remaining === 0 && !isSubmitted) {
+            // If time is already up on load, and we had an existing session, submit it.
+            if (remaining === 0 && existingEnd) {
+              // Note: We use a small delay or ensure state is updated
+              let correctCount = 0;
+              mapped.forEach((q, idx) => {
+                if (selectedAnswers[idx] === q.correct) correctCount++;
+              });
+              const finalScore = (correctCount / mapped.length) * 100;
+              
+              const userIdMatch = document.cookie.match(/moodle_user_id=([^;]+)/);
+              const userId = userIdMatch ? parseInt(userIdMatch[1]) : 0;
+              
+              if (userId) {
+                await saveExamResultAction({
+                  userid: userId,
+                  quizid: parseInt(quizIdStr),
+                  score: finalScore,
+                  total_questions: mapped.length,
+                  correct_count: correctCount
+                });
+              }
+              clearExamSession();
               setIsSubmitted(true);
             }
           }
@@ -244,7 +306,7 @@ const ExamContent = () => {
       setIsLoading(false);
     }
     loadQuiz();
-  }, [quizIdStr, isSubmitted]);
+  }, [quizIdStr]);
 
   // Lockdown & Protection Effect
   useEffect(() => {
@@ -264,13 +326,6 @@ const ExamContent = () => {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [quizIdStr, isSubmitted, isLoading]);
 
-  const clearExamSession = () => {
-    if (quizIdStr) {
-      localStorage.removeItem(`ibi_exam_end_${quizIdStr}`);
-      document.cookie = "ibi_exam_active=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    }
-  };
-
   // Countdown Timer Effect
   useEffect(() => {
     if (timeLeft === null || timeLeft <= 0 || isSubmitted) return;
@@ -279,8 +334,7 @@ const ExamContent = () => {
       setTimeLeft(prev => {
         if (prev !== null && prev <= 1) {
           clearInterval(timer);
-          clearExamSession();
-          setIsSubmitted(true); // Auto-submit
+          handleFinalSubmit(selectedAnswers);
           return 0;
         }
         return prev !== null ? prev - 1 : null;
@@ -288,7 +342,7 @@ const ExamContent = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft, isSubmitted]);
+  }, [timeLeft, isSubmitted, selectedAnswers]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -494,7 +548,7 @@ const ExamContent = () => {
               <button onClick={() => setShowSubmitConfirm(false)} className="flex-1 px-6 py-4 bg-gray-50 hover:bg-gray-100 text-gray-700 font-bold rounded-2xl transition-colors text-sm">
                 Continue Exam
               </button>
-              <button onClick={() => { setShowSubmitConfirm(false); clearExamSession(); setIsSubmitted(true); }} className="flex-1 px-6 py-4 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-2xl transition-colors shadow-lg shadow-purple-200 text-sm">
+              <button onClick={() => { setShowSubmitConfirm(false); handleFinalSubmit(selectedAnswers); }} className="flex-1 px-6 py-4 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-2xl transition-colors shadow-lg shadow-purple-200 text-sm">
                 Confirm Submit
               </button>
             </div>

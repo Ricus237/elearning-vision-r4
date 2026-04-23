@@ -318,6 +318,23 @@ $functions = array(
         'type'        => 'write',
         'ajax'        => true,
     ),
+    'local_skillsaint_save_exam_result' => array(
+        'classname'   => 'local_skillsaint_external',
+        'methodname'  => 'save_exam_result',
+        'classpath'   => 'local/skillsaint/externallib.php',
+        'description' => 'Save student exam score and attempt metadata',
+        'type'        => 'write',
+        'ajax'        => true,
+    ),
+    'local_skillsaint_get_all_results' => array(
+        'classname'   => 'local_skillsaint_external',
+        'methodname'  => 'get_all_results',
+        'classpath'   => 'local/skillsaint/externallib.php',
+        'description' => 'Get all student exam results for admin view',
+        'type'        => 'read',
+        'ajax'        => true,
+        'capabilities'=> 'moodle/site:config',
+    ),
 );
 
 $services = array(
@@ -356,6 +373,8 @@ $services = array(
             'local_skillsaint_delete_inquiry',
             'local_skillsaint_update_student_profile',
             'local_skillsaint_change_password',
+            'local_skillsaint_save_exam_result',
+            'local_skillsaint_get_all_results',
         ),
         'restrictedusers' => 0,
         'enabled' => 1,

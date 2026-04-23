@@ -8,8 +8,9 @@ import { getStudentDashboardAction } from "@/lib/actions";
 const StudentExamsPage = async () => {
     const data = await getStudentDashboardAction();
     const exams = data?.exams || [];
+    const results = data?.results || [];
 
-    return <ExamsClient initialExams={exams} />;
+    return <ExamsClient initialExams={exams} results={results} />;
 };
 
 export default StudentExamsPage;

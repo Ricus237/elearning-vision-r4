@@ -330,6 +330,14 @@ export async function getStudentDashboardAction() {
     questioncount?: number;
   }
 
+  interface DashboardResult {
+    id: number;
+    quizid: number;
+    score: number;
+    attempt: number;
+    date: number;
+  }
+
   const dashboardData: { 
     plan: string, 
     phone: string,
@@ -337,7 +345,8 @@ export async function getStudentDashboardAction() {
     motivation: string,
     spiritual_bg: string,
     courses: DashboardCourse[], 
-    exams: DashboardExam[] 
+    exams: DashboardExam[],
+    results: DashboardResult[]
   } = {
     plan: 'none',
     phone: '',
@@ -345,7 +354,8 @@ export async function getStudentDashboardAction() {
     motivation: '',
     spiritual_bg: '',
     courses: [],
-    exams: []
+    exams: [],
+    results: []
   };
 
   try {
@@ -358,6 +368,7 @@ export async function getStudentDashboardAction() {
       dashboardData.spiritual_bg = data.spiritual_bg || '';
       dashboardData.courses = data.courses || [];
       dashboardData.exams = data.exams || [];
+      dashboardData.results = data.results || [];
     }
   } catch (err) {
     console.error("Dashboard data fetch error:", err);
@@ -456,8 +467,55 @@ export async function sendInquiryAction(data: { courseid: number; subject: strin
 }
 
 /**
- * Student retrieves their own inquiries (with admin replies).
+ * Public contact form submission.
+ * Sends the message to the internal admin dashboard (Moodle Inquiries).
  */
+export async function sendContactAction(data: { name: string; email: string; subject: string; message: string }) {
+  const cookieStore = await cookies();
+  const userId = cookieStore.get('moodle_user_id')?.value;
+  
+  // If user is not logged in, we use ID 2 (Admin/Guest) for the join to work in Moodle
+  // but we prepend their real info to the message using markers for the admin UI to parse.
+  const senderInfo = userId ? "" : `--- GUEST CONTACT INFO ---\nName: ${data.name}\nEmail: ${data.email}\n-------------------------\n\n`;
+  const finalMessage = `${senderInfo}${data.message}`;
+  
+  const result = await fetchMoodle('local_skillsaint_send_inquiry', {
+    userid: userId ? parseInt(userId) : 2, // Use Admin ID as fallback for guest join
+    courseid: 0, // 0 = General Contact
+    subject: data.subject || "Contact Form",
+    message: finalMessage,
+  });
+
+  if (result?.error) return { error: result.error };
+  return { success: true };
+}
+
+
+/**
+ * Delete an inquiry thread.
+ * If explicitUserId is provided, it's used (Admin case). Otherwise, use logged-in user ID.
+ */
+export async function deleteInquiryAction(inquiryId: number, explicitUserId?: number) {
+  const cookieStore = await cookies();
+  const userId = explicitUserId ?? (cookieStore.get('moodle_user_id')?.value ? parseInt(cookieStore.get('moodle_user_id')!.value) : null);
+  
+  if (!userId) return { error: 'Not authenticated' };
+
+  try {
+    const result = await fetchMoodle('local_skillsaint_delete_inquiry', {
+      inquiry_id: inquiryId,
+      userid: userId,
+    });
+    if (result?.error || result?.status === 'error') {
+      return { error: result?.message || 'Failed to delete inquiry' };
+    }
+    return { success: true };
+  } catch (err) {
+    console.error("Delete inquiry error:", err);
+    return { error: "Moodle connection error" };
+  }
+}
+
 export async function getStudentInquiriesAction() {
   const cookieStore = await cookies();
   const userId = cookieStore.get('moodle_user_id')?.value;
@@ -531,24 +589,6 @@ export async function addInquiryMessageAction(data: { inquiry_id: number; messag
   return { success: true };
 }
 
-/**
- * Delete a student's own support inquiry and its messages.
- */
-export async function deleteInquiryAction(inquiryId: number) {
-  const cookieStore = await cookies();
-  const userId = cookieStore.get('moodle_user_id')?.value;
-  if (!userId) return { error: 'Not authenticated' };
-
-  const result = await fetchMoodle('local_skillsaint_delete_inquiry', {
-    inquiry_id: inquiryId,
-    userid: parseInt(userId),
-  });
-
-  if (result?.error || result?.status === 'error') {
-    return { error: result?.message || 'Failed to delete inquiry' };
-  }
-  return { success: true };
-}
 
 /**
  * Update a student's personal/spiritual profile.
@@ -618,3 +658,32 @@ export async function forgotPasswordAction(formData: FormData) {
   return { success: true, message: "If an account exists for this email, you will receive reset instructions shortly." };
 }
 
+/**
+ * Save exam attempt results
+ */
+export async function saveExamResultAction(data: {
+  userid: number;
+  quizid: number;
+  score: number;
+  total_questions: number;
+  correct_count: number;
+}) {
+  try {
+    return await fetchMoodle('local_skillsaint_save_exam_result', data);
+  } catch (err) {
+    console.error("Save exam result error:", err);
+    return { error: "Failed to save results" };
+  }
+}
+
+/**
+ * Get all exam results for admin view
+ */
+export async function getAllExamResultsAction() {
+  try {
+    return await fetchMoodle('local_skillsaint_get_all_results');
+  } catch (err) {
+    console.error("Get all results error:", err);
+    return { error: "Failed to fetch results" };
+  }
+}

@@ -155,11 +155,12 @@ export default function CoursePageClient({
         subject: `Question regarding ${courseTitle}`,
         message: inquiryMessage,
       });
-      if (result.success) {
+      
+      if (result && 'success' in result && result.success) {
         setMessageSent(true);
         setInquiryMessage("");
       } else {
-        alert(result.error || "Failed to transmit inquiry.");
+        alert(result && 'error' in result ? result.error : "Failed to transmit inquiry.");
       }
     } catch (err) {
       console.error(err);

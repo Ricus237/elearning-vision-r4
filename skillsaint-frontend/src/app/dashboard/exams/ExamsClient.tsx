@@ -22,7 +22,15 @@ interface Exam {
   questioncount?: number;
 }
 
-const ExamsClient = ({ initialExams }: { initialExams: Exam[] }) => {
+interface ExamResult {
+  id: number;
+  quizid: number;
+  score: number;
+  attempt: number;
+  date: number;
+}
+
+const ExamsClient = ({ initialExams, results = [] }: { initialExams: Exam[], results?: ExamResult[] }) => {
   return (
     <div className="pt-24 md:pt-0 p-6 md:p-10 lg:p-14">
       <div className="max-w-6xl mx-auto space-y-12">
@@ -130,6 +138,28 @@ const ExamsClient = ({ initialExams }: { initialExams: Exam[] }) => {
                             </span>
                          </div>
                       </div>
+
+                      {/* Attempt History */}
+                      {results.filter(r => r.quizid === exam.id).length > 0 && (
+                        <div className="mb-10 space-y-3">
+                           <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                             <Trophy size={12} className="text-purple-600" />
+                             Attempt History ({results.filter(r => r.quizid === exam.id).length})
+                           </p>
+                           <div className="flex flex-wrap gap-2">
+                              {results.filter(r => r.quizid === exam.id).slice(0, 3).map((res, i) => (
+                                <div key={res.id} className={`px-3 py-1.5 rounded-xl border text-[10px] font-black ${res.score >= 70 ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-rose-50 border-rose-100 text-rose-600'}`}>
+                                   #{res.attempt}: {Math.round(res.score)}%
+                                </div>
+                              ))}
+                              {results.filter(r => r.quizid === exam.id).length > 3 && (
+                                <div className="px-3 py-1.5 rounded-xl bg-gray-50 border border-gray-100 text-gray-400 text-[10px] font-black">
+                                   +{results.filter(r => r.quizid === exam.id).length - 3} more
+                                </div>
+                              )}
+                           </div>
+                        </div>
+                      )}
 
                       <div className="mt-auto">
                          <Link href={`/exam?quizId=${exam.id}`} className="w-full">
