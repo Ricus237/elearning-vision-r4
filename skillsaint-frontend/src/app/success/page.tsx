@@ -45,7 +45,7 @@ function SuccessContent() {
           }
         } else {
           setStatus("error");
-          setErrorMsg(`Moodle Error: ${res?.message || "Verify your plugin installation"}`);
+          setErrorMsg(`Database Error: ${res?.message || "Verify your connection"}`);
         }
       } else {
         setStatus("success");

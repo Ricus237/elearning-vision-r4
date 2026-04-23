@@ -50,7 +50,7 @@ const CheckoutForm = () => {
       case "standard":  amount = 299; originalPrice = 399; title = "Standard Enrollment Plan"; discountAmount = 100; break;
       case "premium":   amount = 499; originalPrice = 599; title = "Premium Enrollment Plan";  discountAmount = 100; break;
       case "executive": amount = 999; originalPrice = 1199; title = "Executive Enrollment Plan"; discountAmount = 200; break;
-      default:          amount = 999; originalPrice = 1199; title = "IBI Enrollment Plan"; discountAmount = 200;
+      default:          amount = 999; originalPrice = 1199; title = "GBI Enrollment Plan"; discountAmount = 200;
     }
   }
 

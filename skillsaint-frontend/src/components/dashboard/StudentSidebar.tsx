@@ -87,7 +87,7 @@ const StudentSidebar = () => {
               Student <span className="text-purple-600">Portal</span>
             </h3>
             <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest mt-1">
-              IBI • {userName}
+              GBI • {userName}
             </p>
             <p className="text-[8px] font-bold text-gray-400 mt-1 uppercase tracking-tighter">Global Bible Institute</p>
           </div>

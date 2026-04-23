@@ -222,7 +222,7 @@ const ProgramsClient = ({ data, courses, categories }: ProgramsClientProps) => {
           {courses.length === 0 && (
              <div className="p-12 bg-white rounded-[2.5rem] border border-dashed border-slate-200 text-center">
                 <p className="text-slate-400 font-bold uppercase tracking-widest mb-2">No Courses Found</p>
-                <p className="text-slate-500">We couldn&apos;t find any courses in your Moodle instance. Make sure they are public and visible.</p>
+                <p className="text-slate-500">We couldn&apos;t find any courses. Make sure they are public and visible.</p>
              </div>
           )}
 

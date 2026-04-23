@@ -203,8 +203,8 @@ const ManageExamsPage = () => {
                   Curriculum <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">Exams</span>
                 </h1>
                 <p className="text-gray-400 dark:text-slate-500 font-medium max-w-md">
-                  Live management of Moodle assessments. Connect real course data with intelligence-driven evaluations.
-                </p>
+                  Live management of assessments. Connect real course data with intelligence-driven evaluations.
+                </p> 
               </div>
               <button
                 onClick={() => setShowCreateModal(true)}

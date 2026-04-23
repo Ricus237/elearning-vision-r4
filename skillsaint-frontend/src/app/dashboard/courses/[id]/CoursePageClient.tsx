@@ -346,7 +346,7 @@ export default function CoursePageClient({
                     {[
                       "Single-sitting completion required.",
                       "Passing score threshold: 70%.",
-                      "Official IBI Board verification.",
+                      "Official GBI Board verification.",
                       "Secure browser monitoring active."
                     ].map((text, i) => (
                       <li key={i} className="flex items-center gap-3">

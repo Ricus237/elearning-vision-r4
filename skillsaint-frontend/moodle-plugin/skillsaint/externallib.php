@@ -296,6 +296,12 @@ class local_skillsaint_external extends external_api
             'programs_floating_badge_1' => get_config('local_skillsaint', 'programs_floating_badge_1'),
             'programs_floating_subtitle_1' => get_config('local_skillsaint', 'programs_floating_subtitle_1'),
             'programs_floating_badge_2' => get_config('local_skillsaint', 'programs_floating_badge_2'),
+            'auth_login_title' => get_config('local_skillsaint', 'auth_login_title'),
+            'auth_login_subtitle' => get_config('local_skillsaint', 'auth_login_subtitle'),
+            'auth_login_bg' => get_config('local_skillsaint', 'auth_login_bg'),
+            'auth_login_image' => get_config('local_skillsaint', 'auth_login_image'),
+            'auth_forgot_title' => get_config('local_skillsaint', 'auth_forgot_title'),
+            'auth_forgot_subtitle' => get_config('local_skillsaint', 'auth_forgot_subtitle'),
         );
     }
 
@@ -339,6 +345,12 @@ class local_skillsaint_external extends external_api
             'programs_floating_badge_1' => new external_value(PARAM_TEXT, 'Programs floating badge 1', VALUE_DEFAULT, ''),
             'programs_floating_subtitle_1' => new external_value(PARAM_TEXT, 'Programs floating subtitle 1', VALUE_DEFAULT, ''),
             'programs_floating_badge_2' => new external_value(PARAM_TEXT, 'Programs floating badge 2', VALUE_DEFAULT, ''),
+            'auth_login_title' => new external_value(PARAM_TEXT, 'Auth login title', VALUE_DEFAULT, ''),
+            'auth_login_subtitle' => new external_value(PARAM_RAW, 'Auth login subtitle', VALUE_DEFAULT, ''),
+            'auth_login_bg' => new external_value(PARAM_RAW, 'Auth login bg', VALUE_DEFAULT, ''),
+            'auth_login_image' => new external_value(PARAM_RAW, 'Auth login image', VALUE_DEFAULT, ''),
+            'auth_forgot_title' => new external_value(PARAM_TEXT, 'Auth forgot title', VALUE_DEFAULT, ''),
+            'auth_forgot_subtitle' => new external_value(PARAM_RAW, 'Auth forgot subtitle', VALUE_DEFAULT, ''),
         ));
     }
 
@@ -386,6 +398,12 @@ class local_skillsaint_external extends external_api
             'programs_floating_badge_1' => new external_value(PARAM_TEXT, 'Programs floating badge 1', VALUE_DEFAULT, ''),
             'programs_floating_subtitle_1' => new external_value(PARAM_TEXT, 'Programs floating subtitle 1', VALUE_DEFAULT, ''),
             'programs_floating_badge_2' => new external_value(PARAM_TEXT, 'Programs floating badge 2', VALUE_DEFAULT, ''),
+            'auth_login_title' => new external_value(PARAM_TEXT, 'Auth login title', VALUE_DEFAULT, ''),
+            'auth_login_subtitle' => new external_value(PARAM_RAW, 'Auth login subtitle', VALUE_DEFAULT, ''),
+            'auth_login_bg' => new external_value(PARAM_RAW, 'Auth login bg', VALUE_DEFAULT, ''),
+            'auth_login_image' => new external_value(PARAM_RAW, 'Auth login image', VALUE_DEFAULT, ''),
+            'auth_forgot_title' => new external_value(PARAM_TEXT, 'Auth forgot title', VALUE_DEFAULT, ''),
+            'auth_forgot_subtitle' => new external_value(PARAM_RAW, 'Auth forgot subtitle', VALUE_DEFAULT, ''),
         ));
     }
 
@@ -427,7 +445,13 @@ class local_skillsaint_external extends external_api
         $home_floating_badge_2 = '',
         $programs_floating_badge_1 = '',
         $programs_floating_subtitle_1 = '',
-        $programs_floating_badge_2 = ''
+        $programs_floating_badge_2 = '',
+        $auth_login_title = '',
+        $auth_login_subtitle = '',
+        $auth_login_bg = '',
+        $auth_login_image = '',
+        $auth_forgot_title = '',
+        $auth_forgot_subtitle = ''
     ) {
         global $DB, $CFG;
 
@@ -482,6 +506,12 @@ class local_skillsaint_external extends external_api
             'programs_floating_badge_1' => $programs_floating_badge_1,
             'programs_floating_subtitle_1' => $programs_floating_subtitle_1,
             'programs_floating_badge_2' => $programs_floating_badge_2,
+            'auth_login_title' => $auth_login_title,
+            'auth_login_subtitle' => $auth_login_subtitle,
+            'auth_login_bg' => $auth_login_bg,
+            'auth_login_image' => $auth_login_image,
+            'auth_forgot_title' => $auth_forgot_title,
+            'auth_forgot_subtitle' => $auth_forgot_subtitle,
         );
 
         foreach ($fields as $key => $value) {

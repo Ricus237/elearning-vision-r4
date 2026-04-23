@@ -54,7 +54,7 @@ const ProfilePage = () => {
         try {
           const result = await updateAvatarAction(base64);
           if (result?.error) {
-            console.warn('Avatar not saved to Moodle:', result.error);
+            console.warn('Avatar not saved to database:', result.error);
           }
         } catch (err) {
           console.error('Avatar upload error:', err);

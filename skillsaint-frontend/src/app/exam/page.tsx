@@ -196,8 +196,8 @@ const ExamContent = () => {
 
   const clearExamSession = () => {
     if (quizIdStr) {
-      localStorage.removeItem(`ibi_exam_end_${quizIdStr}`);
-      document.cookie = "ibi_exam_active=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      localStorage.removeItem(`gbi_exam_end_${quizIdStr}`);
+      document.cookie = "gbi_exam_active=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     }
   };
 
@@ -257,7 +257,7 @@ const ExamContent = () => {
           
           if (result.timeLimit && result.timeLimit > 0) {
             // Check for persistent end time
-            const storageKey = `ibi_exam_end_${quizIdStr}`;
+            const storageKey = `gbi_exam_end_${quizIdStr}`;
             const existingEnd = localStorage.getItem(storageKey);
             let endTime: number;
 
@@ -313,7 +313,7 @@ const ExamContent = () => {
     if (!quizIdStr || isSubmitted || isLoading) return;
 
     // Set lockdown cookie
-    document.cookie = `ibi_exam_active=${quizIdStr}; path=/; max-age=7200`;
+    document.cookie = `gbi_exam_active=${quizIdStr}; path=/; max-age=7200`;
 
     // Prevent accidental reload/navigation
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -379,7 +379,7 @@ const ExamContent = () => {
         <ReturnButton />
         <div className="fixed inset-0 z-[1000] bg-gray-50 flex flex-col items-center justify-center p-4">
           <Loader2 className="w-12 h-12 text-purple-600 animate-spin mb-4" />
-          <p className="text-gray-500 font-medium tracking-wide">Fetching your examination from Moodle...</p>
+          <p className="text-gray-500 font-medium tracking-wide">Fetching your examination...</p>
         </div>
       </>
     );

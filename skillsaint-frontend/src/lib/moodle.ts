@@ -76,7 +76,7 @@ export async function fetchMoodle(wsFunction: string, params: Record<string, unk
     
     // Moodle retourne parfois les erreurs dans le JSON
     if (json.exception) {
-      console.error(`Moodle Exception [${wsFunction}]:`, json.message);
+      console.error(`Database Exception [${wsFunction}]:`, json.message);
       return { error: json.message };
     }
     return json;

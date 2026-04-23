@@ -293,7 +293,7 @@ const DashboardClient = ({
   }, [catalogCourses, search, activeFilter, enrolledIds]);
 
   useEffect(() => {
-    const localBypass = localStorage.getItem("ibi_dev_activated");
+    const localBypass = localStorage.getItem("gbi_dev_activated");
     if (localBypass === "true") setShowActivationWall(false);
   }, []);
 
@@ -303,7 +303,7 @@ const DashboardClient = ({
     setActivationError("");
 
     if (activationCode === "0000") {
-      localStorage.setItem("ibi_dev_activated", "true");
+      localStorage.setItem("gbi_dev_activated", "true");
       setShowActivationWall(false);
       await activateAccount(userEmail, activationCode);
       window.location.reload();
@@ -540,7 +540,7 @@ const DashboardClient = ({
                   <div className="group relative">
                     <input
                       type="text"
-                      placeholder="IBI-XXXX-XXXX-XXXX"
+                      placeholder="GBI-XXXX-XXXX-XXXX"
                       value={activationCode}
                       onChange={(e) => setActivationCode(e.target.value.toUpperCase())}
                       className="w-full px-8 py-6 bg-gray-50 border-2 border-transparent rounded-[2rem] text-center text-lg font-black tracking-[0.3em] uppercase transition-all focus:bg-white focus:border-purple-600 outline-none"
@@ -562,7 +562,7 @@ const DashboardClient = ({
                 </div>
 
                 <p className="mt-12 text-[10px] font-black text-gray-300 uppercase tracking-widest">
-                  Problems? contact admin@ibi-edu.com
+                  Problems? contact admin@gbi-edu.com
                 </p>
               </div>
             </motion.div>

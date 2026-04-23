@@ -173,7 +173,7 @@ export async function getProfileDataAction() {
   const enrolledCount = dashboardData?.courses ? dashboardData.courses.length : 0;
   
   // Clean description html tags if any
-  const cleanBio = user.description ? user.description.replace(/<[^>]*>?/gm, '') : "Moodle user enrolled in our eLearning platform.";
+  const cleanBio = user.description ? user.description.replace(/<[^>]*>?/gm, '') : "User enrolled in our eLearning platform.";
 
   return {
     id: user.id,
@@ -512,7 +512,7 @@ export async function deleteInquiryAction(inquiryId: number, explicitUserId?: nu
     return { success: true };
   } catch (err) {
     console.error("Delete inquiry error:", err);
-    return { error: "Moodle connection error" };
+    return { error: "Database connection error" };
   }
 }
 
@@ -639,7 +639,7 @@ export async function changePasswordAction(current: string, newPass: string) {
     return { success: true, message: result?.message || 'Password updated' };
   } catch (err) {
     console.error("Change password error:", err);
-    return { error: "Moodle connection error" };
+    return { error: "Database connection error" };
   }
 }
 

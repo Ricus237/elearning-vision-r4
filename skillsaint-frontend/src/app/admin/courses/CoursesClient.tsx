@@ -1405,7 +1405,7 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
                   {isPending || isSaving ? (
                     <>
                       <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Syncing with Moodle...
+                      Syncing with database...
                     </>
                   ) : activeTab === "content" ? (
                     <>

@@ -20,12 +20,12 @@ const interTight = Inter_Tight({
 export const metadata: Metadata = {
   title: "Global Bible Institute",
   description: "A House Where Leaders Are Formed in Scripture, Holiness, and the Power of God!",
-  keywords: ["Global Bible Institute", "Bible Study", "Spiritual Growth", "IBI"],
+  keywords: ["Global Bible Institute", "Bible Study", "Spiritual Growth", "GBI"],
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "IBI",
+    title: "Global Bible Institute",
   },
   formatDetection: {
     telephone: false,

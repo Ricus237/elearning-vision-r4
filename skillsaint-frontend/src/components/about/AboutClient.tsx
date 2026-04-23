@@ -39,7 +39,7 @@ const AboutClient = ({ data }: AboutClientProps) => {
           className="text-center mb-16"
         >
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-100 text-purple-700 font-bold text-xs uppercase tracking-widest mb-6">
-            About IBI
+            About GBI
           </div>
           <h1 className="text-3xl lg:text-5xl font-black text-slate-900 leading-tight">
             {data.hero_title.split(' ').map((word, i) => (

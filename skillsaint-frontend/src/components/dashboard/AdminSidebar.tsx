@@ -71,11 +71,11 @@ const AdminSidebar = () => {
       >
       <div className="flex items-center gap-4 px-2 py-4 mb-6 border-b-2 border-gray-50 dark:border-slate-800/50">
         <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white font-black text-2xl shadow-xl shadow-purple-200 dark:shadow-none rotate-3 group-hover:rotate-0 transition-transform">
-          I
+          G
         </div>
         <div>
           <h3 className="font-black text-gray-900 dark:text-white tracking-tight leading-none uppercase text-sm">Control <span className="text-purple-600 dark:text-purple-400">Hub</span></h3>
-          <p className="text-[10px] font-black text-gray-300 dark:text-slate-500 uppercase tracking-widest mt-1">IBI • Vision/R4</p>
+          <p className="text-[10px] font-black text-gray-300 dark:text-slate-500 uppercase tracking-widest mt-1">GBI • Vision/R4</p>
           <p className="text-[8px] font-bold text-gray-400 dark:text-slate-600 mt-1 uppercase tracking-tighter">Global Bible Institute</p>
         </div>
       </div>

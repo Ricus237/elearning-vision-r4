@@ -399,7 +399,7 @@ const ApplyForm = ({
         <ErrorBanner />
         <div className="space-y-4">
           <div>
-            <label className={LABEL}>Why enroll in IBI? <span className="text-red-500">*</span></label>
+            <label className={LABEL}>Why enroll in GBI? <span className="text-red-500">*</span></label>
             <textarea required name="enrollment_motivation" rows={3} className={INPUT} placeholder="Your primary motivation..." defaultValue={collectedData.enrollment_motivation} />
           </div>
           <div>
@@ -566,7 +566,7 @@ const ApplyForm = ({
               <span className="text-purple-200 font-bold text-xs uppercase tracking-widest">one-time</span>
             </div>
             <p className="text-purple-200 text-sm font-bold">
-              {currentPlan.courseQuota === Infinity ? "Full access to all IBI courses" : `Access to ${currentPlan.courseQuota} courses of your choice`}
+              {currentPlan.courseQuota === Infinity ? "Full access to all GBI courses" : `Access to ${currentPlan.courseQuota} courses of your choice`}
             </p>
 
             {/* Personal summary */}

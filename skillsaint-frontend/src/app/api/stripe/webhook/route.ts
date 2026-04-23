@@ -56,10 +56,10 @@ async function handleEnrolment(session: Stripe.Checkout.Session) {
         console.log(`[Stripe Webhook] ✅ Application confirmed for ${email}`);
         return;
       } else {
-        console.error(`[Stripe Webhook] ❌ Moodle failed to confirm application for ${email}:`, result);
+        console.error(`[Stripe Webhook] ❌ Database failed to confirm application for ${email}:`, result);
       }
     } catch (err) {
-      console.error(`[Stripe Webhook] ❌ Moodle Error during application confirmation:`, err);
+      console.error(`[Stripe Webhook] ❌ Database Error during application confirmation:`, err);
     }
   }
 

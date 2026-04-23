@@ -52,7 +52,7 @@ const ExamsClient = ({ initialExams, results = [] }: { initialExams: Exam[], res
              My <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">Assessments</span>
            </h1>
            <p className="text-gray-400 font-medium max-w-xl text-sm leading-relaxed">
-             Real-time examination portal synchronized with your current Moodle enrollments.
+             Real-time examination portal synchronized with your current enrollments.
              <br /><span className="text-purple-600 font-bold uppercase text-[10px] tracking-widest mt-2 block">Ensure all modules are completed before attempting finals.</span>
            </p>
         </header>
@@ -68,7 +68,7 @@ const ExamsClient = ({ initialExams, results = [] }: { initialExams: Exam[], res
                  {[
                    "Single-sitting completion required.",
                    "Passing score threshold: 70%.",
-                   "Official IBI Board verification.",
+                   "Official GBI Board verification.",
                    "Secure browser monitoring active."
                  ].map((text, i) => (
                    <li key={i} className="flex items-center gap-3">
@@ -115,7 +115,7 @@ const ExamsClient = ({ initialExams, results = [] }: { initialExams: Exam[], res
                       <h3 className="text-2xl font-black text-gray-900 tracking-tighter leading-none mb-3 group-hover:text-purple-600 transition-colors">
                         {exam.name}
                       </h3>
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-10">Moodle Quiz #{exam.id}</p>
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-10"> Quiz #{exam.id}</p>
 
                       <div className="grid grid-cols-2 gap-6 mb-12">
                          <div className="flex items-center gap-3">

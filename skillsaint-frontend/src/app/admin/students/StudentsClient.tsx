@@ -161,7 +161,7 @@ export default function StudentsClient({ initialStudents }: { initialStudents: S
                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-600">Global Records</span>
                     </div>
                     <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight leading-none mb-4">
-                      IBI Student <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">Identity</span>
+                      GBI Student <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">Identity</span>
                     </h1>
                     <p className="text-gray-400 font-medium max-w-md text-sm">
                       Official directory management for active theological members.

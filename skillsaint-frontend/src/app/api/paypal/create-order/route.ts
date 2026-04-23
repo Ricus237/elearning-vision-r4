@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
         purchase_units: [
           {
             reference_id: isApplication ? `app_${plan}_user_${userId}` : `course_${courseId}_user_${userId}`,
-            description: courseTitle || (isApplication ? `IBI ${plan} Program` : `Course #${courseId}`),
+            description: courseTitle || (isApplication ? `GBI ${plan} Program` : `Course #${courseId}`),
             custom_id: JSON.stringify({ courseId, userId, isApplication, plan, courses, email }),
             amount: {
               currency_code: (currency || 'USD').toUpperCase(),

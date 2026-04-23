@@ -74,14 +74,12 @@ const AdminDashboard = () => {
             <div className="bg-purple-600 dark:bg-purple-900/40 p-10 rounded-[3rem] text-white flex flex-col justify-between border border-transparent dark:border-purple-500/20">
               <div>
                 <h2 className="text-2xl font-black mb-4">LMS Integration</h2>
-                <p className="text-white/80 dark:text-white/60 mb-8">Your frontend is currently connected to Moodle. You can manage the sync settings and API tokens here.</p>
               </div>
               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-xs font-bold uppercase tracking-wider text-white/60">Status</span>
                   <span className="px-2 py-1 bg-emerald-500 rounded text-[10px] font-black uppercase">Connected</span>
                 </div>
-                <p className="font-mono text-sm opacity-60 truncate text-white">API: https://moodle.yourdomain.com</p>
               </div>
             </div>
           </div>

@@ -27,7 +27,7 @@ const SettingsPage = () => {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("ibi_theme");
+      const saved = localStorage.getItem("gbi_theme");
       if (saved && (saved === "light" || saved === "dark" || saved === "system")) {
         setTheme(saved as "light" | "dark" | "system");
       }
@@ -37,7 +37,7 @@ const SettingsPage = () => {
   useEffect(() => {
     if (typeof window !== "undefined") {
       const root = window.document.documentElement;
-      localStorage.setItem("ibi_theme", theme);
+      localStorage.setItem("gbi_theme", theme);
       if (theme === "dark") {
         root.classList.add("dark");
       } else if (theme === "light") {
@@ -263,7 +263,7 @@ const SettingsPage = () => {
                       if (res.error) {
                         alert("Error: " + res.error);
                       } else {
-                        alert("Success: Your password has been successfully updated via Moodle."); 
+                        alert("Success: Your password has been successfully updated."); 
                         setShowPasswordChange(false);
                         setPasswordForm({current: "", new: "", confirm: ""});
                       }

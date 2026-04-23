@@ -36,7 +36,7 @@ const policies: Policy[] = [
     title: "Privacy Policy",
     icon: Shield,
     lastUpdated: "January 1, 2025",
-    content: `At IBI, we are committed to protecting your personal data and respecting your privacy.
+    content: `At Global Bible Institute, we are committed to protecting your personal data and respecting your privacy.
 
 **Data We Collect**
 We collect information you provide directly to us, such as your name, email address, phone number, and application details. We also collect usage data to improve our platform.
@@ -48,39 +48,39 @@ Your data is used exclusively to manage your enrollment, communicate important a
 We retain your personal data for as long as your account is active or as required by law. Upon account deletion, personal data is removed within 30 days, except where legally required to retain it.
 
 **Your Rights**
-You have the right to access, correct, or delete your personal data at any time. Contact us at privacy@ibi.edu to exercise these rights.
+You have the right to access, correct, or delete your personal data at any time. Contact us at privacy@gbi.edu to exercise these rights.
 
 **Contact**
-For privacy-related questions, contact our Data Protection Officer at dpo@ibi.edu.`,
+For privacy-related questions, contact our Data Protection Officer at dpo@Gbi.edu.`,
   },
   {
     id: "terms",
     title: "Terms of Service",
     icon: FileText,
     lastUpdated: "January 1, 2025",
-    content: `By accessing and using the IBI platform, you agree to these Terms of Service.
+    content: `By accessing and using the GBI platform, you agree to these Terms of Service.
 
 **Academic Integrity**
 All submitted work must be your own. Plagiarism or academic dishonesty may result in immediate suspension or expulsion from the program without refund.
 
 **Payment & Refunds**
-Enrollment fees are non-refundable after the first 7 days of course commencement. Technical issues preventing course access may qualify for a partial refund at IBI's discretion.
+Enrollment fees are non-refundable after the first 7 days of course commencement. Technical issues preventing course access may qualify for a partial refund at GBI's discretion.
 
 **Platform Usage**
-The platform and all content therein are the intellectual property of IBI. Downloading, reproducing, or distributing course materials without written permission is prohibited.
+The platform and all content therein are the intellectual property of GBI. Downloading, reproducing, or distributing course materials without written permission is prohibited.
 
 **Account Responsibility**
-You are responsible for maintaining the confidentiality of your login credentials. IBI is not liable for any loss resulting from unauthorized account access.
+You are responsible for maintaining the confidentiality of your login credentials. GBI is not liable for any loss resulting from unauthorized account access.
 
 **Termination**
-IBI reserves the right to suspend or terminate accounts that violate these terms. Students may delete their accounts at any time through the Settings page.`,
+GBI reserves the right to suspend or terminate accounts that violate these terms. Students may delete their accounts at any time through the Settings page.`,
   },
   {
     id: "cookies",
     title: "Cookie Policy",
     icon: ScrollText,
     lastUpdated: "January 1, 2025",
-    content: `IBI uses cookies and similar tracking technologies to enhance your experience.
+    content: `GBI uses cookies and similar tracking technologies to enhance your experience.
 
 **Essential Cookies**
 These cookies are required for the platform to function correctly. They manage your session and authentication state. They cannot be disabled.
@@ -99,8 +99,8 @@ You can control non-essential cookies through your browser settings. Note that d
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function SettingsPage() {
   const [profile, setProfile] = useState<Profile>({
-    name: "Admin IBI",
-    email: "admin@ibi.edu",
+    name: "Admin GBI",
+    email: "admin@gbi.edu",
     phone: "+1 (555) 000-0000",
     role: "Platform Administrator",
     avatar: "",

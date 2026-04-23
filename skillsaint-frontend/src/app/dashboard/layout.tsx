@@ -19,7 +19,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   }
 
   // Lock the user if an exam is in progress
-  const activeExamId = cookieStore.get("ibi_exam_active")?.value;
+  const activeExamId = cookieStore.get("gbi_exam_active")?.value;
   if (activeExamId) {
     redirect(`/exam?quizId=${activeExamId}`);
   }

@@ -86,7 +86,7 @@ const DEFAULT: SiteData = {
   programs_hero_desc: "Equipping the next generation of spiritual and global leaders.",
   core_program_title: "Kingdom Foundations",
   core_program_items: "40-minute pre-recorded lessons\nDaily journaling\nPractical assignments",
-  apply_hero_title: "Apply to IBI",
+  apply_hero_title: "Apply to GBI",
   apply_hero_desc: "Complete your application form and choose your program.",
   price_standard: "299",
   quota_standard: "3",
@@ -362,7 +362,7 @@ export default function SiteContentPage() {
             {loading ? (
               <div className="flex flex-col items-center justify-center py-32">
                 <div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mb-4" />
-                <p className="text-[10px] font-black text-gray-400 dark:text-slate-600 uppercase tracking-[0.3em]">Loading from Moodle...</p>
+                <p className="text-[10px] font-black text-gray-400 dark:text-slate-600 uppercase tracking-[0.3em]">Loading...</p>
               </div>
             ) : (
               <div className="space-y-5 pb-24">
@@ -499,7 +499,7 @@ export default function SiteContentPage() {
                                              </label>
                                           </div>
                                        </div>
-                                       <p className="text-[9px] text-gray-400 font-medium px-2 italic">Format: JPG, PNG, WebP. Base64 encoded for Moodle Storage.</p>
+                                       <p className="text-[9px] text-gray-400 font-medium px-2 italic">Format: JPG, PNG, WebP. Use high quality images for best results.</p>
                                     </div>
                                   ) : (
                                     <input

@@ -30,7 +30,7 @@ export async function getAllCourses(): Promise<CourseType[]> {
       return realCourses;
     }
   } catch {
-    console.warn("Could not fetch real courses from Moodle, using fallbacks.");
+    console.warn("Could not fetch real courses, using fallbacks.");
   }
 
 
@@ -128,7 +128,7 @@ export async function getGlobalSiteData() {
       }
     },
     enrollment: {
-      hero_title: "Apply to IBI",
+      hero_title: "Apply to GBI",
       hero_desc: "Complete your application form and choose your program.",
       plans: {
         standard: { price: 299, quota: 3 },
@@ -221,7 +221,7 @@ export async function getGlobalSiteData() {
        };
     }
   } catch (_e) {
-    console.error("Moodle plugin error, using fallbacks:", _e);
+    console.error("Database plugin error, using fallbacks:", _e);
   }
 
   return defaultData;
@@ -302,7 +302,7 @@ export async function saveApplication(
     const result = await fetchMoodle('local_skillsaint_save_application', payload);
     return result || { error: true };
   } catch (_e) {
-    console.error("Failed to save application to Moodle:", _e);
+    console.error("Failed to save application:", _e);
     return { error: true };
   }
 
@@ -336,7 +336,7 @@ export async function confirmPayment(email: string) {
     return result || { status: "error", message: "Empty response" };
   } catch (_e) {
     console.error("Server-side confirmPayment error:", _e);
-    return { status: "error", message: "Moodle connection error" };
+    return { status: "error", message: "Database connection error" };
   }
 
 }

@@ -108,8 +108,8 @@ const AdminDashboardPage = async () => {
                   <ShieldAlert className="w-8 h-8" />
                 </div>
                 <div>
-                  <p className="font-black text-lg tracking-tight">Moodle Synchronization Issue</p>
-                  <p className="text-sm opacity-70">The system cannot reach the specialized Moodle Plugin functions. Please verify your token and plugin installation.</p>
+                  <p className="font-black text-lg tracking-tight">Database Synchronization Issue</p>
+                  <p className="text-sm opacity-70">The system cannot reach the specialized database functions. Please verify your token and plugin installation.</p>
                 </div>
               </div>
             )}
