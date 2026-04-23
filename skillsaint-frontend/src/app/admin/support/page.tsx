@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   MessageCircle, CheckCircle2, Clock, Send, Filter,
-  User, AlertCircle, RefreshCw, ChevronRight,
+  User, AlertCircle, RefreshCw,
   ArrowLeft, ShieldCheck, Trash2, Mail, Loader2
 } from "lucide-react";
 import AdminSidebar from "@/components/dashboard/AdminSidebar";
