@@ -328,6 +328,7 @@ export async function getStudentDashboardAction() {
     timeLimit: number;
     intro: string;
     questioncount?: number;
+    is_authorized: number;
   }
 
   interface DashboardResult {
@@ -346,7 +347,8 @@ export async function getStudentDashboardAction() {
     spiritual_bg: string,
     courses: DashboardCourse[], 
     exams: DashboardExam[],
-    results: DashboardResult[]
+    results: DashboardResult[],
+    needsPasswordSetup: boolean
   } = {
     plan: 'none',
     phone: '',
@@ -355,7 +357,8 @@ export async function getStudentDashboardAction() {
     spiritual_bg: '',
     courses: [],
     exams: [],
-    results: []
+    results: [],
+    needsPasswordSetup: false
   };
 
   try {
@@ -369,6 +372,7 @@ export async function getStudentDashboardAction() {
       dashboardData.courses = data.courses || [];
       dashboardData.exams = data.exams || [];
       dashboardData.results = data.results || [];
+      dashboardData.needsPasswordSetup = data.needs_password_setup === 1;
     }
   } catch (err) {
     console.error("Dashboard data fetch error:", err);
@@ -410,13 +414,14 @@ export async function getStudentDashboardAction() {
         const courseIds = new Set(dashboardData.courses.map(c => c.id));
         dashboardData.exams = allExamsData
           .filter((e: { courseid: number }) => courseIds.has(e.courseid))
-          .map((e: { id: number; name: string; courseid: number; intro?: string; questioncount?: number; timelimit?: number; timeLimit?: number }) => ({
+          .map((e: { id: number; name: string; courseid: number; intro?: string; questioncount?: number; timelimit?: number; timeLimit?: number; is_authorized?: number }) => ({
             id: e.id,
             courseid: e.courseid,
             name: e.name,
             timeLimit: e.timelimit || e.timeLimit || 0,
             intro: e.intro || "",
-            questioncount: e.questioncount || 0
+            questioncount: e.questioncount || 0,
+            is_authorized: e.is_authorized || 0
           }));
       }
 
@@ -432,7 +437,8 @@ export async function getStudentDashboardAction() {
                 courseid: course.id,
                 name: q.name,
                 timeLimit: q.timelimit || 0,
-                intro: q.intro || ""
+                intro: q.intro || "",
+                is_authorized: 0
               })));
             }
           }
@@ -445,6 +451,55 @@ export async function getStudentDashboardAction() {
   }
 
   return dashboardData;
+}
+
+/**
+ * Set initial password for first-time users (no old password required).
+ * Only works if the user still has the default temporary password.
+ */
+export async function setupInitialPasswordAction(newPassword: string) {
+  const cookieStore = await cookies();
+  const userId = cookieStore.get('moodle_user_id')?.value;
+  if (!userId) return { error: 'Not authenticated' };
+
+  try {
+    const result = await fetchMoodle('local_skillsaint_setup_initial_password', {
+      userid: parseInt(userId),
+      newpassword: newPassword,
+    });
+
+    if (result && result.status === 'success') {
+      return { success: true, message: result.message };
+    }
+
+    return { error: result?.message || 'Failed to set password' };
+  } catch {
+    return { error: 'Network error while setting password' };
+  }
+}
+
+/**
+ * Admin action to authorize or revoke student exam access.
+ */
+export async function authorizeExamAction(userid: number, quizid: number, authorized: boolean) {
+  const cookieStore = await cookies();
+  const isAdmin = cookieStore.get('moodle_is_admin')?.value === 'true';
+  if (!isAdmin) return { error: 'Unauthorized: Admin only' };
+
+  try {
+    const result = await fetchMoodle('local_skillsaint_authorize_exam', {
+      userid,
+      quizid,
+      authorized: authorized ? 1 : 0
+    });
+
+    if (result && result.status === 'success') {
+      return { success: true, message: result.message };
+    }
+    return { error: result?.message || 'Failed to update authorization' };
+  } catch (e) {
+    return { error: 'Network error while updating authorization' };
+  }
 }
 
 /**

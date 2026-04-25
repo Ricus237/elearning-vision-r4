@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 "use client";
 import { useState, useTransition } from "react";
 import { UserX, Trash2, Eye, ChevronLeft, Users, ShieldCheck, ShieldAlert, CheckCircle, Clock } from "lucide-react";
@@ -31,6 +33,8 @@ export default function StudentsClient({ initialStudents }: { initialStudents: S
   const [students, setStudents] = useState<Student[]>(initialStudents);
   const [filter, setFilter] = useState<"all" | "active" | "suspended" | "paid" | "pending">("all");
   const [selected, setSelected] = useState<Student | null>(null);
+  const [selectedDetails, setSelectedDetails] = useState<any>(null);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [actionMsg, setActionMsg] = useState<string | null>(null);
 
@@ -74,6 +78,28 @@ export default function StudentsClient({ initialStudents }: { initialStudents: S
       }
       setTimeout(() => setActionMsg(null), 4000);
     });
+  };
+
+  const handleToggleExamAuth = async (quizId: number, currentlyAuthorized: boolean) => {
+    if (!selected) return;
+    try {
+      const res = await callMoodleAdmin("local_skillsaint_authorize_exam", {
+        userid: selected.id,
+        quizid: quizId,
+        authorized: currentlyAuthorized ? 0 : 1
+      });
+      if (res.status === "success") {
+        // Update local state
+        setSelectedDetails((prev: any) => ({
+          ...prev,
+          exams: prev.exams.map((ex: any) => 
+            ex.id === quizId ? { ...ex, is_authorized: currentlyAuthorized ? 0 : 1 } : ex
+          )
+        }));
+      }
+    } catch (e) {
+      console.error("Failed to toggle exam auth", e);
+    }
   };
 
   const totalActive = students.filter(s => !s.suspended).length;
@@ -142,10 +168,59 @@ export default function StudentsClient({ initialStudents }: { initialStudents: S
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-auto">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
                         <BadgeDetail label="Global Rank" value={selected.plan === "N/A" ? "Standard" : selected.plan} icon={<ShieldCheck className="w-4 h-4" />} color="text-purple-600" />
                         <BadgeDetail label="Enrollments" value={`${selected.enrolled_count} Active`} icon={<Users className="w-4 h-4" />} color="text-blue-600" />
                         <BadgeDetail label="Verified At" value={new Date(selected.registered_at * 1000).toLocaleDateString("en-US", { month: "short", year: "numeric" })} icon={<Clock className="w-4 h-4" />} color="text-emerald-600" />
+                      </div>
+
+                      {/* Exam Authorizations Section */}
+                      <div className="mt-12 pt-10 border-t border-gray-50 dark:border-slate-800">
+                        <div className="flex items-center justify-between mb-8">
+                          <div>
+                            <h4 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">Exam Authorizations</h4>
+                            <p className="text-[10px] text-gray-400 font-medium">Control which exams this student is allowed to take.</p>
+                          </div>
+                          <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-600">
+                             <ShieldCheck className="w-4 h-4" />
+                          </div>
+                        </div>
+
+                        {isLoadingDetails ? (
+                          <div className="py-10 flex justify-center">
+                            <div className="w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
+                          </div>
+                        ) : selectedDetails?.exams?.length > 0 ? (
+                          <div className="grid grid-cols-1 gap-3">
+                            {selectedDetails.exams.map((ex: any) => (
+                              <div key={ex.id} className="flex items-center justify-between p-5 bg-gray-50/50 dark:bg-slate-800/50 rounded-2xl border border-gray-50 dark:border-slate-800 group hover:border-purple-100 dark:hover:border-purple-900 transition-all">
+                                <div className="flex items-center gap-4">
+                                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${ex.is_authorized ? "bg-emerald-100 text-emerald-600" : "bg-gray-100 text-gray-400"}`}>
+                                    <CheckCircle className="w-5 h-5" />
+                                  </div>
+                                  <div>
+                                    <p className="text-[11px] font-black text-gray-900 dark:text-white uppercase tracking-tight line-clamp-1">{ex.name}</p>
+                                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Course ID: {ex.courseid}</p>
+                                  </div>
+                                </div>
+                                <button 
+                                  onClick={() => handleToggleExamAuth(ex.id, !!ex.is_authorized)}
+                                  className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                                    ex.is_authorized 
+                                      ? "bg-emerald-500 text-white shadow-lg shadow-emerald-100" 
+                                      : "bg-gray-200 dark:bg-slate-700 text-gray-500 dark:text-slate-400 hover:bg-purple-600 hover:text-white hover:shadow-lg hover:shadow-purple-100"
+                                  }`}
+                                >
+                                  {ex.is_authorized ? "Authorized" : "Authorize"}
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="py-10 text-center bg-gray-50/30 dark:bg-slate-800/20 rounded-3xl">
+                            <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">No exams linked to enrolled courses.</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -257,24 +332,44 @@ export default function StudentsClient({ initialStudents }: { initialStudents: S
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-3 mt-auto relative z-10 w-full">
+                        <div className="flex items-center gap-2 mt-auto relative z-10 w-full">
                           <button 
-                            onClick={() => setSelected(s)} 
+                            onClick={async () => {
+                              setSelected(s);
+                              setIsLoadingDetails(true);
+                              try {
+                                const data = await callMoodleAdmin("local_skillsaint_get_student_dashboard_data", { userid: s.id });
+                                setSelectedDetails(data);
+                              } catch (e) {
+                                console.error("Failed to load student details", e);
+                              } finally {
+                                setIsLoadingDetails(false);
+                              }
+                            }} 
                             className="flex-1 h-12 rounded-2xl bg-gray-900 dark:bg-purple-600 text-white font-black uppercase tracking-widest text-[9px] hover:bg-black dark:hover:bg-purple-700 transition-all shadow-lg shadow-gray-100 dark:shadow-none flex items-center justify-center gap-2"
                           >
                             <Eye className="w-4 h-4" /> Profile
                           </button>
-                          <button 
-                            onClick={() => handleSuspend(s)} 
-                            className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
-                              s.suspended 
-                                ? "bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-600 hover:text-white" 
-                                : "bg-red-50 dark:bg-red-900/10 text-red-400 dark:text-red-500 hover:bg-red-500 hover:text-white"
-                            }`}
-                            title={s.suspended ? "Unsuspend" : "Suspend"}
-                          >
-                            <UserX className="w-4 h-4" />
-                          </button>
+                          <div className="flex gap-2">
+                            <button 
+                              onClick={() => handleSuspend(s)} 
+                              className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
+                                s.suspended 
+                                  ? "bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-600 hover:text-white" 
+                                  : "bg-amber-50 dark:bg-amber-900/10 text-amber-500 dark:text-amber-400 hover:bg-amber-500 hover:text-white"
+                              }`}
+                              title={s.suspended ? "Unsuspend" : "Suspend"}
+                            >
+                              <UserX className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={() => handleDelete(s)} 
+                              className="w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-900/10 text-red-400 dark:text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-all"
+                              title="Delete Account"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))

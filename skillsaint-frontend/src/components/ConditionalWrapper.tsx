@@ -10,15 +10,16 @@ export default function ConditionalWrapper({ children, type }: { children: React
       pathname?.startsWith("/dashboard") || 
       pathname?.startsWith("/admin") || 
       pathname === "/login" || 
-      pathname === "/forgot-password"
+      pathname === "/forgot-password" ||
+      pathname === "/success"
     ) {
       return null;
     }
   }
 
-  // Hide header on dashboard/admin
+  // Hide header on dashboard/admin/success
   if (type === "header") {
-    if (pathname?.startsWith("/dashboard") || pathname?.startsWith("/admin")) {
+    if (pathname?.startsWith("/dashboard") || pathname?.startsWith("/admin") || pathname === "/success") {
       return null;
     }
   }

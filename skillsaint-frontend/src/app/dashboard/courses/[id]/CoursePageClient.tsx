@@ -33,6 +33,7 @@ interface MoodleModule {
     filename: string;
     mimetype?: string;
   }>;
+  is_authorized?: number;
 }
 
 interface MoodleSection {
@@ -71,19 +72,19 @@ export default function CoursePageClient({
         const response = await fetch("/api/moodle", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ function: "core_course_get_contents", params: { courseid: courseId } }),
+          body: JSON.stringify({ function: "local_skillsaint_get_course_curriculum", params: { courseid: courseId } }),
         });
         const data = await response.json();
         if (Array.isArray(data)) {
           const allQuizzes: MoodleModule[] = [];
           
           const processedSections = data.map((section: MoodleSection) => {
-            const quizzes = section.modules.filter((mod) => mod.modname === "quiz");
+            const quizzes = section.modules.filter((mod) => mod.modname === "quiz" && mod.is_authorized === 1);
             allQuizzes.push(...quizzes);
             return {
               ...section,
               modules: section.modules.filter(
-                (mod) => mod.modname !== "forum" // Still remove forum, but keep quiz
+                (mod) => mod.modname !== "forum" && (mod.modname !== "quiz" || mod.is_authorized === 1)
               ),
             };
           }).filter((section) => section.modules.length > 0);
@@ -412,7 +413,7 @@ export default function CoursePageClient({
                 {/* Assets Section */}
                 {activeModule?.contents && activeModule.contents.length > 0 && (
                   <div className="mt-20 pt-16 border-t border-gray-100">
-                    <div className="flex items-center gap-6 mb-12">
+                    {/* <div className="flex items-center gap-6 mb-12">
                       <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600 shadow-inner">
                         <BookOpen size={24} />
                       </div>
@@ -421,7 +422,7 @@ export default function CoursePageClient({
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Supports this chapter</p>
                       </div>
                       <div className="h-px flex-1 bg-gray-50" />
-                    </div>
+                    </div> */}
 
                     <div className="grid grid-cols-1 gap-12">
                       {activeModule?.contents?.map((file, idx) => {

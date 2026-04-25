@@ -79,5 +79,20 @@
         <INDEX NAME="user_quiz_idx" UNIQUE="false" FIELDS="userid, quizid"/>
       </INDEXES>
     </TABLE>
+    <TABLE NAME="local_skillsaint_exam_auth" COMMENT="Store exam authorizations for students">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+        <FIELD NAME="quizid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+        <FIELD NAME="authorized" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="user_quiz_idx" UNIQUE="true" FIELDS="userid, quizid"/>
+      </INDEXES>
+    </TABLE>
   </TABLES>
 </XMLDB>

@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 "use client";
 
 import {
@@ -11,12 +13,13 @@ import {
   Sparkles,
   Plus,
   RefreshCw,
+  GraduationCap,
+  Clock,
 } from "lucide-react";
 import StudentSidebar from "@/components/dashboard/StudentSidebar";
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import Image from "next/image";
 import { activateAccount } from "@/lib/data";
 
 interface EnrolledCourse {
@@ -31,7 +34,8 @@ interface EnrolledCourse {
 interface DashboardData {
   courses: EnrolledCourse[];
   plan: string;
-  exams?: Array<{ id: number; name: string; courseid: number; timeLimit: number }>;
+  exams: Array<{ id: number; name: string; courseid: number; timeLimit: number; is_authorized: number; intro: string; questioncount?: number }>;
+  needsPasswordSetup: boolean;
 }
 
 interface PlanQuotas {
@@ -123,12 +127,10 @@ const CourseCard = ({ course, isEnrolled, canAdd, moodleToken, moodleUrl, onClic
 
       <div className="relative h-44 w-full rounded-[2.5rem] overflow-hidden mb-6 bg-gray-50 flex items-center justify-center text-gray-200">
         {imgSrc ? (
-          <Image
+          <img
             src={imgSrc}
             alt={course.fullname}
-            fill
-            className={`object-cover transition-transform duration-700 ${isEnrolled ? "group-hover:scale-110" : "opacity-70"}`}
-            unoptimized
+            className={`absolute inset-0 w-full h-full object-cover transition-transform duration-700 ${isEnrolled ? "group-hover:scale-110" : "opacity-70"}`}
           />
         ) : (
           <div 
@@ -227,8 +229,21 @@ const DashboardClient = ({
   const [activeFilter, setActiveFilter] = useState<"all" | "enrolled">("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // Password Setup States
+  const [showPasswordSetup, setShowPasswordSetup] = useState(initialData.needsPasswordSetup);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isSettingPassword, setIsSettingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+
   const enrolledCourses = useMemo(() => initialData?.courses || [], [initialData]);
   const userPlan = initialData?.plan || "none";
+
+  useEffect(() => {
+    console.log("DEBUG - needsPasswordSetup (initialData):", initialData.needsPasswordSetup);
+    console.log("DEBUG - showPasswordSetup (state):", showPasswordSetup);
+  }, [initialData.needsPasswordSetup, showPasswordSetup]);
 
   // Determine quota from server-side planQuotas or defaults
   const quotaMap: Record<string, number> = {
@@ -325,6 +340,38 @@ const DashboardClient = ({
     }
   };
 
+  const handlePasswordSetup = async () => {
+    if (!newPassword || newPassword.length < 8) {
+      setPasswordError("Password must be at least 8 characters.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Passwords do not match.");
+      return;
+    }
+
+    setIsSettingPassword(true);
+    setPasswordError("");
+
+    try {
+      const { setupInitialPasswordAction } = await import("@/lib/actions");
+      const result = await setupInitialPasswordAction(newPassword);
+      if (result.success) {
+        setPasswordSuccess(true);
+        setTimeout(() => {
+          setShowPasswordSetup(false);
+          window.location.reload();
+        }, 2000);
+      } else {
+        setPasswordError(result.error || "Failed to set password");
+      }
+    } catch (e) {
+      setPasswordError("An error occurred");
+    } finally {
+      setIsSettingPassword(false);
+    }
+  };
+
   const handleCourseClick = (course: EnrolledCourse) => {
     router.push(`/dashboard/courses/${course.id}`);
   };
@@ -346,7 +393,7 @@ const DashboardClient = ({
                     Student Portal
                   </span>
                 </div>
-                <h1 className="text-4xl md:text-6xl font-black text-gray-900 tracking-tighter leading-none mb-4">
+                <h1 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tighter leading-none mb-4">
                   My Courses,{" "}
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">
                     Scholar.
@@ -358,7 +405,7 @@ const DashboardClient = ({
               <div className="flex items-center gap-8">
                 <div className="text-left">
                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Enrolled</p>
-                  <p className="text-4xl font-black text-gray-900">{enrolledCount}</p>
+                  <p className="text-3xl font-black text-gray-900">{enrolledCount}</p>
                 </div>
 
                 {userQuota !== Infinity && (
@@ -366,7 +413,7 @@ const DashboardClient = ({
                     <div className="h-10 w-px bg-gray-200 hidden sm:block" />
                     <div className="text-left">
                       <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Slots Left</p>
-                      <p className={`text-4xl font-black ${slotsLeft > 0 ? "text-emerald-600" : "text-red-400"}`}>
+                      <p className={`text-3xl font-black ${slotsLeft > 0 ? "text-emerald-600" : "text-red-400"}`}>
                         {slotsLeft}
                       </p>
                     </div>
@@ -503,6 +550,62 @@ const DashboardClient = ({
                 </div>
               )}
             </section>
+
+            {/* ── Exams Section ── */}
+            {initialData?.exams && initialData.exams.filter(ex => ex.is_authorized === 1).length > 0 && (
+              <section className="animate-in fade-in duration-1000 delay-300 pb-24">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-100">
+                    <GraduationCap size={20} />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black text-gray-900 tracking-tight uppercase">Authorized Exams</h2>
+                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Global Certification Assessments</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {initialData.exams.filter(ex => ex.is_authorized === 1).map((exam) => (
+                    <motion.div
+                      key={exam.id}
+                      whileHover={{ y: -5 }}
+                      className="group relative bg-white border-2 border-indigo-50 rounded-[2.5rem] p-6 transition-all duration-500 hover:border-indigo-200 hover:shadow-2xl hover:shadow-indigo-100/50 cursor-pointer overflow-hidden"
+                      onClick={() => router.push(`/dashboard/exams/${exam.id}`)}
+                    >
+                      <div className="absolute -top-12 -right-12 w-24 h-24 bg-indigo-50 rounded-full blur-2xl group-hover:bg-indigo-100 transition-colors" />
+                      
+                      <div className="relative z-10">
+                        <div className="flex items-center justify-between mb-6">
+                          <span className="px-3 py-1.5 bg-indigo-600 text-white rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg shadow-indigo-100">
+                            Exam Ready
+                          </span>
+                          <span className="text-[10px] font-bold text-gray-400 italic">Course ID: {exam.courseid}</span>
+                        </div>
+                        
+                        <h3 className="text-lg font-black text-gray-900 mb-2 uppercase tracking-tight group-hover:text-indigo-600 transition-colors">
+                          {exam.name}
+                        </h3>
+                        <p className="text-sm text-gray-400 line-clamp-2 mb-6 font-medium">
+                          Official GBI assessment. Please ensure you have completed all relevant modules before starting.
+                        </p>
+
+                        <div className="flex items-center justify-between pt-6 border-t border-gray-50 group-hover:border-indigo-50 transition-colors">
+                          <div className="flex items-center gap-2 text-indigo-600">
+                            <Clock size={14} />
+                            <span className="text-xs font-black uppercase tracking-widest">
+                              {Math.floor(exam.timeLimit / 60)} Mins
+                            </span>
+                          </div>
+                          <div className="w-10 h-10 rounded-xl bg-gray-900 text-white flex items-center justify-center group-hover:bg-indigo-600 transition-all shadow-lg group-hover:shadow-indigo-200">
+                            <PlayCircle size={18} />
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
         </div>
       </main>
@@ -564,6 +667,96 @@ const DashboardClient = ({
                 <p className="mt-12 text-[10px] font-black text-gray-300 uppercase tracking-widest">
                   Problems? contact admin@gbi-edu.com
                 </p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Password Setup Wall ── */}
+      <AnimatePresence>
+        {showPasswordSetup && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[110] bg-indigo-900/60 backdrop-blur-[20px] flex items-center justify-center p-6 overflow-y-auto"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className="bg-white rounded-[2.5rem] md:rounded-[3rem] p-8 md:p-12 max-w-2xl w-full text-center shadow-2xl relative overflow-hidden my-auto"
+            >
+              <div className="absolute -top-24 -left-24 w-64 h-64 bg-indigo-100 rounded-full blur-3xl opacity-50" />
+              <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-purple-100 rounded-full blur-3xl opacity-50" />
+
+              <div className="relative z-10">
+                <div className="w-16 h-16 bg-indigo-600 text-white rounded-[1.5rem] flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-indigo-200">
+                  <Lock size={32} />
+                </div>
+                
+                <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tighter leading-none mb-4 uppercase">
+                  Secure Your <br />
+                  <span className="text-indigo-600">Account</span>
+                </h2>
+                
+                <p className="text-gray-400 font-medium mb-8 text-sm leading-relaxed max-w-lg mx-auto">
+                  Welcome to the academy! For your security, please choose a personal password to replace the temporary one.
+                </p>
+
+                {passwordSuccess ? (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="py-8 flex flex-col items-center gap-4"
+                  >
+                    <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center">
+                      <CheckCircle2 size={32} />
+                    </div>
+                    <p className="text-emerald-600 font-black uppercase tracking-widest text-xs">
+                      Password Updated! Redirecting...
+                    </p>
+                  </motion.div>
+                ) : (
+                  <div className="max-w-md mx-auto space-y-4">
+                    <div className="space-y-3">
+                      <div className="relative">
+                        <input
+                          type="password"
+                          placeholder="New Password (min 8 characters)"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          className="w-full px-6 py-5 bg-gray-50 border-2 border-transparent rounded-[1.5rem] text-center text-base font-bold transition-all focus:bg-white focus:border-indigo-600 outline-none"
+                        />
+                      </div>
+                      <div className="relative">
+                        <input
+                          type="password"
+                          placeholder="Confirm New Password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="w-full px-6 py-5 bg-gray-50 border-2 border-transparent rounded-[1.5rem] text-center text-base font-bold transition-all focus:bg-white focus:border-indigo-600 outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    {passwordError && (
+                      <p className="text-red-500 text-[10px] font-black uppercase tracking-widest">{passwordError}</p>
+                    )}
+
+                    <button
+                      onClick={handlePasswordSetup}
+                      disabled={isSettingPassword}
+                      className="w-full py-5 bg-indigo-600 text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl shadow-indigo-100 transition-all hover:bg-gray-900 hover:shadow-gray-100 active:scale-95 disabled:opacity-50"
+                    >
+                      {isSettingPassword ? "Saving..." : "Set My Password"}
+                    </button>
+                    
+                    <p className="text-[10px] font-medium text-gray-400 mt-4 italic">
+                      You will need this password for your next login.
+                    </p>
+                  </div>
+                )}
               </div>
             </motion.div>
           </motion.div>

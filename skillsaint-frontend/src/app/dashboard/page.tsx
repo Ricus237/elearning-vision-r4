@@ -7,7 +7,7 @@ import { checkActivation, getEnrollmentData, getAllCourses } from "@/lib/data";
  * Main dashboard page: shows all courses with enrolled ones highlighted.
  */
 const DashboardPage = async () => {
-  const data = (await getStudentDashboardAction()) || { plan: 'none', courses: [], exams: [] };
+  const data = (await getStudentDashboardAction()) || { plan: 'none', courses: [], exams: [], needsPasswordSetup: false };
   const cookieStore = await cookies();
   const moodleUser = cookieStore.get('moodle_user')?.value || "";
   const userEmail = moodleUser || cookieStore.get('user_email')?.value || "";

@@ -111,7 +111,7 @@ class local_skillsaint_external extends external_api
             $usernew->lastname = isset(explode(' ', $app->fullname)[1]) ? explode(' ', $app->fullname)[1] : 'Student';
             $usernew->auth = 'manual';
             $usernew->confirmed = 1;
-            $usernew->password = hash_internal_user_password('Skillsaint2024!'); // Temporary password
+            $usernew->password = hash_internal_user_password('GBI2026@'); // Temporary password
             $user_id = user_create_user($usernew);
             $user = $DB->get_record('user', array('id' => $user_id));
         }
@@ -149,7 +149,7 @@ class local_skillsaint_external extends external_api
         // 5. Generate activation code (Keep it for history, but activate automatically)
         $activation_code = 'IBI-' . rand(1000, 9999) . '-' . strtoupper(substr(md5(time()), 0, 4));
         $app->activation_code = $activation_code;
-        $app->is_activated = 0; // Auto-activate after payment!
+        $app->is_activated = 1; // Auto-activate after payment!
         $DB->update_record('local_skillsaint_apps', $app);
 
         return array(
@@ -1854,7 +1854,7 @@ class local_skillsaint_external extends external_api
         require_once($CFG->dirroot . '/course/lib.php');
 
         // 1. Plan & Profile Info
-        $user = $DB->get_record('user', array('id' => $userid), 'email', MUST_EXIST);
+        $user = $DB->get_record('user', array('id' => $userid), '*', MUST_EXIST);
         $app = $DB->get_record('local_skillsaint_apps', array('email' => $user->email));
         
         $plan = $app ? $app->selected_plan : 'none';
@@ -1898,12 +1898,14 @@ class local_skillsaint_external extends external_api
             $quizzes = $DB->get_records_select('quiz', "course $insql", $inparams);
 
             foreach ($quizzes as $q) {
+                $auth = $DB->get_record('local_skillsaint_exam_auth', array('userid' => $userid, 'quizid' => $q->id));
                 $exams[] = array(
                     'id' => (int) $q->id,
                     'courseid' => (int) $q->course,
                     'name' => $q->name,
                     'timeLimit' => (int) $q->timelimit,
                     'intro' => strip_tags($q->intro),
+                    'is_authorized' => $auth ? (int) $auth->authorized : 0,
                 );
             }
         }
@@ -1921,6 +1923,14 @@ class local_skillsaint_external extends external_api
             );
         }
 
+        // Check if user still has the default temporary password
+        $needs_password_setup = 0;
+        if (function_exists('validate_internal_user_password')) {
+            if (validate_internal_user_password($user, 'GBI2026@') || validate_internal_user_password($user, 'Skillsaint2024!')) {
+                $needs_password_setup = 1;
+            }
+        }
+
         return array(
             'plan' => $plan,
             'phone' => $phone,
@@ -1930,6 +1940,7 @@ class local_skillsaint_external extends external_api
             'courses' => $enrolled_courses,
             'exams' => $exams,
             'results' => $results,
+            'needs_password_setup' => $needs_password_setup,
         );
     }
 
@@ -1957,6 +1968,7 @@ class local_skillsaint_external extends external_api
                     'name' => new external_value(PARAM_TEXT, 'Quiz name'),
                     'timeLimit' => new external_value(PARAM_INT, 'Time limit in seconds'),
                     'intro' => new external_value(PARAM_RAW, 'Intro text'),
+                    'is_authorized' => new external_value(PARAM_INT, '1 if authorized, 0 otherwise'),
                 ))
             ),
             'results' => new external_multiple_structure(
@@ -1968,6 +1980,7 @@ class local_skillsaint_external extends external_api
                     'date' => new external_value(PARAM_INT, 'Timestamp'),
                 ))
             ),
+            'needs_password_setup' => new external_value(PARAM_INT, '1 if user needs to set initial password, 0 otherwise'),
         ));
     }
 
@@ -2618,5 +2631,152 @@ class local_skillsaint_external extends external_api
         );
     }
 
+
+    // ============================================================
+    // INITIAL PASSWORD SETUP (First-time login after payment)
+    // ============================================================
+
+    /**
+     * Set initial password for users who still have the default temporary password.
+     * This does NOT require the old password — it only works if the current password
+     * is still the system default ('GBI2026@').
+     */
+    public static function setup_initial_password_parameters()
+    {
+        return new external_function_parameters(array(
+            'userid'      => new external_value(PARAM_INT, 'User ID'),
+            'newpassword' => new external_value(PARAM_TEXT, 'New password chosen by user'),
+        ));
+    }
+
+    public static function setup_initial_password($userid, $newpassword)
+    {
+        global $DB, $CFG;
+        require_once($CFG->dirroot . '/user/lib.php');
+
+        $params = self::validate_parameters(self::setup_initial_password_parameters(), array(
+            'userid'      => $userid,
+            'newpassword' => $newpassword,
+        ));
+
+        $user = $DB->get_record('user', array('id' => $params['userid']), '*', MUST_EXIST);
+
+        // Security: Only allow this if the user still has the default password
+        if (!validate_internal_user_password($user, 'GBI2026@')) {
+            return array('status' => 'error', 'message' => 'Password has already been changed. Use the regular change password flow.');
+        }
+
+        // Validate minimum password strength
+        if (strlen($params['newpassword']) < 8) {
+            return array('status' => 'error', 'message' => 'Password must be at least 8 characters long.');
+        }
+
+        // Update password
+        $user->password = hash_internal_user_password($params['newpassword']);
+        $user->timemodified = time();
+        $DB->update_record('user', $user);
+
+        return array('status' => 'success', 'message' => 'Password set successfully. You can now use it to log in.');
+    }
+
+    public static function setup_initial_password_returns()
+    {
+        return new external_single_structure(array(
+            'status'  => new external_value(PARAM_TEXT, 'success or error'),
+            'message' => new external_value(PARAM_TEXT, 'Status message'),
+        ));
+    }
+
+    /**
+     * Authorize or revoke exam access for a student.
+     */
+    public static function authorize_exam_parameters()
+    {
+        return new external_function_parameters(array(
+            'userid'     => new external_value(PARAM_INT, 'User ID of the student'),
+            'quizid'     => new external_value(PARAM_INT, 'Quiz ID to authorize'),
+            'authorized' => new external_value(PARAM_INT, '1 to authorize, 0 to revoke'),
+        ));
+    }
+
+    public static function authorize_exam($userid, $quizid, $authorized)
+    {
+        global $DB;
+
+        $params = self::validate_parameters(self::authorize_exam_parameters(), array(
+            'userid'     => $userid,
+            'quizid'     => $quizid,
+            'authorized' => $authorized,
+        ));
+
+        $record = $DB->get_record('local_skillsaint_exam_auth', array('userid' => $params['userid'], 'quizid' => $params['quizid']));
+
+        if ($record) {
+            $record->authorized = $params['authorized'];
+            $record->timecreated = time();
+            $DB->update_record('local_skillsaint_exam_auth', $record);
+        } else {
+            $record = new stdClass();
+            $record->userid = $params['userid'];
+            $record->quizid = $params['quizid'];
+            $record->authorized = $params['authorized'];
+            $record->timecreated = time();
+            $DB->insert_record('local_skillsaint_exam_auth', $record);
+        }
+
+        return array('status' => 'success', 'message' => 'Exam authorization updated.');
+    }
+
+    public static function authorize_exam_returns()
+    {
+        return new external_single_structure(array(
+            'status'  => new external_value(PARAM_TEXT, 'success or error'),
+            'message' => new external_value(PARAM_TEXT, 'Status message'),
+        ));
+    }
+
+    /**
+     * Get course curriculum with exam authorization status.
+     */
+    public static function get_course_curriculum_parameters()
+    {
+        return new external_function_parameters(array(
+            'courseid' => new external_value(PARAM_INT, 'Course ID'),
+        ));
+    }
+
+    public static function get_course_curriculum($courseid)
+    {
+        global $DB, $USER, $CFG;
+        $params = self::validate_parameters(self::get_course_curriculum_parameters(), array('courseid' => $courseid));
+        
+        // Ensure the external class is loaded
+        require_once($CFG->dirroot . '/course/externallib.php');
+        
+        // Use the class directly
+        $contents = core_course_external::get_course_contents($params['courseid'], array());
+        
+        // Enrich with exam authorization
+        foreach ($contents as &$section) {
+            if (!isset($section['modules'])) continue;
+            foreach ($section['modules'] as &$module) {
+                if ($module['modname'] === 'quiz') {
+                    $auth = $DB->get_record('local_skillsaint_exam_auth', array('userid' => $USER->id, 'quizid' => $module['instance']));
+                    $module['is_authorized'] = $auth ? (int) $auth->authorized : 0;
+                } else {
+                    $module['is_authorized'] = 1;
+                }
+            }
+        }
+
+        return $contents;
+    }
+
+    public static function get_course_curriculum_returns()
+    {
+        global $CFG;
+        require_once($CFG->dirroot . '/course/externallib.php');
+        return core_course_external::get_course_contents_returns();
+    }
 }
 

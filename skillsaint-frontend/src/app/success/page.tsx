@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CheckCircle2, Home, Loader2, AlertCircle } from "lucide-react";
+import { CheckCircle2, Loader2, AlertCircle, Copy, Check, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
@@ -15,12 +15,17 @@ function SuccessContent() {
 
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [errorMsg, setErrorMsg] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const defaultPassword = "GBI2026@";
 
 
   useEffect(() => {
     async function finalize() {
       const rawEmail = localStorage.getItem('pending_application_email');
       const email = rawEmail ? rawEmail.trim().toLowerCase() : "";
+      setUserEmail(email);
       
       if (email && isApplication) {
         // Call API route directly instead of importing server-side code
@@ -118,12 +123,67 @@ function SuccessContent() {
         {isApplication ? "Application Received!" : "You're enrolled!"}
       </h1>
 
-      <p className="text-lg sm:text-xl text-slate-600 mb-10 leading-relaxed font-medium">
+      <p className="text-lg sm:text-xl text-slate-600 mb-8 leading-relaxed font-medium">
         {isApplication 
           ? "Your program application and payment were successful. You can now access your chosen courses in your dashboard."
           : "Your payment was successful and your course access is now active. Head to your dashboard to start learning."
         }
       </p>
+
+      {/* ── Credentials Block ── */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6 }}
+        className="mb-10 p-6 bg-purple-50 rounded-3xl border-2 border-purple-100 text-left"
+      >
+        <p className="text-[10px] font-black text-purple-600 uppercase tracking-widest mb-4 flex items-center gap-2">
+          <ShieldCheck size={12} />
+          Your Login Credentials
+        </p>
+        
+        <div className="space-y-3">
+          {/* Email */}
+          <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-purple-100 group">
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Email Address</p>
+              <p className="text-sm font-bold text-slate-900 truncate max-w-[200px] sm:max-w-none">{userEmail || "your-email@example.com"}</p>
+            </div>
+            <button 
+              onClick={() => {
+                navigator.clipboard.writeText(userEmail);
+                setCopiedField("email");
+                setTimeout(() => setCopiedField(null), 2000);
+              }}
+              className="p-2 hover:bg-purple-50 rounded-xl transition-colors text-purple-600"
+            >
+              {copiedField === "email" ? <Check size={18} /> : <Copy size={18} />}
+            </button>
+          </div>
+
+          {/* Password */}
+          <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-purple-100 group">
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Temporary Password</p>
+              <p className="text-sm font-bold text-slate-900">{defaultPassword}</p>
+            </div>
+            <button 
+              onClick={() => {
+                navigator.clipboard.writeText(defaultPassword);
+                setCopiedField("password");
+                setTimeout(() => setCopiedField(null), 2000);
+              }}
+              className="p-2 hover:bg-purple-50 rounded-xl transition-colors text-purple-600"
+            >
+              {copiedField === "password" ? <Check size={18} /> : <Copy size={18} />}
+            </button>
+          </div>
+        </div>
+        
+        <p className="mt-4 text-[10px] font-medium text-purple-500 italic">
+          * Please change your password immediately after your first login.
+        </p>
+      </motion.div>
 
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
         <Link href="/dashboard">
@@ -135,7 +195,7 @@ function SuccessContent() {
             Start Learning →
           </motion.div>
         </Link>
-        <Link href="/">
+        {/* <Link href="/">
           <motion.div
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -144,7 +204,7 @@ function SuccessContent() {
             <Home size={20} />
             Home
           </motion.div>
-        </Link>
+        </Link> */}
       </div>
     </motion.div>
   );
