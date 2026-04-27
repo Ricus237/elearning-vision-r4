@@ -9,13 +9,18 @@ import {
   LogOut,
   MessageSquare,
   Menu,
-  X
+  X,
+  GraduationCap
 } from "lucide-react";
 import { logoutAction } from "@/lib/actions";
 
 const navItems = [
   { href: "/dashboard", label: "Program Courses", icon: BookOpen },
   { href: "/dashboard/notifications", label: "Messagerie", icon: MessageSquare },
+];
+
+const examItems = [
+  { href: "/dashboard/exams", label: "Examens", icon: GraduationCap },
 ];
 
 const managementItems = [
@@ -110,6 +115,25 @@ const StudentSidebar = () => {
             {item.label}
           </Link>
         ))}
+
+        <div className="pt-4">
+          <p className="px-4 text-[9px] font-black text-gray-300 uppercase tracking-[0.2em] mb-4">Examens</p>
+          {examItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`group flex items-center gap-4 px-4 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all duration-300 ${
+                isActive(item.href)
+                  ? "bg-gray-900 text-white shadow-xl shadow-gray-200 -translate-y-0.5"
+                  : "text-gray-400 hover:bg-purple-50 hover:text-purple-600"
+              }`}
+              onClick={() => setIsOpen(false)}
+            >
+              <item.icon className={`w-5 h-5 transition-transform duration-500 ${isActive(item.href) ? "rotate-0" : "group-hover:scale-110 group-hover:rotate-6"}`} />
+              {item.label}
+            </Link>
+          ))}
+        </div>
       </nav>
 
       <div className="mt-auto pt-8 border-t border-gray-50 flex flex-col gap-2">
