@@ -1770,6 +1770,13 @@ class local_skillsaint_external extends external_api
             $quizid = (int)$cm->instance;
         }
 
+        // --- Security Check: Verify authorization ---
+        $auth = $DB->get_record('local_skillsaint_exam_auth', array('userid' => $USER->id, 'quizid' => $quizid));
+        if (!$auth || $auth->authorized != 1) {
+             throw new moodle_exception('error_not_authorized', 'local_skillsaint', '', null, 'Vous n\'êtes pas autorisé à passer cet examen. Veuillez contacter l\'administration.');
+        }
+        // ------------------------------------------
+
         $slots = $DB->get_records('quiz_slots', array('quizid' => $quizid), 'slot ASC');
         $questions = array();
 

@@ -397,11 +397,15 @@ const ExamContent = () => {
             </div>
             <h2 className="text-2xl font-black text-gray-900 mb-2">Examination Error</h2>
             <p className="text-gray-500 font-medium mb-8">{error}</p>
-            <Link href="/dashboard/exams">
-              <button className="w-full py-5 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-purple-600 transition-all shadow-xl shadow-gray-200">
-                Return to Assessments
-              </button>
-            </Link>
+            <button 
+              onClick={() => {
+                clearExamSession();
+                router.push("/dashboard/exams");
+              }}
+              className="w-full py-5 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-purple-600 transition-all shadow-xl shadow-gray-200"
+            >
+              Return to Assessments
+            </button>
           </div>
         </div>
       </>
@@ -571,7 +575,13 @@ const ExamContent = () => {
               <button onClick={() => setShowExitWarning(false)} className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-2xl transition-colors">
                 Resume
               </button>
-              <button onClick={() => router.push("/dashboard/exams")} className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl transition-colors shadow-lg shadow-red-200">
+              <button 
+                onClick={() => {
+                  clearExamSession();
+                  router.push("/dashboard/exams");
+                }} 
+                className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl transition-colors shadow-lg shadow-red-200"
+              >
                 Yes, Quit
               </button>
             </div>

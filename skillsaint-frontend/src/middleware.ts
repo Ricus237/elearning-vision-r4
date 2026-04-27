@@ -6,26 +6,31 @@ export function middleware(request: NextRequest) {
   
   // Get auth cookies
   const moodleUserId = request.cookies.get('moodle_user_id')?.value;
+  const moodleToken = request.cookies.get('moodle_token')?.value;
   const isAdmin = request.cookies.get('moodle_is_admin')?.value === 'true';
 
   // Protected routes check
   const isAdminRoute = pathname.startsWith('/admin');
   const isDashboardRoute = pathname.startsWith('/dashboard');
+  const isExamRoute = pathname.startsWith('/exam');
 
   const userEmail = request.cookies.get('user_email')?.value;
 
   if (isAdminRoute) {
-    if (!moodleUserId || !isAdmin) {
+    if (!moodleUserId || !moodleToken || !isAdmin) {
       const callbackUrl = encodeURIComponent(`${pathname}${search}`);
       return NextResponse.redirect(new URL(`/login?callbackUrl=${callbackUrl}`, request.url));
     }
   }
 
-  if (isDashboardRoute) {
-    // Si l'utilisateur n'a ni ID Moodle ni email (cas du paiement récent), on redirige
-    if (!moodleUserId && !userEmail) {
-      const callbackUrl = encodeURIComponent(`${pathname}${search}`);
-      return NextResponse.redirect(new URL(`/login?callbackUrl=${callbackUrl}`, request.url));
+  if (isDashboardRoute || isExamRoute) {
+    // Session robuste : il faut l'ID ET le Token
+    if (!moodleUserId || !moodleToken) {
+      // Exception pour l'email de paiement (cas spécial du checkout)
+      if (!userEmail) {
+        const callbackUrl = encodeURIComponent(`${pathname}${search}`);
+        return NextResponse.redirect(new URL(`/login?callbackUrl=${callbackUrl}`, request.url));
+      }
     }
   }
 
@@ -45,5 +50,6 @@ export const config = {
   matcher: [
     '/admin/:path*',
     '/dashboard/:path*',
+    '/exam/:path*',
   ],
 };
