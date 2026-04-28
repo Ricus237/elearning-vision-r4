@@ -298,9 +298,11 @@ const ExamContent = () => {
             }
           }
         } else {
+          clearExamSession();
           setError("Cet examen ne contient aucune question.");
         }
       } else if (result.error) {
+        clearExamSession();
         setError(result.error);
       }
       setIsLoading(false);
