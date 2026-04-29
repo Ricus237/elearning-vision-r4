@@ -103,17 +103,37 @@ class local_skillsaint_external extends external_api
 
         // 3. Find or Create the Moodle user
         $user = $DB->get_record('user', array('email' => $email, 'mnethostid' => $CFG->mnet_localhost_id));
-        if (!$user) {
+        if ($user) {
+            // Update existing user
+            $user->username = $email;
+            $user->confirmed = 1;
+            $user->suspended = 0;
+            $DB->update_record('user', $user);
+            update_internal_user_password($user, 'Gbi2026@');
+        } else {
+            // Create new user with all required fields
             $usernew = new stdClass();
-            $usernew->username = strtolower(str_replace(' ', '', $app->fullname)) . rand(100, 999);
-            $usernew->email = $email;
-            $usernew->firstname = explode(' ', $app->fullname)[0];
-            $usernew->lastname = isset(explode(' ', $app->fullname)[1]) ? explode(' ', $app->fullname)[1] : 'Student';
-            $usernew->auth = 'manual';
-            $usernew->confirmed = 1;
-            $usernew->password = hash_internal_user_password('GBI2026@'); // Temporary password
+            $usernew->username    = $email;
+            $usernew->email       = $email;
+            $usernew->auth        = 'manual';
+            $usernew->confirmed   = 1;
+            $usernew->suspended   = 0;
+            $usernew->mnethostid  = $CFG->mnet_localhost_id;
+            $usernew->lang        = $CFG->lang ?? 'en';
+            $usernew->calendartype = 'gregorian';
+            $usernew->timezone    = '99'; // Default server timezone
+            
+            // Split name safely
+            $parts = explode(' ', trim($app->fullname));
+            $usernew->firstname = $parts[0] ?: 'Student';
+            $usernew->lastname  = (count($parts) > 1) ? implode(' ', array_slice($parts, 1)) : 'User';
+
+            // Create user
             $user_id = user_create_user($usernew);
             $user = $DB->get_record('user', array('id' => $user_id));
+            
+            // Set password explicitly
+            update_internal_user_password($user, 'Gbi2026@');
         }
 
         // 4. Enroll in courses
@@ -2017,7 +2037,7 @@ class local_skillsaint_external extends external_api
         // Check if user still has the default temporary password
         $needs_password_setup = 0;
         if (function_exists('validate_internal_user_password')) {
-            if (validate_internal_user_password($user, 'GBI2026@') || validate_internal_user_password($user, 'Skillsaint2024!')) {
+            if (validate_internal_user_password($user, 'Gbi2026@') || validate_internal_user_password($user, 'GBI2026@') || validate_internal_user_password($user, 'Skillsaint2024!')) {
                 $needs_password_setup = 1;
             }
         }
@@ -2730,7 +2750,7 @@ class local_skillsaint_external extends external_api
     /**
      * Set initial password for users who still have the default temporary password.
      * This does NOT require the old password — it only works if the current password
-     * is still the system default ('GBI2026@').
+     * is still the system default ('Gbi2026@').
      */
     public static function setup_initial_password_parameters()
     {
@@ -2753,7 +2773,7 @@ class local_skillsaint_external extends external_api
         $user = $DB->get_record('user', array('id' => $params['userid']), '*', MUST_EXIST);
 
         // Security: Only allow this if the user still has the default password
-        if (!validate_internal_user_password($user, 'GBI2026@')) {
+        if (!validate_internal_user_password($user, 'Gbi2026@') && !validate_internal_user_password($user, 'GBI2026@')) {
             return array('status' => 'error', 'message' => 'Password has already been changed. Use the regular change password flow.');
         }
 

@@ -18,7 +18,7 @@ function SuccessContent() {
   const [userEmail, setUserEmail] = useState("");
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  const defaultPassword = "GBI2026@";
+  const defaultPassword = "Gbi2026@";
 
 
   useEffect(() => {

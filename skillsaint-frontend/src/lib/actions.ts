@@ -63,9 +63,17 @@ export async function loginAction(formData: FormData) {
   }
 
   // Log pour déboguer si erreur
-  console.log("Moodle Login Fail:", identifier, result);
+  console.log("Moodle Login Fail Details:", {
+    identifier,
+    result,
+    timestamp: new Date().toISOString()
+  });
 
-  return { error: "Identifiants invalides" };
+  const errorMessage = result?.error === 'invalidlogin' 
+    ? "Identifiants invalides (Vérifiez votre email et le mot de passe Gbi2026@)" 
+    : (result?.error || "Connexion échouée");
+
+  return { error: errorMessage };
 }
 
 /**

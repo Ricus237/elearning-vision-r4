@@ -525,7 +525,17 @@ const ApplyForm = ({
           </button>
           <button
             type="button"
-            onClick={onNext}
+            onClick={() => {
+              const normalizedEmail = (collectedData.email || "").trim().toLowerCase();
+              if (normalizedEmail) {
+                saveApplication(
+                  { ...collectedData, email: normalizedEmail },
+                  selectedPlan,
+                  []
+                );
+              }
+              onNext();
+            }}
             className="flex items-center gap-2 px-7 py-3 bg-slate-900 hover:bg-black text-white font-black text-sm rounded-xl transition-all active:scale-95 shadow-lg"
           >
             Review & Pay <ArrowRight size={16} />
