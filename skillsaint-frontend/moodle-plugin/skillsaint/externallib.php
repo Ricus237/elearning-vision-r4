@@ -797,7 +797,7 @@ class local_skillsaint_external extends external_api
                 self::save_base64_file($cdata['cover_image'], $context->id, 'course', 'overviewfiles', 'cover_' . time() . '.png');
             }
             if (!empty($cdata['syllabus_pdf'])) {
-                self::save_base64_file($cdata['syllabus_pdf'], $context->id, 'course', 'summaryfiles', 'syllabus_' . time() . '.pdf');
+                self::save_syllabus_files($cdata['syllabus_pdf'], $context->id);
             }
 
             $created_courses[] = array('id' => $newcourse->id, 'shortname' => $newcourse->shortname);
@@ -868,7 +868,7 @@ class local_skillsaint_external extends external_api
                 self::save_base64_file($cdata['cover_image'], $context->id, 'course', 'overviewfiles', 'cover_' . time() . '.png');
             }
             if (!empty($cdata['syllabus_pdf'])) {
-                self::save_base64_file($cdata['syllabus_pdf'], $context->id, 'course', 'summaryfiles', 'syllabus_' . time() . '.pdf');
+                self::save_syllabus_files($cdata['syllabus_pdf'], $context->id);
             }
         }
         return array('status' => 'success');
@@ -893,6 +893,84 @@ class local_skillsaint_external extends external_api
             'filename' => $filename,
         );
         return $fs->create_file_from_string($filerecord, $content);
+    }
+
+    /**
+     * Save a single base64 file WITHOUT clearing the area first.
+     */
+    private static function save_base64_file_append($base64data, $contextid, $component, $filearea, $filename)
+    {
+        $fs = get_file_storage();
+        if (strpos($base64data, ',') !== false) {
+            $base64data = explode(',', $base64data)[1];
+        }
+        $content = base64_decode($base64data, true);
+        if (!$content)
+            return false;
+        // Check if file with same name already exists, delete it first
+        $existing = $fs->get_file($contextid, $component, $filearea, 0, '/', $filename);
+        if ($existing) {
+            $existing->delete();
+        }
+        $filerecord = array(
+            'contextid' => $contextid,
+            'component' => $component,
+            'filearea' => $filearea,
+            'itemid' => 0,
+            'filepath' => '/',
+            'filename' => $filename,
+        );
+        return $fs->create_file_from_string($filerecord, $content);
+    }
+
+    /**
+     * Handle syllabus files: supports both single base64 and JSON array of {name, data}.
+     * Smart reconciliation: keeps existing files, removes deleted ones, adds new uploads.
+     */
+    private static function save_syllabus_files($syllabus_data, $contextid)
+    {
+        $fs = get_file_storage();
+        
+        // Try to decode as JSON array
+        $decoded = json_decode($syllabus_data, true);
+        
+        if (is_array($decoded)) {
+            // Build lists: files to keep (existing) and files to add (new uploads)
+            $keep_names = array();
+            $new_files = array();
+            
+            foreach ($decoded as $file) {
+                if (empty($file['name'])) continue;
+                
+                if (!empty($file['data']) && strpos($file['data'], 'data:') === 0) {
+                    // New upload (base64 data URI)
+                    $new_files[] = $file;
+                } else {
+                    // Existing server file to keep
+                    $keep_names[] = $file['name'];
+                }
+            }
+            
+            // Get all current files in the area
+            $existing_files = $fs->get_area_files($contextid, 'course', 'summaryfiles', 0, 'itemid, filepath, filename', false);
+            
+            // Delete files that the user removed (not in keep list and not being replaced by new upload)
+            $new_names = array_map(function($f) { return $f['name']; }, $new_files);
+            foreach ($existing_files as $ef) {
+                $efname = $ef->get_filename();
+                if (!in_array($efname, $keep_names) && !in_array($efname, $new_names)) {
+                    $ef->delete();
+                }
+            }
+            
+            // Save new uploads
+            foreach ($new_files as $file) {
+                self::save_base64_file_append($file['data'], $contextid, 'course', 'summaryfiles', $file['name']);
+            }
+        } else {
+            // Legacy: single base64 string
+            self::save_base64_file($syllabus_data, $contextid, 'course', 'summaryfiles', 'syllabus_' . time() . '.pdf');
+        }
     }
 
     public static function update_course_returns()
@@ -1771,9 +1849,13 @@ class local_skillsaint_external extends external_api
         }
 
         // --- Security Check: Verify authorization ---
-        $auth = $DB->get_record('local_skillsaint_exam_auth', array('userid' => $USER->id, 'quizid' => $quizid));
-        if (!$auth || $auth->authorized != 1) {
-             throw new moodle_exception('error_not_authorized', 'local_skillsaint', '', null, 'Vous n\'êtes pas autorisé à passer cet examen. Veuillez contacter l\'administration.');
+        // Admins bypass authorization check
+        $isadmin = is_siteadmin($USER->id);
+        if (!$isadmin) {
+            $auth = $DB->get_record('local_skillsaint_exam_auth', array('userid' => $USER->id, 'quizid' => $quizid));
+            if (!$auth || $auth->authorized != 1) {
+                 throw new moodle_exception('error_not_authorized', 'local_skillsaint', '', null, 'Vous n\'êtes pas autorisé à passer cet examen. Veuillez contacter l\'administration.');
+            }
         }
         // ------------------------------------------
 
@@ -2773,6 +2855,61 @@ class local_skillsaint_external extends external_api
                 } else {
                     $module['is_authorized'] = 1;
                 }
+            }
+        }
+
+        // Inject Course Summary Files (Syllabus) as a virtual module in Section 0
+        $context = context_course::instance($params['courseid']);
+        $fs = get_file_storage();
+        $summaryfiles = array();
+        $files = $fs->get_area_files($context->id, 'course', 'summaryfiles', 0, 'itemid, filepath, filename', false);
+        foreach ($files as $f) {
+            if ($f->is_directory()) continue;
+            
+            $fileurl = $CFG->wwwroot . '/webservice/pluginfile.php/' . $f->get_contextid() . '/' . $f->get_component() . '/' . $f->get_filearea() . '/' . $f->get_itemid() . $f->get_filepath() . rawurlencode($f->get_filename());
+            $summaryfiles[] = array(
+                'type' => 'file',
+                'filename' => $f->get_filename(),
+                'filepath' => $f->get_filepath(),
+                'filesize' => $f->get_filesize(),
+                'fileurl' => $fileurl,
+                'timecreated' => $f->get_timecreated(),
+                'timemodified' => $f->get_timemodified(),
+                'sortorder' => 1,
+                'mimetype' => $f->get_mimetype(),
+                'isexternalfile' => false,
+                'userid' => $f->get_userid(),
+                'author' => $f->get_author(),
+                'license' => $f->get_license()
+            );
+        }
+
+        if (!empty($summaryfiles)) {
+            $syllabus_module = array(
+                'id' => 999999, // Pseudo ID
+                'name' => 'Syllabus & Course Documents',
+                'instance' => 0,
+                'contextid' => $context->id,
+                'visible' => 1,
+                'uservisible' => 1,
+                'visibleoncoursepage' => 1,
+                'modicon' => $CFG->wwwroot . '/theme/image.php/boost/core/1/f/pdf',
+                'modname' => 'resource',
+                'purpose' => 'content',
+                'modplural' => 'Files',
+                'indent' => 0,
+                'noviewlink' => false,
+                'completion' => 0,
+                'is_authorized' => 1,
+                'description' => '<p>These documents provide an overview of the course, its syllabus, and supplementary materials.</p>',
+                'contents' => $summaryfiles
+            );
+
+            if (isset($contents[0])) {
+                if (!isset($contents[0]['modules'])) {
+                    $contents[0]['modules'] = array();
+                }
+                array_unshift($contents[0]['modules'], $syllabus_module);
             }
         }
 

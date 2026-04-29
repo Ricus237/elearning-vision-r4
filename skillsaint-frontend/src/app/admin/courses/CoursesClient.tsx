@@ -125,7 +125,7 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
     summary: "",
     categoryid: initialCategories[0]?.slug?.current ? parseInt(initialCategories[0].slug.current) : 1,
     cover_image: "",
-    syllabus_pdf: "",
+    syllabus_files: [] as {name: string, data: string}[],
     visible: 1,
   });
 
@@ -144,7 +144,7 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
       summary: "", 
       categoryid: categories[0]?.slug?.current ? parseInt(categories[0].slug.current) : 0,
       cover_image: "",
-      syllabus_pdf: "",
+      syllabus_files: [],
       visible: 1,
     });
     setActiveTab("settings");
@@ -216,7 +216,10 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
     try {
       const fullCourseRes = await callMoodleAdmin("core_course_get_courses_by_field", { field: "id", value: course.id });
       if (fullCourseRes?.courses && fullCourseRes.courses.length > 0) {
+        // Preserve summaryfiles because core_course_get_courses_by_field does not return them
+        const preservedSummaryFiles = course.summaryfiles;
         course = fullCourseRes.courses[0];
+        course.summaryfiles = preservedSummaryFiles;
       }
     } catch (e) {
       console.error("Failed to fetch full course details", e);
@@ -228,7 +231,11 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
       ? formatMoodleImageUrl(course.overviewfiles[0].fileurl) 
       : formatMoodleImageUrl(course.courseimage);
     
-    const syllabusUrl = formatMoodleImageUrl(course.summaryfiles?.[0]?.fileurl);
+    // Load existing syllabus files
+    const existingSyllabusFiles = (course.summaryfiles || []).map(f => ({
+      name: f.filename || 'document.pdf',
+      data: formatMoodleImageUrl(f.fileurl),
+    }));
 
     setFormData({
       fullname: course.fullname,
@@ -236,7 +243,7 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
       summary: course.summary ? course.summary.replace(/<[^>]*>/g, '') : "",
       categoryid: course.categoryid || 1,
       cover_image: coverUrl,
-      syllabus_pdf: syllabusUrl,
+      syllabus_files: existingSyllabusFiles,
       visible: course.visible ?? 1,
     });
     setActiveTab("settings");
@@ -261,7 +268,7 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
       reader.onerror = error => reject(error);
     });
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: "cover_image" | "syllabus_pdf") => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: "cover_image") => {
     const file = e.target.files?.[0];
     if (file) {
       try {
@@ -271,6 +278,46 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
         console.error("File to base64 conversion failed", err);
       }
     }
+  };
+
+  const handleSyllabusFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB per file
+    const newFiles: {name: string, data: string}[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.size > MAX_FILE_SIZE) {
+        toast.error(`"${file.name}" is too large (max 15MB per file).`);
+        continue;
+      }
+      try {
+        const base64 = await toBase64(file);
+        newFiles.push({ name: file.name, data: base64 });
+      } catch (err) {
+        console.error(`Failed to convert ${file.name}`, err);
+        toast.error(`Failed to process "${file.name}".`);
+      }
+    }
+
+    if (newFiles.length > 0) {
+      setFormData(prev => ({
+        ...prev,
+        syllabus_files: [...prev.syllabus_files, ...newFiles],
+      }));
+      toast.success(`${newFiles.length} file(s) added.`);
+    }
+    // Reset input so re-selecting same file works
+    e.target.value = '';
+  };
+
+  const removeSyllabusFile = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      syllabus_files: prev.syllabus_files.filter((_, i) => i !== index),
+    }));
   };
 
   const handleOpenView = async (course: Course) => {
@@ -309,7 +356,7 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
           "courses[0][categoryid]": formData.categoryid,
           "courses[0][visible]": formData.visible,
           "courses[0][cover_image]": formData.cover_image,
-          "courses[0][syllabus_pdf]": formData.syllabus_pdf,
+          "courses[0][syllabus_pdf]": JSON.stringify(formData.syllabus_files),
         });
 
         if (res?.exception || res?.error) {
@@ -326,9 +373,7 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
             overviewfiles: formData.cover_image 
               ? [{ fileurl: formData.cover_image, filename: 'cover.png' }] 
               : c.overviewfiles,
-            summaryfiles: formData.syllabus_pdf
-              ? [{ fileurl: formData.syllabus_pdf, filename: 'syllabus.pdf' }]
-              : c.summaryfiles
+            summaryfiles: formData.syllabus_files.map(f => ({ fileurl: f.data, filename: f.name }))
           } : c));
           toast.success(`Settings for "${formData.fullname}" updated.`);
           return true;
@@ -341,7 +386,7 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
           "courses[0][categoryid]": formData.categoryid,
           "courses[0][visible]": formData.visible,
           "courses[0][cover_image]": formData.cover_image,
-          "courses[0][syllabus_pdf]": formData.syllabus_pdf,
+          "courses[0][syllabus_pdf]": JSON.stringify(formData.syllabus_files),
         });
 
         if (res?.exception || res?.error) {
@@ -358,7 +403,7 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
             startdate: Math.floor(Date.now() / 1000),
             categoryid: formData.categoryid,
             overviewfiles: formData.cover_image ? [{ fileurl: formData.cover_image, filename: 'cover.png' }] : [],
-            summaryfiles: formData.syllabus_pdf ? [{ fileurl: formData.syllabus_pdf, filename: 'syllabus.pdf' }] : [],
+            summaryfiles: formData.syllabus_files.map(f => ({ fileurl: f.data, filename: f.name })),
           };
           setCourses(prev => [newCourse, ...prev]);
           toast.success(`Course "${formData.fullname}" created!`);
@@ -1120,31 +1165,53 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
                             <button type="button" onClick={() => setFormData({...formData, cover_image: ""})} className="text-[10px] text-red-400 font-bold hover:text-red-600 ml-1">Remove Image</button>
                           )}
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                           <div className="flex items-center justify-between ml-1">
-                            <label className="block text-xs font-black text-gray-400 uppercase tracking-widest">Syllabus (PDF)</label>
-                            {formData.syllabus_pdf && (
-                              <a 
-                                href={formData.syllabus_pdf} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="text-[10px] text-purple-600 font-bold hover:underline uppercase tracking-wide"
-                              >
-                                View Current
-                              </a>
-                            )}
+                            <label className="block text-xs font-black text-gray-400 uppercase tracking-widest">Documents & Syllabus</label>
+                            <span className="text-[10px] text-gray-400 font-medium">{formData.syllabus_files.length} file(s)</span>
                           </div>
-                          <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-3xl cursor-pointer transition-all group ${formData.syllabus_pdf ? 'border-blue-200 bg-blue-50/30' : 'border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-750'}`}>
-                              <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                  <FileText className={`w-8 h-8 mb-2 transition-colors ${formData.syllabus_pdf ? 'text-blue-500' : 'text-gray-300 group-hover:text-blue-400'}`} />
-                                  <p className={`text-[10px] font-bold uppercase tracking-widest ${formData.syllabus_pdf ? 'text-blue-600' : 'text-gray-400'}`}>
-                                    {formData.syllabus_pdf ? "Replace Syllabus" : "Upload Syllabus"}
+
+                          {/* Existing files list */}
+                          {formData.syllabus_files.length > 0 && (
+                            <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                              {formData.syllabus_files.map((file, idx) => (
+                                <div key={idx} className="flex items-center gap-3 bg-white dark:bg-slate-800 p-3 rounded-2xl border border-gray-100 dark:border-slate-700 group hover:border-blue-200 transition-all">
+                                  <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                                    <FileText className="w-4 h-4 text-blue-500" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-bold text-gray-700 dark:text-gray-200 truncate">{file.name}</p>
+                                    <p className="text-[10px] text-gray-400">
+                                      {file.data.startsWith('data:') ? 'New upload' : 'Saved on server'}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-2 flex-shrink-0">
+                                    {!file.data.startsWith('data:') && (
+                                      <a href={file.data} target="_blank" rel="noopener noreferrer" className="text-[10px] text-purple-600 font-bold hover:underline">View</a>
+                                    )}
+                                    <button type="button" onClick={() => removeSyllabusFile(idx)} className="w-7 h-7 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-100">
+                                      <X className="w-3 h-3 text-red-500" />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Upload zone */}
+                          <label className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-3xl cursor-pointer transition-all group ${formData.syllabus_files.length > 0 ? 'border-blue-200 bg-blue-50/30 dark:bg-blue-900/10' : 'border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-750'}`}>
+                              <div className="flex flex-col items-center justify-center py-4">
+                                  <Upload className={`w-7 h-7 mb-2 transition-colors ${formData.syllabus_files.length > 0 ? 'text-blue-400' : 'text-gray-300 group-hover:text-blue-400'}`} />
+                                  <p className={`text-[10px] font-bold uppercase tracking-widest ${formData.syllabus_files.length > 0 ? 'text-blue-600' : 'text-gray-400'}`}>
+                                    {formData.syllabus_files.length > 0 ? "Add More Files" : "Upload Documents"}
                                   </p>
+                                  <p className="text-[9px] text-gray-400 mt-1">PDF, DOC, DOCX, PPT, XLS — Max 15MB each</p>
                               </div>
-                              <input type="file" className="hidden" accept=".pdf" onChange={e => handleFileChange(e, "syllabus_pdf")} />
+                              <input type="file" className="hidden" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx" multiple onChange={handleSyllabusFiles} />
                           </label>
-                          {formData.syllabus_pdf && (
-                            <button type="button" onClick={() => setFormData({...formData, syllabus_pdf: ""})} className="text-[10px] text-red-400 font-bold hover:text-red-600 ml-1">Detach Document</button>
+
+                          {formData.syllabus_files.length > 0 && (
+                            <button type="button" onClick={() => setFormData(prev => ({...prev, syllabus_files: []}))} className="text-[10px] text-red-400 font-bold hover:text-red-600 ml-1">Remove All Documents</button>
                           )}
                         </div>
 
