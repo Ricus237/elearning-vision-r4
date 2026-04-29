@@ -216,10 +216,15 @@ export default function CoursesClient({ initialCourses, initialCategories, moodl
     try {
       const fullCourseRes = await callMoodleAdmin("core_course_get_courses_by_field", { field: "id", value: course.id });
       if (fullCourseRes?.courses && fullCourseRes.courses.length > 0) {
-        // Preserve summaryfiles because core_course_get_courses_by_field does not return them
-        const preservedSummaryFiles = course.summaryfiles;
-        course = fullCourseRes.courses[0];
-        course.summaryfiles = preservedSummaryFiles;
+        // Merge re-fetched data while explicitly preserving files that Moodle standard API often omits
+        const updatedCourse = fullCourseRes.courses[0];
+        course = {
+          ...course,
+          ...updatedCourse,
+          summaryfiles: course.summaryfiles || updatedCourse.summaryfiles,
+          overviewfiles: course.overviewfiles || updatedCourse.overviewfiles,
+          courseimage: course.courseimage || updatedCourse.courseimage
+        };
       }
     } catch (e) {
       console.error("Failed to fetch full course details", e);
