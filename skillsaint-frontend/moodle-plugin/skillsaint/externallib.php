@@ -951,8 +951,10 @@ class local_skillsaint_external extends external_api
                 }
             }
             
-            // Get all current files in the area
-            $existing_files = $fs->get_area_files($contextid, 'course', 'summaryfiles', 0, 'itemid, filepath, filename', false);
+            // Get all current files in both old (course) and new (local_skillsaint) areas
+            $existing_old = $fs->get_area_files($contextid, 'course', 'summaryfiles', 0, 'itemid, filepath, filename', false);
+            $existing_new = $fs->get_area_files($contextid, 'local_skillsaint', 'summaryfiles', 0, 'itemid, filepath, filename', false);
+            $existing_files = array_merge($existing_old, $existing_new);
             
             // Delete files that the user removed (not in keep list and not being replaced by new upload)
             $new_names = array_map(function($f) { return $f['name']; }, $new_files);
@@ -965,11 +967,11 @@ class local_skillsaint_external extends external_api
             
             // Save new uploads
             foreach ($new_files as $file) {
-                self::save_base64_file_append($file['data'], $contextid, 'course', 'summaryfiles', $file['name']);
+                self::save_base64_file_append($file['data'], $contextid, 'local_skillsaint', 'summaryfiles', $file['name']);
             }
         } else {
             // Legacy: single base64 string
-            self::save_base64_file($syllabus_data, $contextid, 'course', 'summaryfiles', 'syllabus_' . time() . '.pdf');
+            self::save_base64_file($syllabus_data, $contextid, 'local_skillsaint', 'summaryfiles', 'syllabus_' . time() . '.pdf');
         }
     }
 
@@ -2862,11 +2864,23 @@ class local_skillsaint_external extends external_api
         $context = context_course::instance($params['courseid']);
         $fs = get_file_storage();
         $summaryfiles = array();
-        $files = $fs->get_area_files($context->id, 'course', 'summaryfiles', 0, 'itemid, filepath, filename', false);
+        
+        // Fetch from both old area (course) and new area (local_skillsaint) for backward compatibility
+        $files_old = $fs->get_area_files($context->id, 'course', 'summaryfiles', 0, 'itemid, filepath, filename', false);
+        $files_new = $fs->get_area_files($context->id, 'local_skillsaint', 'summaryfiles', 0, 'itemid, filepath, filename', false);
+        $files = array_merge($files_old, $files_new);
+        
         foreach ($files as $f) {
             if ($f->is_directory()) continue;
             
-            $fileurl = $CFG->wwwroot . '/webservice/pluginfile.php/' . $f->get_contextid() . '/' . $f->get_component() . '/' . $f->get_filearea() . '/' . $f->get_itemid() . $f->get_filepath() . rawurlencode($f->get_filename());
+            $fileurl = \moodle_url::make_webservice_pluginfile_url(
+                $f->get_contextid(),
+                $f->get_component(),
+                $f->get_filearea(),
+                $f->get_itemid(),
+                $f->get_filepath(),
+                $f->get_filename()
+            )->out(false);
             $summaryfiles[] = array(
                 'type' => 'file',
                 'filename' => $f->get_filename(),

@@ -15,7 +15,8 @@ import {
   Lock,
   Trophy,
   ArrowRight,
-  AlertCircle
+  AlertCircle,
+  Download
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -32,6 +33,7 @@ interface MoodleModule {
     fileurl: string;
     filename: string;
     mimetype?: string;
+    filesize?: number;
   }>;
   is_authorized?: number;
 }
@@ -105,6 +107,11 @@ export default function CoursePageClient({
 
   useEffect(() => {
     if (!activeModule) return;
+    if (activeModule.id === 999999) {
+      setModuleContent(activeModule.description || "");
+      return;
+    }
+    
     const fetchModuleContent = async () => {
       setIsModuleLoading(true);
       try {
@@ -435,6 +442,13 @@ export default function CoursePageClient({
                         const isVideo = file.mimetype?.includes("video") || /\.(mp4|webm|ogg|mov)$/i.test(file.filename);
                         const isPdf = file.mimetype?.includes("pdf") || /\.pdf$/i.test(file.filename);
 
+                        const formatSize = (bytes?: number) => {
+                          if (!bytes) return "Unknown size";
+                          const mb = bytes / (1024 * 1024);
+                          if (mb < 1) return `${(bytes / 1024).toFixed(1)} KB`;
+                          return `${mb.toFixed(1)} MB`;
+                        };
+
                         if (isImage) {
                           return (
                             <div key={idx} className="group rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-2xl transition-all hover:scale-[1.01]">
@@ -449,7 +463,8 @@ export default function CoursePageClient({
                             </div>
                           );
                         }
-                        if (isPdf) {
+                        
+                        if (isPdf && activeModule.id !== 999999) {
                           return (
                             <div key={idx} className="rounded-[2rem] md:rounded-[3rem] overflow-hidden border border-gray-100 shadow-2xl bg-white group">
                               <div className="p-6 bg-slate-50 border-b border-gray-100 flex items-center justify-between px-10">
@@ -467,6 +482,47 @@ export default function CoursePageClient({
                             </div>
                           );
                         }
+
+                        // For Syllabus pseudo-module, ALWAYS show downloadable asset cards for every file
+                        if (activeModule.id === 999999) {
+                          return (
+                            <div key={idx} className="rounded-[2rem] overflow-hidden border border-gray-100 shadow-xl bg-white group hover:shadow-2xl transition-all duration-300">
+                              <div className="p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                                <div className="flex items-center gap-5">
+                                  <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600 shadow-inner shrink-0">
+                                    <FileText size={24} />
+                                  </div>
+                                  <div>
+                                    <h4 className="text-sm font-black text-gray-900 leading-snug mb-1 line-clamp-2">
+                                      {file.filename}
+                                    </h4>
+                                    <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                                      <span>{isPdf ? "PDF Document" : "File Asset"}</span>
+                                      {file.filesize && (
+                                        <>
+                                          <span className="w-1 h-1 rounded-full bg-gray-200" />
+                                          <span>{formatSize(file.filesize)}</span>
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                                <a 
+                                  href={fileUrl} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  download={file.filename}
+                                  className="shrink-0 flex items-center justify-center gap-2 px-6 py-4 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-purple-600 transition-colors shadow-md"
+                                >
+                                  <Download size={14} />
+                                  Download
+                                </a>
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        // For regular modules, if it's not handled by viewers above, don't show generic cards
                         return null;
                       })}
                     </div>
