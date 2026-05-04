@@ -1991,12 +1991,17 @@ class local_skillsaint_external extends external_api
                 $image_url = moodle_url::make_pluginfile_url($file->get_contextid(), $file->get_component(), $file->get_filearea(), $file->get_itemid(), $file->get_filepath(), $file->get_filename())->out(false);
             }
 
+            // Calculate progress for this course using unified logic
+            $progress_data = self::calculate_course_progress($userid, $c->id);
+            $percentage = $progress_data['percentage'];
+
             $enrolled_courses[] = array(
                 'id' => (int) $c->id,
                 'fullname' => $fullname = $c->fullname,
                 'shortname' => $c->shortname,
                 'summary' => strip_tags($c->summary),
                 'image_url' => $image_url,
+                'progress' => (int) min($percentage, 100),
             );
         }
 
@@ -2070,6 +2075,7 @@ class local_skillsaint_external extends external_api
                     'shortname' => new external_value(PARAM_TEXT, 'Short name'),
                     'summary' => new external_value(PARAM_RAW, 'Summary'),
                     'image_url' => new external_value(PARAM_RAW, 'Image URL'),
+                    'progress' => new external_value(PARAM_INT, 'Completion percentage 0-100'),
                 ))
             ),
             'exams' => new external_multiple_structure(
@@ -2670,6 +2676,9 @@ class local_skillsaint_external extends external_api
 
         $id = $DB->insert_record('local_skillsaint_exam_results', $record);
 
+        // Automatically revoke authorization so they cannot retake infinitely without admin permission
+        $DB->set_field('local_skillsaint_exam_auth', 'authorized', 0, array('userid' => $userid, 'quizid' => $quizid));
+
         return array('status' => 'success', 'attempt_id' => $id);
     }
 
@@ -2955,6 +2964,240 @@ class local_skillsaint_external extends external_api
         global $CFG;
         require_once($CFG->dirroot . '/course/externallib.php');
         return core_course_external::get_course_contents_returns();
+    }
+    /**
+     * Add a course to user selection if they have slots left.
+     */
+    public static function add_course_to_selection_parameters()
+    {
+        return new external_function_parameters(array(
+            'courseid' => new external_value(PARAM_INT, 'Course ID to add'),
+        ));
+    }
+
+    public static function add_course_to_selection($courseid)
+    {
+        global $DB, $USER;
+        
+        $params = self::validate_parameters(self::add_course_to_selection_parameters(), array('courseid' => $courseid));
+        $courseid = $params['courseid'];
+
+        if (isguestuser() || !$USER->id) {
+            throw new moodle_exception('noguest', 'local_skillsaint');
+        }
+
+        // 1. Get application record
+        $app = $DB->get_record('local_skillsaint_apps', array('userid' => $USER->id), '*', IGNORE_MISSING);
+        if (!$app) {
+             return array('status' => 'error', 'message' => 'Your application record was not found. Please contact support.');
+        }
+
+        // 2. Check quota
+        $quota_standard = (int)get_config('local_skillsaint', 'quota_standard') ?: 3;
+        $quota_premium = (int)get_config('local_skillsaint', 'quota_premium') ?: 6;
+
+        $quotas = array(
+            'standard' => $quota_standard,
+            'premium' => $quota_premium,
+            'executive' => 999
+        );
+        $user_quota = isset($quotas[$app->selected_plan]) ? $quotas[$app->selected_plan] : 0;
+        
+        $current_courses = !empty($app->selected_courses) ? explode(',', $app->selected_courses) : array();
+        
+        // Remove empty strings if any
+        $current_courses = array_filter($current_courses);
+
+        if (count($current_courses) >= $user_quota && $app->selected_plan !== 'executive') {
+             return array('status' => 'error', 'message' => 'Your quota is full. Please upgrade your plan to add more courses.');
+        }
+
+        // 3. Add course if not already there
+        if (!in_array($courseid, $current_courses)) {
+            $current_courses[] = $courseid;
+            $app->selected_courses = implode(',', $current_courses);
+            $app->timemodified = time();
+            $DB->update_record('local_skillsaint_apps', $app);
+            
+            // 4. Enroll the user in the course
+            $enrol = enrol_get_plugin('manual');
+            if ($enrol) {
+                $course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
+                $instance = $DB->get_record('enrol', array('courseid' => $course->id, 'enrol' => 'manual'), '*', IGNORE_MISSING);
+                if ($instance) {
+                    $enrol->enrol_user($instance, $USER->id, 5); // 5 is student role
+                }
+            }
+            
+            return array('status' => 'success', 'message' => 'Course successfully added to your selection.');
+        }
+
+        return array('status' => 'success', 'message' => 'Course is already in your selection.');
+    }
+
+    public static function add_course_to_selection_returns()
+    {
+        return new external_single_structure(array(
+            'status' => new external_value(PARAM_ALPHA, 'success or error'),
+            'message' => new external_value(PARAM_TEXT, 'Message details'),
+        ));
+    }
+
+    // ==========================================
+    // COURSE PROGRESS TRACKING
+    // ==========================================
+
+    /**
+     * Mark a course module as viewed by the current user.
+     */
+    public static function mark_module_viewed_parameters()
+    {
+        return new external_function_parameters(array(
+            'userid' => new external_value(PARAM_INT, 'User ID'),
+            'courseid' => new external_value(PARAM_INT, 'Course ID'),
+            'cmid' => new external_value(PARAM_INT, 'Course Module ID'),
+        ));
+    }
+
+    public static function mark_module_viewed($userid, $courseid, $cmid)
+    {
+        global $DB;
+
+        // Check if already recorded (UNIQUE index on userid+cmid)
+        $existing = $DB->get_record('local_skillsaint_progress', array(
+            'userid' => $userid,
+            'cmid' => $cmid,
+        ));
+
+        if (!$existing) {
+            $record = new stdClass();
+            $record->userid = $userid;
+            $record->courseid = $courseid;
+            $record->cmid = $cmid;
+            $record->timecreated = time();
+
+            try {
+                $DB->insert_record('local_skillsaint_progress', $record);
+            } catch (\dml_exception $e) {
+                // Race condition: another request inserted it first — that's fine
+            }
+        }
+
+        // Return updated progress for this course
+        $progress_data = self::calculate_course_progress($userid, $courseid);
+
+        return array(
+            'status' => 'success',
+            'viewed' => (int) $progress_data['viewed'],
+            'total' => (int) $progress_data['total'],
+            'percentage' => (int) $progress_data['percentage'],
+        );
+    }
+
+    public static function mark_module_viewed_returns()
+    {
+        return new external_single_structure(array(
+            'status' => new external_value(PARAM_ALPHA, 'success'),
+            'viewed' => new external_value(PARAM_INT, 'Number of modules viewed'),
+            'total' => new external_value(PARAM_INT, 'Total modules in course'),
+            'percentage' => new external_value(PARAM_INT, 'Completion percentage 0-100'),
+        ));
+    }
+
+    /**
+     * Get course progress for a specific user and course.
+     */
+    public static function get_course_progress_parameters()
+    {
+        return new external_function_parameters(array(
+            'userid' => new external_value(PARAM_INT, 'User ID'),
+            'courseid' => new external_value(PARAM_INT, 'Course ID'),
+        ));
+    }
+
+    public static function get_course_progress($userid, $courseid)
+    {
+        $progress_data = self::calculate_course_progress($userid, $courseid);
+
+        return array(
+            'viewed' => (int) $progress_data['viewed'],
+            'total' => (int) $progress_data['total'],
+            'percentage' => (int) $progress_data['percentage'],
+            'viewed_cmids' => $progress_data['viewed_cmids'],
+        );
+    }
+
+    /**
+     * Unified calculation logic for course progress.
+     */
+    protected static function calculate_course_progress($userid, $courseid)
+    {
+        global $DB;
+
+        $userid = (int) $userid;
+        $courseid = (int) $courseid;
+
+        // Find the first module ID to exclude (généralités)
+        $first_module_cmid = $DB->get_field_sql(
+            "SELECT cm.id
+             FROM {course_modules} cm
+             JOIN {modules} m ON m.id = cm.module
+             WHERE cm.course = ? AND cm.deletioninprogress = 0 AND m.name NOT IN ('forum', 'label')
+             ORDER BY cm.section ASC, cm.id ASC",
+            array($courseid),
+            IGNORE_MULTIPLE
+        );
+
+        $viewed_params = array($userid, $courseid);
+        $viewed_sql = "SELECT COUNT(id) FROM {local_skillsaint_progress} WHERE userid = ? AND courseid = ?";
+        if ($first_module_cmid) {
+            $viewed_sql .= " AND cmid != ?";
+            $viewed_params[] = $first_module_cmid;
+        }
+        $viewed_count = $DB->count_records_sql($viewed_sql, $viewed_params);
+
+        $total_params = array($courseid);
+        $total_sql = "SELECT COUNT(cm.id)
+                      FROM {course_modules} cm
+                      JOIN {modules} m ON m.id = cm.module
+                      WHERE cm.course = ? AND cm.deletioninprogress = 0 AND m.name NOT IN ('forum', 'label', 'quiz')";
+        if ($first_module_cmid) {
+            $total_sql .= " AND cm.id != ?";
+            $total_params[] = $first_module_cmid;
+        }
+        $total_modules = $DB->count_records_sql($total_sql, $total_params);
+
+        $viewed_records = $DB->get_records('local_skillsaint_progress', array(
+            'userid' => $userid,
+            'courseid' => $courseid,
+        ), '', 'cmid');
+        
+        $viewed_cmids_arr = array();
+        if ($viewed_records) {
+            foreach ($viewed_records as $r) {
+                $viewed_cmids_arr[] = (int) $r->cmid;
+            }
+        }
+
+        $percentage = ($total_modules > 0) ? round(($viewed_count / $total_modules) * 100) : 0;
+        $percentage = (int) min($percentage, 100);
+
+        return array(
+            'viewed' => $viewed_count,
+            'total' => $total_modules,
+            'percentage' => $percentage,
+            'viewed_cmids' => implode(',', $viewed_cmids_arr),
+        );
+    }
+
+    public static function get_course_progress_returns()
+    {
+        return new external_single_structure(array(
+            'viewed' => new external_value(PARAM_INT, 'Number of modules viewed'),
+            'total' => new external_value(PARAM_INT, 'Total modules in course'),
+            'percentage' => new external_value(PARAM_INT, 'Completion percentage 0-100'),
+            'viewed_cmids' => new external_value(PARAM_TEXT, 'Comma-separated list of viewed module IDs'),
+        ));
     }
 }
 

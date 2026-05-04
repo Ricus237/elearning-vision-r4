@@ -94,5 +94,21 @@
         <INDEX NAME="user_quiz_idx" UNIQUE="true" FIELDS="userid, quizid"/>
       </INDEXES>
     </TABLE>
+    <TABLE NAME="local_skillsaint_progress" COMMENT="Track which modules a student has viewed per course">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Moodle user ID"/>
+        <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Course ID"/>
+        <FIELD NAME="cmid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Course module ID (from mdl_course_modules)"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="user_course_idx" UNIQUE="false" FIELDS="userid, courseid"/>
+        <INDEX NAME="user_cm_unique" UNIQUE="true" FIELDS="userid, cmid"/>
+      </INDEXES>
+    </TABLE>
   </TABLES>
 </XMLDB>

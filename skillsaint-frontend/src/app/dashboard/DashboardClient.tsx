@@ -29,6 +29,7 @@ interface EnrolledCourse {
   summary?: string;
   overviewfiles?: Array<{ fileurl: string; filename: string }>;
   courseimage?: string;
+  progress?: number;
 }
 
 interface DashboardData {
@@ -112,9 +113,9 @@ const CourseCard = ({ course, isEnrolled, canAdd, moodleToken, moodleUrl, onClic
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      onClick={isEnrolled ? onClick : undefined}
+      onClick={(isEnrolled || canAdd) ? onClick : undefined}
       className={`group relative bg-white border-2 rounded-[3rem] p-4 pb-8 transition-all duration-500 overflow-hidden
-        ${isEnrolled
+        ${(isEnrolled || canAdd)
           ? "border-purple-200 hover:border-purple-400 hover:shadow-2xl hover:shadow-purple-100 hover:-translate-y-2 cursor-pointer"
           : "border-gray-100 hover:border-gray-200 hover:shadow-lg"
         }
@@ -177,19 +178,31 @@ const CourseCard = ({ course, isEnrolled, canAdd, moodleToken, moodleUrl, onClic
         )}
 
         {isEnrolled ? (
-          <div className="flex items-center gap-2 text-[10px] font-black text-purple-600 uppercase tracking-widest">
-            <PlayCircle size={14} />
-            Continue Learning
+          <div className="space-y-3">
+             <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-[10px] font-black text-purple-600 uppercase tracking-widest">
+                  <PlayCircle size={14} />
+                  Continue Learning
+                </div>
+                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{course.progress || 0}%</span>
+             </div>
+             <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden shadow-inner">
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${course.progress || 0}%` }}
+                  className="h-full bg-gradient-to-r from-purple-600 to-indigo-600"
+                />
+             </div>
           </div>
         ) : canAdd ? (
-          <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-            <BookOpen size={14} />
-            Contactez-nous pour ajouter
+          <div className="flex items-center gap-2 text-[10px] font-black text-purple-600 uppercase tracking-widest group-hover:scale-105 transition-transform">
+            <Plus size={14} />
+            Add to My Selection
           </div>
         ) : (
           <div className="flex items-center gap-2 text-[10px] font-black text-gray-300 uppercase tracking-widest">
             <Lock size={14} />
-            Upgradez votre forfait
+            Upgrade your plan
           </div>
         )}
       </div>
@@ -228,6 +241,10 @@ const DashboardClient = ({
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<"all" | "enrolled">("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Add course confirmation
+  const [courseToAdd, setCourseToAdd] = useState<EnrolledCourse | null>(null);
+  const [isAddingCourse, setIsAddingCourse] = useState(false);
 
   // Password Setup States
   const [showPasswordSetup, setShowPasswordSetup] = useState(initialData.needsPasswordSetup);
@@ -258,26 +275,28 @@ const DashboardClient = ({
   const canAddMore = slotsLeft > 0;
 
   // Build a Set of enrolled IDs for O(1) look-up
-  const enrolledIds = useMemo(() => new Set(enrolledCourses.map((c) => c.id)), [enrolledCourses]);
+  const enrolledIds = useMemo(() => new Set(enrolledCourses.map((c) => Number(c.id))), [enrolledCourses]);
 
   // Merge: enrolled courses come first, then the rest from the catalog
   const catalogCourses = useMemo(() => {
     const map = new Map<number, EnrolledCourse>();
     // First add ALL catalog courses
-    allCourses.forEach((c) => map.set(c.id, c));
+    allCourses.forEach((c) => map.set(Number(c.id), c));
     // Override/add enrolled courses (they may have richer data)
     enrolledCourses.forEach((c) => {
-      const existing = map.get(c.id);
+      const courseId = Number(c.id);
+      const existing = map.get(courseId);
       if (existing) {
         // Fusion douce : on garde la cover_image du catalogue si elle existe
-        map.set(c.id, { 
+        map.set(courseId, { 
           ...existing, 
           ...c, 
+          progress: typeof c.progress !== 'undefined' ? c.progress : 0,
           cover_image: existing.cover_image || c.cover_image 
         });
       } else {
         // En dernier recours s'il n'est pas dans le catalogue (rare)
-        map.set(c.id, c);
+        map.set(courseId, c);
       }
     });
     return Array.from(map.values());
@@ -372,8 +391,31 @@ const DashboardClient = ({
     }
   };
 
-  const handleCourseClick = (course: EnrolledCourse) => {
-    router.push(`/dashboard/courses/${course.id}`);
+  const handleCourseClick = (course: EnrolledCourse, isEnrolled: boolean) => {
+    if (isEnrolled) {
+      router.push(`/dashboard/courses/${course.id}`);
+    } else {
+      setCourseToAdd(course);
+    }
+  };
+
+  const onConfirmAddCourse = async () => {
+    if (!courseToAdd) return;
+    setIsAddingCourse(true);
+    try {
+      const { addCourseToSelectionAction } = await import("@/lib/actions");
+      const result = await addCourseToSelectionAction(courseToAdd.id);
+      if (result.success) {
+        setCourseToAdd(null);
+        window.location.reload();
+      } else {
+        alert(result.error || "Failed to add course");
+      }
+    } catch (e) {
+      alert("An error occurred while adding the course.");
+    } finally {
+      setIsAddingCourse(false);
+    }
   };
 
   return (
@@ -517,7 +559,7 @@ const DashboardClient = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   <AnimatePresence mode="popLayout">
                     {filteredCourses.map((course) => {
-                      const isEnrolled = enrolledIds.has(course.id);
+                      const isEnrolled = enrolledIds.has(Number(course.id));
                       return (
                         <CourseCard
                           key={course.id}
@@ -526,7 +568,7 @@ const DashboardClient = ({
                           canAdd={!isEnrolled && canAddMore}
                           moodleToken={moodleToken}
                           moodleUrl={moodleUrl}
-                          onClick={() => handleCourseClick(course)}
+                          onClick={() => handleCourseClick(course, isEnrolled)}
                         />
                       );
                     })}
@@ -757,6 +799,50 @@ const DashboardClient = ({
                     </p>
                   </div>
                 )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* ── Add Course Confirmation Modal ── */}
+      <AnimatePresence>
+        {courseToAdd && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[120] bg-gray-900/60 backdrop-blur-md flex items-center justify-center p-6"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className="bg-white rounded-[2.5rem] p-8 md:p-12 max-w-lg w-full text-center shadow-2xl"
+            >
+              <div className="w-16 h-16 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <Plus size={32} />
+              </div>
+              <h2 className="text-2xl font-black text-gray-900 mb-2 uppercase">Confirm Selection</h2>
+              <p className="text-gray-500 font-medium mb-8">
+                Do you want to add <strong>"{courseToAdd.fullname}"</strong> to your current course selection? 
+                This will use one of your remaining slots.
+              </p>
+              
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={onConfirmAddCourse}
+                  disabled={isAddingCourse}
+                  className="w-full py-4 bg-purple-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-purple-100 hover:bg-purple-700 transition-all disabled:opacity-50"
+                >
+                  {isAddingCourse ? "Adding Course..." : "Yes, Add this Course"}
+                </button>
+                <button
+                  onClick={() => setCourseToAdd(null)}
+                  disabled={isAddingCourse}
+                  className="w-full py-4 bg-gray-50 text-gray-400 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-gray-100 transition-all"
+                >
+                  Cancel
+                </button>
               </div>
             </motion.div>
           </motion.div>

@@ -3,8 +3,9 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { loginMoodle, createMoodleUser, enrolUserInCourse, fetchMoodle, startQuizAttempt, getAttemptData, getPublicCourses, getCourseQuizzes, getExamsFull } from './moodle';
+import { loginMoodle, createMoodleUser, enrolUserInCourse, fetchMoodle, startQuizAttempt, getAttemptData, getPublicCourses, getCourseQuizzes, getExamsFull, markModuleViewed, getCourseProgress } from './moodle';
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 
 /**
  * Connecte un utilisateur et stocke son token/ID dans les cookies.
@@ -327,6 +328,7 @@ export async function getStudentDashboardAction() {
     summary?: string;
     overviewfiles?: Array<{ fileurl: string; filename: string }>;
     courseimage?: string;
+    progress?: number;
   }
 
   interface DashboardExam {
@@ -377,7 +379,10 @@ export async function getStudentDashboardAction() {
       dashboardData.address = data.address || '';
       dashboardData.motivation = data.motivation || '';
       dashboardData.spiritual_bg = data.spiritual_bg || '';
-      dashboardData.courses = data.courses || [];
+      dashboardData.courses = (data.courses || []).map((c: any) => ({
+        ...c,
+        progress: typeof c.progress !== 'undefined' ? Number(c.progress) : 0
+      }));
       dashboardData.exams = data.exams || [];
       dashboardData.results = data.results || [];
       dashboardData.needsPasswordSetup = data.needs_password_setup === 1;
@@ -392,12 +397,22 @@ export async function getStudentDashboardAction() {
       const allCourses = await getPublicCourses();
       
       if (allCourses && allCourses.length > 0) {
-        dashboardData.courses = allCourses.map(c => ({
-          id: parseInt(c.slug.current),
-          fullname: c.title,
-          image_url: c.thumbnail,
-          summary: c.shortDescription,
-          courseimage: c.thumbnail // Mapped from computed thumbnail
+        dashboardData.courses = await Promise.all(allCourses.map(async c => {
+          const cId = parseInt(c.slug.current);
+          let progress = 0;
+          try {
+             const progData = await getCourseProgress(parseInt(userId), cId);
+             if (progData) progress = progData.percentage || 0;
+          } catch(e) {}
+          
+          return {
+            id: cId,
+            fullname: c.title,
+            image_url: c.thumbnail,
+            summary: c.shortDescription,
+            courseimage: c.thumbnail,
+            progress: progress
+          };
         }));
       } else {
         // Ultimate fallback if even public courses are empty
@@ -748,5 +763,56 @@ export async function getAllExamResultsAction() {
   } catch (err) {
     console.error("Get all results error:", err);
     return { error: "Failed to fetch results" };
+  }
+}
+/**
+ * Student adds a course to their selection
+ */
+export async function addCourseToSelectionAction(courseId: number) {
+  try {
+    const result = await fetchMoodle('local_skillsaint_add_course_to_selection', { courseid: courseId });
+    if (result.status === 'success') {
+      revalidatePath('/dashboard');
+      return { success: true, message: result.message };
+    }
+    return { error: result.message || "Failed to add course" };
+  } catch (err) {
+    console.error("Add course error:", err);
+    return { error: "Network error while adding course" };
+  }
+}
+/**
+ * Mark a course module as viewed by the student.
+ */
+export async function markModuleViewedAction(courseId: number, cmId: number) {
+  const cookieStore = await cookies();
+  const userId = cookieStore.get('moodle_user_id')?.value;
+  if (!userId) return { error: 'Not authenticated' };
+
+  try {
+    const result = await markModuleViewed(parseInt(userId), courseId, cmId);
+    if (result && result.status === 'success') {
+      revalidatePath('/dashboard');
+      revalidatePath(`/dashboard/courses/${courseId}`);
+      return { success: true, progress: result.percentage };
+    }
+    return { error: 'Failed to mark module as viewed' };
+  } catch (error) {
+    return { error: 'Network error' };
+  }
+}
+
+/**
+ * Get completion progress for a course.
+ */
+export async function getCourseProgressAction(courseId: number) {
+  const cookieStore = await cookies();
+  const userId = cookieStore.get('moodle_user_id')?.value;
+  if (!userId) return null;
+
+  try {
+    return await getCourseProgress(parseInt(userId), courseId);
+  } catch (error) {
+    return null;
   }
 }

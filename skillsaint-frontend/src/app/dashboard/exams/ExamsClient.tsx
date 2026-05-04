@@ -21,6 +21,13 @@ interface Exam {
   timeLimit: number;
   intro: string;
   questioncount?: number;
+  is_authorized?: number;
+}
+
+interface DashboardCourse {
+  id: number;
+  fullname: string;
+  progress?: number;
 }
 
 interface ExamResult {
@@ -31,7 +38,15 @@ interface ExamResult {
   date: number;
 }
 
-const ExamsClient = ({ initialExams, results = [] }: { initialExams: Exam[], results?: ExamResult[] }) => {
+const ExamsClient = ({ 
+  initialExams, 
+  results = [], 
+  courses = [] 
+}: { 
+  initialExams: Exam[], 
+  results?: ExamResult[],
+  courses?: DashboardCourse[]
+}) => {
   return (
     <div className="pt-24 md:pt-0 p-6 md:p-10 lg:p-14">
       <div className="max-w-6xl mx-auto space-y-12">
@@ -97,22 +112,36 @@ const ExamsClient = ({ initialExams, results = [] }: { initialExams: Exam[], res
                const qCount = exam.questioncount || 0;
                const estimatedMinutes = qCount > 0 ? qCount * 2 : 0;
                
+               const course = courses.find(c => Number(c.id) === Number(exam.courseid));
+               const progress = course?.progress || 0;
+               const isLocked = progress < 90;
+               
                return (
                  <div 
                    key={exam.id}
-                   className="group relative p-10 rounded-[4rem] border-2 border-gray-50 bg-white hover:border-purple-600 shadow-sm hover:shadow-2xl hover:shadow-purple-50 hover:-translate-y-2 transition-all duration-500 cursor-pointer overflow-hidden"
+                   className={`group relative p-10 rounded-[4rem] border-2 bg-white transition-all duration-500 overflow-hidden ${
+                     isLocked 
+                       ? "border-gray-100 opacity-80 cursor-not-allowed" 
+                       : "border-gray-50 hover:border-purple-600 shadow-sm hover:shadow-2xl hover:shadow-purple-50 hover:-translate-y-2 cursor-pointer"
+                   }`}
                  >
                    <div className="relative z-10 flex flex-col h-full">
                       <div className="flex items-center justify-between mb-10">
-                         <div className="w-16 h-16 bg-gray-900 text-white rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-gray-200 group-hover:bg-purple-600 group-hover:scale-110 transition-all">
-                            <FileText size={28} />
+                         <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-gray-200 transition-all ${
+                           isLocked ? "bg-gray-100 text-gray-400" : "bg-gray-900 text-white group-hover:bg-purple-600 group-hover:scale-110"
+                         }`}>
+                            {isLocked ? <Lock size={28} /> : <FileText size={28} />}
                          </div>
-                         <span className="px-5 py-2 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest shadow-sm">
-                            Ready
+                         <span className={`px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm ${
+                           isLocked ? "bg-gray-50 text-gray-400" : "bg-emerald-50 text-emerald-600"
+                         }`}>
+                            {isLocked ? `${progress}% Progress` : "Ready"}
                          </span>
                       </div>
 
-                      <h3 className="text-2xl font-black text-gray-900 tracking-tighter leading-none mb-3 group-hover:text-purple-600 transition-colors">
+                      <h3 className={`text-2xl font-black tracking-tighter leading-none mb-3 transition-colors ${
+                        isLocked ? "text-gray-400" : "text-gray-900 group-hover:text-purple-600"
+                      }`}>
                         {exam.name}
                       </h3>
                       <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-10"> Quiz #{exam.id}</p>
@@ -153,22 +182,26 @@ const ExamsClient = ({ initialExams, results = [] }: { initialExams: Exam[], res
                                    #{res.attempt}: {Math.round(res.score)}%
                                 </div>
                               ))}
-                              {results.filter(r => r.quizid === exam.id).length > 3 && (
-                                <div className="px-3 py-1.5 rounded-xl bg-gray-50 border border-gray-100 text-gray-400 text-[10px] font-black">
-                                   +{results.filter(r => r.quizid === exam.id).length - 3} more
-                                </div>
-                              )}
                            </div>
                         </div>
                       )}
 
                       <div className="mt-auto">
-                         <Link href={`/exam?quizId=${exam.id}`} className="w-full">
-                           <button className="w-full py-6 bg-gray-900 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-[10px] flex items-center justify-center gap-3 group-hover:bg-purple-600 transition-all shadow-xl shadow-gray-200 group-hover:shadow-purple-300">
-                             Start Certification
-                             <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
-                           </button>
-                         </Link>
+                         {isLocked ? (
+                           <div className="space-y-3">
+                             <button disabled className="w-full py-6 bg-gray-100 text-gray-400 rounded-[2rem] font-black uppercase tracking-[0.2em] text-[10px] flex items-center justify-center gap-3 cursor-not-allowed border border-gray-200">
+                               <Lock size={16} />
+                               Locked (90% Req)
+                             </button>
+                           </div>
+                         ) : (
+                           <Link href={`/exam?quizId=${exam.id}`} className="w-full">
+                             <button className="w-full py-6 bg-gray-900 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-[10px] flex items-center justify-center gap-3 group-hover:bg-purple-600 transition-all shadow-xl shadow-gray-200 group-hover:shadow-purple-300">
+                               Start Certification
+                               <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
+                             </button>
+                           </Link>
+                         )}
                       </div>
                    </div>
 

@@ -174,6 +174,61 @@ export default function StudentsClient({ initialStudents }: { initialStudents: S
                         <BadgeDetail label="Verified At" value={new Date(selected.registered_at * 1000).toLocaleDateString("en-US", { month: "short", year: "numeric" })} icon={<Clock className="w-4 h-4" />} color="text-emerald-600" />
                       </div>
 
+                      {/* Personal Information Section */}
+                      <div className="mt-12 pt-10 border-t border-gray-50 dark:border-slate-800">
+                        <div className="flex items-center justify-between mb-8">
+                          <div>
+                            <h4 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">Personal Details</h4>
+                            <p className="text-[10px] text-gray-400 font-medium">Additional information provided by the student.</p>
+                          </div>
+                        </div>
+                        {isLoadingDetails ? (
+                          <div className="py-10 flex justify-center">
+                            <div className="w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <InfoCard label="Phone" value={selectedDetails?.phone} />
+                            <InfoCard label="Address" value={selectedDetails?.address} />
+                            <InfoCard label="Motivation" value={selectedDetails?.motivation} fullWidth />
+                            <InfoCard label="Spiritual Background" value={selectedDetails?.spiritual_bg} fullWidth />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Enrolled Courses & Progress Section */}
+                      <div className="mt-12 pt-10 border-t border-gray-50 dark:border-slate-800">
+                        <div className="flex items-center justify-between mb-8">
+                          <div>
+                            <h4 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">Enrolled Courses</h4>
+                            <p className="text-[10px] text-gray-400 font-medium">Track student learning progress.</p>
+                          </div>
+                        </div>
+                        {isLoadingDetails ? (
+                          <div className="py-10 flex justify-center">
+                            <div className="w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
+                          </div>
+                        ) : selectedDetails?.courses?.length > 0 ? (
+                          <div className="grid grid-cols-1 gap-4">
+                            {selectedDetails.courses.map((c: any) => (
+                              <div key={c.id} className="p-5 bg-gray-50/50 dark:bg-slate-800/50 rounded-2xl border border-gray-50 dark:border-slate-800 flex flex-col gap-3">
+                                <div className="flex justify-between items-center">
+                                  <p className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">{c.fullname}</p>
+                                  <span className="text-[10px] font-black text-purple-600">{c.progress || 0}%</span>
+                                </div>
+                                <div className="w-full h-1.5 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                  <div className="h-full bg-gradient-to-r from-purple-600 to-indigo-600 transition-all duration-1000" style={{ width: `${c.progress || 0}%` }} />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="py-10 text-center bg-gray-50/30 dark:bg-slate-800/20 rounded-3xl">
+                            <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">No active course enrollments.</p>
+                          </div>
+                        )}
+                      </div>
+
                       {/* Exam Authorizations Section */}
                       <div className="mt-12 pt-10 border-t border-gray-50 dark:border-slate-800">
                         <div className="flex items-center justify-between mb-8">
@@ -406,6 +461,15 @@ function BadgeDetail({ label, value, icon, color }: { label: string, value: stri
       </div>
       <p className="text-[9px] font-black text-gray-300 dark:text-slate-500 uppercase tracking-widest mb-1">{label}</p>
       <p className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight">{value}</p>
+    </div>
+  );
+}
+
+function InfoCard({ label, value, fullWidth }: { label: string, value?: string, fullWidth?: boolean }) {
+  return (
+    <div className={`p-5 bg-gray-50/50 dark:bg-slate-800/50 rounded-2xl border border-gray-50 dark:border-slate-800 ${fullWidth ? 'md:col-span-2' : ''}`}>
+      <p className="text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-1">{label}</p>
+      <p className="text-sm font-medium text-gray-900 dark:text-white whitespace-pre-wrap">{value || <span className="text-gray-300 dark:text-slate-600 italic">Not provided</span>}</p>
     </div>
   );
 }

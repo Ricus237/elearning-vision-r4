@@ -546,3 +546,23 @@ export async function updateQuestion(data: {
 }) {
   return await fetchMoodle('local_skillsaint_update_question', data);
 }
+/**
+ * Mark a course module as viewed by the student.
+ */
+export async function markModuleViewed(userId: number, courseId: number, cmId: number) {
+  return await fetchMoodle('local_skillsaint_mark_module_viewed', { 
+    userid: userId, 
+    courseid: courseId, 
+    cmid: cmId 
+  });
+}
+
+/**
+ * Get completion progress for a course.
+ */
+export async function getCourseProgress(userId: number, courseId: number) {
+  return await fetchMoodle('local_skillsaint_get_course_progress', { 
+    userid: userId, 
+    courseid: courseId 
+  });
+}

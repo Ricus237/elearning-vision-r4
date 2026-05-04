@@ -360,6 +360,30 @@ $functions = array(
         'ajax'        => true,
         'capabilities'=> 'moodle/site:config',
     ),
+    'local_skillsaint_add_course_to_selection' => array(
+        'classname'   => 'local_skillsaint_external',
+        'methodname'  => 'add_course_to_selection',
+        'classpath'   => 'local/skillsaint/externallib.php',
+        'description' => 'Student adds a course to their selection based on quota',
+        'type'        => 'write',
+        'ajax'        => true,
+    ),
+    'local_skillsaint_mark_module_viewed' => array(
+        'classname'   => 'local_skillsaint_external',
+        'methodname'  => 'mark_module_viewed',
+        'classpath'   => 'local/skillsaint/externallib.php',
+        'description' => 'Mark a course module as viewed by the student',
+        'type'        => 'write',
+        'ajax'        => true,
+    ),
+    'local_skillsaint_get_course_progress' => array(
+        'classname'   => 'local_skillsaint_external',
+        'methodname'  => 'get_course_progress',
+        'classpath'   => 'local/skillsaint/externallib.php',
+        'description' => 'Get course completion percentage for a student',
+        'type'        => 'read',
+        'ajax'        => true,
+    ),
 );
 
 $services = array(
@@ -401,6 +425,9 @@ $services = array(
             'local_skillsaint_setup_initial_password',
             'local_skillsaint_save_exam_result',
             'local_skillsaint_get_all_results',
+            'local_skillsaint_add_course_to_selection',
+            'local_skillsaint_mark_module_viewed',
+            'local_skillsaint_get_course_progress',
         ),
         'restrictedusers' => 0,
         'enabled' => 1,

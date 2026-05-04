@@ -21,7 +21,7 @@ import {
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { sendInquiryAction } from "@/lib/actions";
+import { sendInquiryAction, markModuleViewedAction, getCourseProgressAction } from "@/lib/actions";
 
 interface MoodleModule {
   id: number;
@@ -36,6 +36,7 @@ interface MoodleModule {
     filesize?: number;
   }>;
   is_authorized?: number;
+  completed?: boolean;
 }
 
 interface MoodleSection {
@@ -67,16 +68,29 @@ export default function CoursePageClient({
   const [inquiryMessage, setInquiryMessage] = useState("");
   const [quizModules, setQuizModules] = useState<MoodleModule[]>([]);
   const [isQuizMode, setIsQuizMode] = useState(false);
+  const [courseProgress, setCourseProgress] = useState(0);
+  const [viewedCmids, setViewedCmids] = useState<number[]>([]);
 
   useEffect(() => {
     const fetchContents = async () => {
       try {
-        const response = await fetch("/api/moodle", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ function: "local_skillsaint_get_course_curriculum", params: { courseid: courseId } }),
-        });
-        const data = await response.json();
+        const [curriculumRes, progressRes] = await Promise.all([
+          fetch("/api/moodle", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ function: "local_skillsaint_get_course_curriculum", params: { courseid: courseId } }),
+          }),
+          getCourseProgressAction(courseId)
+        ]);
+
+        const data = await curriculumRes.json();
+        
+        if (progressRes) {
+          setCourseProgress(progressRes.percentage);
+          const cmids = progressRes.viewed_cmids ? progressRes.viewed_cmids.split(',').map((id: string) => parseInt(id)) : [];
+          setViewedCmids(cmids);
+        }
+
         if (Array.isArray(data)) {
           const allQuizzes: MoodleModule[] = [];
           
@@ -128,6 +142,15 @@ export default function CoursePageClient({
           setModuleContent(data.content);
         } else {
           setModuleContent(activeModule.description || "");
+        }
+
+        // Mark as viewed
+        if (activeModule.modname !== 'quiz') {
+          const res = await markModuleViewedAction(courseId, activeModule.id);
+          if (res.success) {
+            setCourseProgress(res.progress || 0);
+            setViewedCmids(prev => prev.includes(activeModule.id) ? prev : [...prev, activeModule.id]);
+          }
         }
       } catch (err) {
         console.error("Failed to fetch module content:", err);
@@ -193,9 +216,23 @@ export default function CoursePageClient({
           <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest mb-1 leading-tight">
             {courseTitle}
           </h3>
-          <p className="text-[10px] font-bold text-purple-600 uppercase tracking-widest">
-            Course Explorer
-          </p>
+          <div className="flex items-center justify-between mb-4 mt-2">
+            <p className="text-[10px] font-bold text-purple-600 uppercase tracking-widest">
+              Course Explorer
+            </p>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+              {courseProgress}%
+            </p>
+          </div>
+          
+          {/* Progress Bar */}
+          <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden shadow-inner">
+            <motion.div 
+              initial={{ width: 0 }}
+              animate={{ width: `${courseProgress}%` }}
+              className="h-full bg-gradient-to-r from-purple-600 to-indigo-600"
+            />
+          </div>
         </div>
 
         <nav className="flex items-center gap-6 px-8 py-4 bg-white border-b border-gray-50">
@@ -241,11 +278,18 @@ export default function CoursePageClient({
                         }`}>
                           {mod.modname === "quiz" ? <Trophy size={14} /> : mod.modname === "video" ? <PlayCircle size={14} /> : <FileText size={14} />}
                         </div>
-                        <span className={`text-[11px] font-black uppercase leading-snug ${
-                          activeModule?.id === mod.id ? "text-white" : "text-gray-700 group-hover:text-purple-700"
-                        }`}>
-                          {mod.name}
-                        </span>
+                        <div className="flex-1">
+                          <span className={`text-[11px] font-black uppercase leading-snug block ${
+                            activeModule?.id === mod.id ? "text-white" : "text-gray-700 group-hover:text-purple-700"
+                          }`}>
+                            {mod.name}
+                          </span>
+                        </div>
+                        {viewedCmids.includes(mod.id) && mod.modname !== 'quiz' && (
+                          <div className={`shrink-0 ${activeModule?.id === mod.id ? "text-white/80" : "text-emerald-500"}`}>
+                            <CheckCircle2 size={12} />
+                          </div>
+                        )}
                       </button>
                     ))}
                   </div>
@@ -369,13 +413,33 @@ export default function CoursePageClient({
 
                 {/* Actions */}
                 <div className="flex flex-col gap-4">
-                  <a 
-                    href={`/exam?quizId=${activeModule?.instance || activeModule?.id}`}
-                    className="w-full py-6 bg-gray-900 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-[10px] flex items-center justify-center gap-3 hover:bg-purple-600 transition-all shadow-xl shadow-gray-200 hover:shadow-purple-300"
-                  >
-                    Start Certification
-                    <ArrowRight size={18} />
-                  </a>
+                  {courseProgress >= 90 ? (
+                    <a 
+                      href={`/exam?quizId=${activeModule?.instance || activeModule?.id}`}
+                      className="w-full py-6 bg-gray-900 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-[10px] flex items-center justify-center gap-3 hover:bg-purple-600 transition-all shadow-xl shadow-gray-200 hover:shadow-purple-300"
+                    >
+                      Start Certification
+                      <ArrowRight size={18} />
+                    </a>
+                  ) : (
+                    <div className="space-y-4">
+                      <button 
+                        disabled
+                        className="w-full py-6 bg-gray-100 text-gray-400 rounded-[2rem] font-black uppercase tracking-[0.2em] text-[10px] flex flex-col items-center justify-center gap-1 cursor-not-allowed border border-gray-200"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Lock size={14} />
+                          Start Certification
+                        </div>
+                      </button>
+                      <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex items-center gap-3">
+                        <AlertCircle size={16} className="text-amber-500 shrink-0" />
+                        <p className="text-[10px] font-bold text-amber-700 uppercase tracking-tight text-left">
+                          Progression insuffisante : <span className="text-amber-900">{courseProgress}% / 90%</span> requis pour débloquer l'examen.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                   <button
                     onClick={() => {
                       setIsQuizMode(false);
