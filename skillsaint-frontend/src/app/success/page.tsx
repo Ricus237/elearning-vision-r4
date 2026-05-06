@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 "use client";
 
 import { motion } from "framer-motion";
@@ -10,8 +12,10 @@ function SuccessContent() {
   const searchParams = useSearchParams();
   const method = searchParams?.get("method"); // "paypal"
   const sessionId = searchParams?.get("session_id"); // Stripe
+  const orderID = searchParams?.get("orderID"); // PayPal
   const courseId = searchParams?.get("courseId");
   const isApplication = searchParams?.get("isApplication") === "true";
+  const paymentType = searchParams?.get("paymentType");
 
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [errorMsg, setErrorMsg] = useState("");
@@ -24,17 +28,33 @@ function SuccessContent() {
   useEffect(() => {
     async function finalize() {
       const rawEmail = localStorage.getItem('pending_application_email');
-      const email = rawEmail ? rawEmail.trim().toLowerCase() : "";
+      let email = rawEmail ? rawEmail.trim().toLowerCase() : "";
+      
+      // Fallback: If no email in localStorage, check cookies (useful for already logged in users)
+      if (!email && typeof document !== 'undefined') {
+        email = document.cookie.split("; ").find(row => row.startsWith("user_email="))?.split("=")[1] || "";
+      }
+
       setUserEmail(email);
       
       if (email && isApplication) {
         // Call API route directly instead of importing server-side code
         let res;
         try {
+          const userId = typeof document !== 'undefined' 
+            ? parseInt(document.cookie.split("; ").find(row => row.startsWith("moodle_user_id="))?.split("=")[1] || "0")
+            : 0;
+
           const response = await fetch("/api/moodle/confirm-payment", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email }),
+            body: JSON.stringify({ 
+              email, 
+              sessionId, 
+              orderID,
+              method: method || "stripe",
+              userId
+            }),
           });
           res = await response.json();
         } catch {
@@ -50,7 +70,8 @@ function SuccessContent() {
           }
         } else {
           setStatus("error");
-          setErrorMsg(`Database Error: ${res?.message || "Verify your connection"}`);
+          const errorDetail = res?.error || res?.message || "Verify your connection";
+          setErrorMsg(`Database Error: ${errorDetail}`);
         }
       } else {
         setStatus("success");
@@ -120,79 +141,83 @@ function SuccessContent() {
       </motion.div>
 
       <h1 className="text-4xl sm:text-5xl font-black  text-slate-900 leading-tight mb-6">
-        {isApplication ? "Application Received!" : "You're enrolled!"}
+        {paymentType === "billing" ? "Payment Received!" : isApplication ? "Application Received!" : "You're enrolled!"}
       </h1>
 
       <p className="text-lg sm:text-xl text-slate-600 mb-8 leading-relaxed font-medium">
-        {isApplication 
-          ? "Your program application and payment were successful. You can now access your chosen courses in your dashboard."
-          : "Your payment was successful and your course access is now active. Head to your dashboard to start learning."
+        {paymentType === "billing" 
+          ? "Thank you! Your payment has been successfully processed and your balance has been updated."
+          : isApplication 
+            ? "Your program application and payment were successful. You can now access your chosen courses in your dashboard."
+            : "Your payment was successful and your course access is now active. Head to your dashboard to start learning."
         }
       </p>
 
-      {/* ── Credentials Block ── */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-        className="mb-10 p-6 bg-purple-50 rounded-3xl border-2 border-purple-100 text-left"
-      >
-        <p className="text-[10px] font-black text-purple-600 uppercase tracking-widest mb-4 flex items-center gap-2">
-          <ShieldCheck size={12} />
-          Your Login Credentials
-        </p>
-        
-        <div className="space-y-3">
-          {/* Email */}
-          <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-purple-100 group">
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Email Address</p>
-              <p className="text-sm font-bold text-slate-900 truncate max-w-[200px] sm:max-w-none">{userEmail || "your-email@example.com"}</p>
+      {/* ── Credentials Block (Hide if billing) ── */}
+      {paymentType !== "billing" && (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="mb-10 p-6 bg-purple-50 rounded-3xl border-2 border-purple-100 text-left"
+        >
+          <p className="text-[10px] font-black text-purple-600 uppercase tracking-widest mb-4 flex items-center gap-2">
+            <ShieldCheck size={12} />
+            Your Login Credentials
+          </p>
+          
+          <div className="space-y-3">
+            {/* Email */}
+            <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-purple-100 group">
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Email Address</p>
+                <p className="text-sm font-bold text-slate-900 truncate max-w-[200px] sm:max-w-none">{userEmail || "your-email@example.com"}</p>
+              </div>
+              <button 
+                onClick={() => {
+                  navigator.clipboard.writeText(userEmail);
+                  setCopiedField("email");
+                  setTimeout(() => setCopiedField(null), 2000);
+                }}
+                className="p-2 hover:bg-purple-50 rounded-xl transition-colors text-purple-600"
+              >
+                {copiedField === "email" ? <Check size={18} /> : <Copy size={18} />}
+              </button>
             </div>
-            <button 
-              onClick={() => {
-                navigator.clipboard.writeText(userEmail);
-                setCopiedField("email");
-                setTimeout(() => setCopiedField(null), 2000);
-              }}
-              className="p-2 hover:bg-purple-50 rounded-xl transition-colors text-purple-600"
-            >
-              {copiedField === "email" ? <Check size={18} /> : <Copy size={18} />}
-            </button>
-          </div>
-
-          {/* Password */}
-          <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-purple-100 group">
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Temporary Password</p>
-              <p className="text-sm font-bold text-slate-900">{defaultPassword}</p>
+  
+            {/* Password */}
+            <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-purple-100 group">
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Temporary Password</p>
+                <p className="text-sm font-bold text-slate-900">{defaultPassword}</p>
+              </div>
+              <button 
+                onClick={() => {
+                  navigator.clipboard.writeText(defaultPassword);
+                  setCopiedField("password");
+                  setTimeout(() => setCopiedField(null), 2000);
+                }}
+                className="p-2 hover:bg-purple-50 rounded-xl transition-colors text-purple-600"
+              >
+                {copiedField === "password" ? <Check size={18} /> : <Copy size={18} />}
+              </button>
             </div>
-            <button 
-              onClick={() => {
-                navigator.clipboard.writeText(defaultPassword);
-                setCopiedField("password");
-                setTimeout(() => setCopiedField(null), 2000);
-              }}
-              className="p-2 hover:bg-purple-50 rounded-xl transition-colors text-purple-600"
-            >
-              {copiedField === "password" ? <Check size={18} /> : <Copy size={18} />}
-            </button>
           </div>
-        </div>
-        
-        <p className="mt-4 text-[10px] font-medium text-purple-500 italic">
-          * Please change your password immediately after your first login.
-        </p>
-      </motion.div>
+          
+          <p className="mt-4 text-[10px] font-medium text-purple-500 italic">
+            * Please change your password immediately after your first login.
+          </p>
+        </motion.div>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
-        <Link href="/dashboard">
+        <Link href={paymentType === "billing" ? "/dashboard/billing" : "/dashboard"}>
           <motion.div
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className="inline-flex items-center gap-3 px-8 py-4 bg-purple-600 text-white font-bold rounded-2xl hover:bg-purple-700 transition-colors shadow-xl shadow-purple-200 cursor-pointer"
           >
-            Start Learning →
+            {paymentType === "billing" ? "Return to Billing →" : "Start Learning →"}
           </motion.div>
         </Link>
         {/* <Link href="/">

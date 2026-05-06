@@ -4,7 +4,7 @@ import {
   User, Mail, Phone, Lock, Moon, Sun, Monitor,
   Shield, FileText, ScrollText, Trash2, ChevronRight,
   Camera, CheckCircle2, Loader2, AlertTriangle, X, Eye, EyeOff,
-  LogOut, Globe
+  LogOut, Globe, CreditCard
 } from "lucide-react";
 import AdminSidebar from "@/components/dashboard/AdminSidebar";
 import Image from "next/image";
@@ -12,6 +12,11 @@ import { logoutAction, updateAvatarAction, changePasswordAction } from "@/lib/ac
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Theme = "light" | "dark" | "system";
+
+interface PaymentConfig {
+  installmentsEnabled: boolean;
+  minPayment: number;
+}
 
 interface Profile {
   name: string;
@@ -117,6 +122,12 @@ export default function SettingsPage() {
   const [passwords, setPasswords] = useState({ current: "", newPwd: "", confirm: "" });
   const [pwdSaving, setPwdSaving] = useState(false);
   const [pwdSaved, setPwdSaved] = useState(false);
+  const [payConfig, setPayConfig] = useState<PaymentConfig>({
+    installmentsEnabled: true,
+    minPayment: 50,
+  });
+  const [paySaving, setPaySaving] = useState(false);
+  const [paySaved, setPaySaved] = useState(false);
  
 
   const fileRef = useRef<HTMLInputElement>(null);
@@ -182,9 +193,18 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSavePayments = async () => {
+    setPaySaving(true);
+    await new Promise((r) => setTimeout(r, 1000));
+    setPaySaving(false);
+    setPaySaved(true);
+    setTimeout(() => setPaySaved(false), 3000);
+  };
+
   const navItems = [
     { id: "profile", label: "Profile", icon: User },
     { id: "password", label: "Password", icon: Lock },
+    { id: "payments", label: "Payments", icon: CreditCard },
     { id: "appearance", label: "Appearance", icon: Monitor },
     { id: "policies", label: "Policies & Legal", icon: Shield },
     { id: "danger", label: "Danger Zone", icon: Trash2 },
@@ -435,6 +455,78 @@ export default function SettingsPage() {
                         <ChevronRight className="w-5 h-5 text-gray-300 dark:text-slate-600" />
                       </button>
                     </form>
+                  </div>
+                )}
+
+                {/* ── PAYMENTS ────────────────────────────────────────── */}
+                {activeSection === "payments" && (
+                  <div className="bg-white dark:bg-[#1e293b] rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-sm p-8 animate-in fade-in duration-300">
+                    <h2 className="text-xl font-black text-gray-900 dark:text-white mb-2">Payment Settings</h2>
+                    <p className="text-sm text-gray-400 dark:text-slate-500 mb-8">Configure flexible payments and student installment options.</p>
+
+                    <div className="space-y-8">
+                      {/* Toggle Installments */}
+                      <div className="flex items-center justify-between p-6 bg-gray-50 dark:bg-slate-800/50 rounded-2xl border border-gray-100 dark:border-slate-800">
+                        <div>
+                          <p className="font-black text-gray-900 dark:text-white uppercase tracking-tight text-sm">Activer les paiements flexibles</p>
+                          <p className="text-[10px] text-gray-400 font-bold uppercase mt-1">Permet aux étudiants de verser le montant de leur choix.</p>
+                        </div>
+                        <button 
+                          onClick={() => setPayConfig(c => ({ ...c, installmentsEnabled: !c.installmentsEnabled }))}
+                          className={`w-14 h-8 rounded-full transition-all relative ${payConfig.installmentsEnabled ? "bg-purple-600" : "bg-gray-200 dark:bg-slate-700"}`}
+                        >
+                          <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all ${payConfig.installmentsEnabled ? "left-7" : "left-1"}`} />
+                        </button>
+                      </div>
+
+                      {/* Min Payment */}
+                      <div className="space-y-4">
+                        <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">Montant Minimum de Versement ($)</label>
+                        <div className="relative max-w-[200px]">
+                          <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+                          <input 
+                            type="number"
+                            value={payConfig.minPayment}
+                            onChange={(e) => setPayConfig(c => ({ ...c, minPayment: Number(e.target.value) }))}
+                            className="w-full pl-10 pr-6 h-14 bg-gray-50 dark:bg-slate-800 border-none rounded-2xl text-sm font-bold text-gray-900 dark:text-white focus:ring-4 focus:ring-purple-100 dark:focus:ring-purple-900/20"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Summary Table Mockup */}
+                      <div className="pt-8 border-t border-gray-50 dark:border-slate-800">
+                        <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase mb-6 flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4 text-amber-500" />
+                          Soldes en attente (Top 3)
+                        </h3>
+                        <div className="space-y-3">
+                          {[
+                            { name: "Jean Dupont", plan: "Executive", balance: 749.00 },
+                            { name: "Marie Curie", plan: "Premium", balance: 249.50 },
+                            { name: "Paul Valéry", plan: "Standard", balance: 149.00 },
+                          ].map((s, i) => (
+                            <div key={i} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-800/30 rounded-xl">
+                              <div>
+                                <p className="text-xs font-black text-gray-800 dark:text-slate-200">{s.name}</p>
+                                <p className="text-[10px] text-gray-400 uppercase font-bold">{s.plan} Plan</p>
+                              </div>
+                              <p className="text-sm font-black text-red-500">${s.balance.toFixed(2)}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end mt-10">
+                      <button
+                        onClick={handleSavePayments}
+                        disabled={paySaving}
+                        className={`flex items-center gap-2 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg ${paySaved ? "bg-emerald-500 text-white shadow-emerald-100" : "bg-gray-900 text-white hover:bg-purple-600 shadow-gray-100"}`}
+                      >
+                        {paySaving ? <Loader2 className="w-4 h-4 animate-spin" /> : paySaved ? <CheckCircle2 className="w-4 h-4" /> : <CreditCard className="w-4 h-4" />}
+                        {paySaving ? "Saving..." : paySaved ? "Settings Saved!" : "Save Settings"}
+                      </button>
+                    </div>
                   </div>
                 )}
 

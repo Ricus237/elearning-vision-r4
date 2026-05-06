@@ -50,10 +50,17 @@ async function handleEnrolment(session: Stripe.Checkout.Session) {
 
   // 1. Handle New Applications (New candidate paying)
   if (isApplication && email) {
+    /* 
     try {
-      const result = await fetchMoodle('local_skillsaint_confirm_payment', { email });
+      const amount = session.amount_total ? session.amount_total / 100 : 0;
+      const result = await fetchMoodle('local_skillsaint_confirm_payment', { 
+        email, 
+        amount, 
+        method: 'stripe',
+        transaction_id: session.id
+      });
       if (result?.status === 'success') {
-        console.log(`[Stripe Webhook] ✅ Application confirmed for ${email}`);
+        console.log(`[Stripe Webhook] ✅ Application confirmed for ${email} with amount $${amount}`);
         return;
       } else {
         console.error(`[Stripe Webhook] ❌ Database failed to confirm application for ${email}:`, result);
@@ -61,6 +68,7 @@ async function handleEnrolment(session: Stripe.Checkout.Session) {
     } catch (err) {
       console.error(`[Stripe Webhook] ❌ Database Error during application confirmation:`, err);
     }
+    */
   }
 
   // 2. Handle standard enrollments (Logged in user buying a course)

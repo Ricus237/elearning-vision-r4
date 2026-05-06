@@ -61,10 +61,17 @@ export async function POST(req: NextRequest) {
     
     // 1. Handle New Applications (New candidate paying)
     if (isApplication && email) {
+      /* MOVED TO SUCCESS PAGE TO AVOID DOUBLE TRANSACTIONS
       try {
-        const result = await fetchMoodle('local_skillsaint_confirm_payment', { email });
+        const amount = purchaseUnit?.payments?.captures?.[0]?.amount?.value || 0;
+        const result = await fetchMoodle('local_skillsaint_confirm_payment', { 
+          email,
+          amount,
+          method: 'paypal',
+          transaction_id: capture.id
+        });
         if (result?.status === 'success') {
-          console.log(`[PayPal capture] ✅ Application confirmed for ${email}`);
+          console.log(`[PayPal capture] ✅ Application confirmed for ${email} with amount $${amount}`);
           return NextResponse.json({ success: true, captureId: capture.id });
         } else {
           console.error(`[PayPal capture] ❌ Moodle failed to confirm application for ${email}:`, result);
@@ -72,6 +79,7 @@ export async function POST(req: NextRequest) {
       } catch (err) {
         console.error(`[PayPal capture] ❌ Moodle Error during application confirmation:`, err);
       }
+      */
     }
 
     // 2. Handle standard enrollments (Logged in user buying a course)

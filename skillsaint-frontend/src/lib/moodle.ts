@@ -566,3 +566,12 @@ export async function getCourseProgress(userId: number, courseId: number) {
     courseid: courseId 
   });
 }
+
+/**
+ * Get billing information for a user.
+ */
+export async function getUserBilling(userId: number) {
+  return await fetchMoodle('local_skillsaint_get_user_billing', { 
+    userid: userId 
+  });
+}

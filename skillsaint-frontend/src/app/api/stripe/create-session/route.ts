@@ -7,7 +7,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function POST(req: NextRequest) {
   try {
-    const { courseId, userId, courseTitle, amount, currency, isApplication, courses, email } = await req.json();
+    const { courseId, userId, courseTitle, amount, currency, isApplication, courses, email, paymentType } = await req.json();
 
     if ((!courseId && !isApplication) || !amount) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
           quantity: 1,
         },
       ],
-      success_url: `${appUrl}/success?session_id={CHECKOUT_SESSION_ID}${courseId ? `&courseId=${courseId}` : '&isApplication=true'}`,
+      success_url: `${appUrl}/success?session_id={CHECKOUT_SESSION_ID}${courseId ? `&courseId=${courseId}` : '&isApplication=true'}${paymentType ? `&paymentType=${paymentType}` : ''}`,
       cancel_url: `${appUrl}/apply`,
       metadata: {
         courseId: courseId?.toString() || '0',

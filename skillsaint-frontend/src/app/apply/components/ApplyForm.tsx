@@ -131,6 +131,12 @@ const ApplyForm = ({
   // Payment
   const [paymentMethod, setPaymentMethod] = useState<"card" | "paypal">("card");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [customAmount, setCustomAmount] = useState<number>(0);
+
+  // Initialize customAmount when plan changes
+  useState(() => {
+    setCustomAmount(plans.find(p => p.id === selectedPlan)?.price || 0);
+  });
 
   // Selected courses — commented out (course step disabled)
   // const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
@@ -218,7 +224,7 @@ const ApplyForm = ({
           isApplication: true,
           plan: selectedPlan,
           courses: [], // [] while course step is disabled
-          amount: currentPlan.price,
+          amount: customAmount || currentPlan.price,
           currency: "USD",
           userId,
           email: collectedData.email, // Passing email for new user activation
@@ -251,7 +257,7 @@ const ApplyForm = ({
         isApplication: true,
         plan: selectedPlan,
         courses: [], // [] while course step is disabled — re-enable with selectedCourses
-        amount: currentPlan.price,
+        amount: customAmount || currentPlan.price,
         currency: "USD",
         userId,
         email: collectedData.email,
@@ -272,7 +278,7 @@ const ApplyForm = ({
         body: JSON.stringify({ orderID: data.orderID, isApplication: true }),
       });
       const result = await res.json();
-      if (result.success) router.push("/success?method=paypal");
+      if (result.success) router.push(`/success?method=paypal&orderID=${data.orderID}`);
       else setStepError(result.error || "Payment capture failed.");
     } catch {
       setStepError("Network error during capture.");
@@ -611,6 +617,27 @@ const ApplyForm = ({
           <div className="absolute top-0 right-0 p-8 text-white/5 opacity-20 pointer-events-none">
             <ShieldCheck size={160} />
           </div>
+        </div>
+
+        {/* Custom Amount Input */}
+        <div className="p-6 bg-slate-50 border-2 border-slate-100 rounded-[2rem] space-y-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-black text-slate-800 uppercase tracking-widest text-xs">Verser un montant spécifique</h3>
+            <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-[10px] font-black uppercase">Balance: ${currentPlan.price}</span>
+          </div>
+          <div className="relative">
+            <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-black text-slate-400">$</span>
+            <input
+              type="number"
+              min={10}
+              max={currentPlan.price}
+              value={customAmount || ""}
+              onChange={(e) => setCustomAmount(Math.min(currentPlan.price, Math.max(0, Number(e.target.value))))}
+              className="w-full h-16 pl-12 pr-6 bg-white border-2 border-slate-100 rounded-2xl text-2xl font-black text-slate-900 focus:ring-4 focus:ring-purple-100 transition-all outline-none"
+              placeholder="0.00"
+            />
+          </div>
+          <p className="text-[10px] text-slate-400 font-bold uppercase text-center">Indiquez le montant que vous souhaitez payer aujourd'hui.</p>
         </div>
 
         {/* Payment Method Selector */}

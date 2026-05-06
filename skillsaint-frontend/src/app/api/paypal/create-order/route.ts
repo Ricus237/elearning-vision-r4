@@ -23,7 +23,7 @@ async function getPaypalAccessToken(): Promise<string> {
 
 export async function POST(req: NextRequest) {
   try {
-    const { courseId, userId, courseTitle, amount, currency, isApplication, plan, courses, email } = await req.json();
+    const { courseId, userId, courseTitle, amount, currency, isApplication, plan, courses, email, paymentType } = await req.json();
 
     const token = await getPaypalAccessToken();
     const appUrl = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
           landing_page: 'LOGIN',
           user_action: 'PAY_NOW',
           shipping_preference: 'NO_SHIPPING',
-          return_url: `${appUrl}/success?method=paypal${courseId ? `&courseId=${courseId}` : '&isApplication=true'}`,
+          return_url: `${appUrl}/success?method=paypal${courseId ? `&courseId=${courseId}` : '&isApplication=true'}${paymentType ? `&paymentType=${paymentType}` : ''}`,
           cancel_url: `${appUrl}/apply`,
         },
       }),

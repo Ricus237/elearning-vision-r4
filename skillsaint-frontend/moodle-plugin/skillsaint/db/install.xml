@@ -110,5 +110,25 @@
         <INDEX NAME="user_cm_unique" UNIQUE="true" FIELDS="userid, cmid"/>
       </INDEXES>
     </TABLE>
+    <TABLE NAME="local_skillsaint_payments" COMMENT="Track individual student payments for plans or courses">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Moodle user ID"/>
+        <FIELD NAME="app_id" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Link to local_skillsaint_apps if application payment"/>
+        <FIELD NAME="courseid" TYPE="int" LENGTH="10" NOTNULL="false" DEFAULT="0" COMMENT="Link to course if direct purchase"/>
+        <FIELD NAME="amount" TYPE="number" LENGTH="10" DECIMALS="2" NOTNULL="true" DEFAULT="0.00"/>
+        <FIELD NAME="currency" TYPE="char" LENGTH="3" NOTNULL="true" DEFAULT="USD"/>
+        <FIELD NAME="method" TYPE="char" LENGTH="50" NOTNULL="true" COMMENT="stripe, paypal, etc"/>
+        <FIELD NAME="transaction_id" TYPE="char" LENGTH="100" NOTNULL="false"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="userid_idx" UNIQUE="false" FIELDS="userid"/>
+        <INDEX NAME="app_idx" UNIQUE="false" FIELDS="app_id"/>
+      </INDEXES>
+    </TABLE>
   </TABLES>
 </XMLDB>

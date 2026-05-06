@@ -309,36 +309,39 @@ export async function saveApplication(
 }
 
 /**
- * Confirms payment and triggers enrollment in Moodle
- */
-/**
  * Confirms payment and enrolls user.
- * SMART: If run in browser, it calls the server-side API bridge to securely access the Moodle Token.
  */
-export async function confirmPayment(email: string) {
+export async function confirmPayment(email: string, amount: number = 0, method: string = "", transactionId: string = "", userId: number = 0) {
   if (typeof window !== "undefined") {
     try {
       const response = await fetch("/api/moodle", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ function: "local_skillsaint_confirm_payment", params: { email } }),
+        body: JSON.stringify({ 
+          function: "local_skillsaint_confirm_payment", 
+          params: { email, amount, method, transaction_id: transactionId, userid: userId } 
+        }),
       });
       return await response.json();
     } catch (_e) {
       console.error("Browser-side confirmPayment error:", _e);
       return { status: "error", message: "Network error" };
     }
-
   }
 
   try {
-    const result = await fetchMoodle("local_skillsaint_confirm_payment", { email });
+    const result = await fetchMoodle("local_skillsaint_confirm_payment", { 
+      email, 
+      amount, 
+      method, 
+      transaction_id: transactionId,
+      userid: userId
+    });
     return result || { status: "error", message: "Empty response" };
   } catch (_e) {
     console.error("Server-side confirmPayment error:", _e);
     return { status: "error", message: "Database connection error" };
   }
-
 }
 
 /**

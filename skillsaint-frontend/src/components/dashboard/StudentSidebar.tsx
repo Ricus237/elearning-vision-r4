@@ -10,7 +10,8 @@ import {
   MessageSquare,
   Menu,
   X,
-  GraduationCap
+  GraduationCap,
+  CreditCard
 } from "lucide-react";
 import { logoutAction } from "@/lib/actions";
 
@@ -25,6 +26,7 @@ const examItems = [
 
 const managementItems = [
   { href: "/dashboard/profile", label: "My Profile", icon: User },
+  { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 

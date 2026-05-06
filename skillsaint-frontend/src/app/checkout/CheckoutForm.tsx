@@ -1,5 +1,7 @@
+/* eslint-disable */
+
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Lock, ShieldCheck, CreditCard } from "lucide-react";
 import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
@@ -23,7 +25,9 @@ const CheckoutForm = () => {
     paymentParam === "paypal" ? "paypal" : "card"
   );
   const [userId, setUserId] = useState<string | null>(null);
+  const [customAmount, setCustomAmount] = useState<number>(0);
 
+  // ─── Data Fetching ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (courseId) getCourseById(parseInt(courseId)).then(setCourse);
     // Read Moodle user ID from cookie (set by loginAction)
@@ -31,28 +35,59 @@ const CheckoutForm = () => {
     if (match) setUserId(match[1]);
   }, [courseId]);
 
-  // ─── Pricing ────────────────────────────────────────────────────────────────
-  let amount = 0;
-  const currency = "USD";
-  let title = "Selected Course";
-  let originalPrice = 0;
-  let discountAmount: number | null = null;
+  // ─── Pricing Logic ──────────────────────────────────────────────────────────
+  const pricing = useMemo(() => {
+    let amount = 0;
+    const currency = "USD";
+    let title = "Selected Course";
+    let originalPrice = 0;
+    let discountAmount: number | null = null;
 
-  if (course) {
-    amount = course.discountPrice || course.price;
-    originalPrice = course.price;
-    title = course.title;
-    if (course.discountPrice && course.discountPrice < course.price) {
-      discountAmount = course.price - course.discountPrice;
+    if (course) {
+      amount = course.discountPrice || course.price;
+      originalPrice = course.price;
+      title = course.title;
+      if (course.discountPrice && course.discountPrice < course.price) {
+        discountAmount = course.price - course.discountPrice;
+      }
+    } else if (isApplication) {
+      switch (plan) {
+        case "standard":
+          amount = 299;
+          originalPrice = 399;
+          title = "Standard Enrollment Plan";
+          discountAmount = 100;
+          break;
+        case "premium":
+          amount = 499;
+          originalPrice = 599;
+          title = "Premium Enrollment Plan";
+          discountAmount = 100;
+          break;
+        case "executive":
+          amount = 999;
+          originalPrice = 1199;
+          title = "Executive Enrollment Plan";
+          discountAmount = 200;
+          break;
+        default:
+          amount = 999;
+          originalPrice = 1199;
+          title = "GBI Enrollment Plan";
+          discountAmount = 200;
+      }
     }
-  } else if (isApplication) {
-    switch (plan) {
-      case "standard":  amount = 299; originalPrice = 399; title = "Standard Enrollment Plan"; discountAmount = 100; break;
-      case "premium":   amount = 499; originalPrice = 599; title = "Premium Enrollment Plan";  discountAmount = 100; break;
-      case "executive": amount = 999; originalPrice = 1199; title = "Executive Enrollment Plan"; discountAmount = 200; break;
-      default:          amount = 999; originalPrice = 1199; title = "GBI Enrollment Plan"; discountAmount = 200;
+    return { amount, currency, title, originalPrice, discountAmount };
+  }, [course, isApplication, plan]);
+
+  const { amount, currency, title, originalPrice, discountAmount } = pricing;
+
+  // Set default custom amount when prices are loaded
+  useEffect(() => {
+    if (amount > 0 && customAmount === 0) {
+      setCustomAmount(amount);
     }
-  }
+  }, [amount, customAmount]);
 
   // ─── Stripe redirect ────────────────────────────────────────────────────────
   const handleStripePayment = async () => {
@@ -66,7 +101,7 @@ const CheckoutForm = () => {
           courseId: courseId ? parseInt(courseId) : null,
           userId,
           courseTitle: title,
-          amount,
+          amount: customAmount || amount,
           currency,
         }),
       });
@@ -92,42 +127,46 @@ const CheckoutForm = () => {
         courseId: courseId ? parseInt(courseId) : null,
         userId,
         courseTitle: title,
-        amount,
+        amount: customAmount || amount,
         currency,
       }),
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     return data.orderID;
-  }, [courseId, userId, title, amount, currency]);
+  }, [courseId, userId, title, amount, currency, customAmount]);
 
-  const onPayPalApprove = useCallback(async (data: { orderID: string }) => {
-    setIsProcessing(true);
-    setError("");
-    try {
-      const res = await fetch("/api/paypal/capture-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          orderID: data.orderID,
-          courseId: courseId ? parseInt(courseId) : null,
-          userId,
-        }),
-      });
-      const result = await res.json();
-      if (result.success) {
-        router.push("/success?method=paypal");
-      } else {
-        setError(result.error || "Payment capture failed.");
+  const onPayPalApprove = useCallback(
+    async (data: { orderID: string }) => {
+      setIsProcessing(true);
+      setError("");
+      try {
+        const res = await fetch("/api/paypal/capture-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orderID: data.orderID,
+            courseId: courseId ? parseInt(courseId) : null,
+            userId,
+          }),
+        });
+        const result = await res.json();
+        if (result.success) {
+          router.push("/success?method=paypal");
+        } else {
+          setError(result.error || "Payment capture failed.");
+          setIsProcessing(false);
+        }
+      } catch {
+        setError("Network error during capture.");
         setIsProcessing(false);
       }
-    } catch {
-      setError("Network error during capture.");
-      setIsProcessing(false);
-    }
-  }, [courseId, userId, router]);
+    },
+    [courseId, userId, router]
+  );
 
   // ─── UI ─────────────────────────────────────────────────────────────────────
+
   return (
     <>
       {/* ── Left panel: Order summary ── */}
@@ -163,6 +202,27 @@ const CheckoutForm = () => {
       {/* ── Right panel: Payment methods ── */}
       <div className="w-full md:w-7/12 p-8 md:p-10 bg-white">
         <h2 className="text-2xl font-bold text-gray-900 mb-6">Payment Method</h2>
+
+        {/* Custom Amount Section */}
+        <div className="mb-8 p-6 bg-gray-50 rounded-2xl border-2 border-gray-100 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-black uppercase tracking-widest text-gray-500">Payer un montant spécifique</h3>
+            <span className="text-[10px] font-black px-2 py-1 bg-purple-100 text-purple-700 rounded-full uppercase tracking-wider">Total: ${amount.toFixed(2)}</span>
+          </div>
+          <div className="relative">
+            <span className="absolute left-5 top-1/2 -translate-y-1/2 text-xl font-black text-gray-400">$</span>
+            <input
+              type="number"
+              min={10}
+              max={amount}
+              value={customAmount || ""}
+              onChange={(e) => setCustomAmount(Math.min(amount, Math.max(0, Number(e.target.value))))}
+              className="w-full h-14 pl-10 pr-6 bg-white border-2 border-gray-200 rounded-xl text-xl font-black text-gray-900 focus:ring-4 focus:ring-purple-100 transition-all outline-none"
+              placeholder="0.00"
+            />
+          </div>
+          <p className="text-[10px] text-gray-400 font-bold uppercase text-center italic">Indiquez le montant que vous souhaitez verser aujourd'hui.</p>
+        </div>
 
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm">
@@ -254,7 +314,7 @@ const CheckoutForm = () => {
               ) : (
                 <>
                   <Lock className="w-5 h-5" />
-                  Pay ${amount.toFixed(2)} with Card
+                  Payer ${customAmount.toFixed(2)} par Carte
                 </>
               )}
             </button>

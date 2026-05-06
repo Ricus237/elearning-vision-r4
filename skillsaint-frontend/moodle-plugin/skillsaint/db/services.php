@@ -384,6 +384,14 @@ $functions = array(
         'type'        => 'read',
         'ajax'        => true,
     ),
+    'local_skillsaint_get_user_billing' => array(
+        'classname'   => 'local_skillsaint_external',
+        'methodname'  => 'get_user_billing',
+        'classpath'   => 'local/skillsaint/externallib.php',
+        'description' => 'Get student billing history and balance info',
+        'type'        => 'read',
+        'ajax'        => true,
+    ),
 );
 
 $services = array(
@@ -428,6 +436,7 @@ $services = array(
             'local_skillsaint_add_course_to_selection',
             'local_skillsaint_mark_module_viewed',
             'local_skillsaint_get_course_progress',
+            'local_skillsaint_get_user_billing',
         ),
         'restrictedusers' => 0,
         'enabled' => 1,

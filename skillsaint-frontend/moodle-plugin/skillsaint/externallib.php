@@ -70,48 +70,71 @@ class local_skillsaint_external extends external_api
     {
         return new external_function_parameters(array(
             'email' => new external_value(PARAM_RAW, 'User email address to find the application'),
+            'amount' => new external_value(PARAM_FLOAT, 'Paid amount', VALUE_DEFAULT, 0.0),
+            'method' => new external_value(PARAM_TEXT, 'Payment method', VALUE_DEFAULT, ''),
+            'transaction_id' => new external_value(PARAM_TEXT, 'External transaction ID', VALUE_DEFAULT, ''),
+            'userid' => new external_value(PARAM_INT, 'Optional Moodle User ID', VALUE_DEFAULT, 0),
         ));
     }
 
-    public static function confirm_payment($email)
+    public static function confirm_payment($email, $amount = 0, $method = '', $transaction_id = '', $userid = 0)
     {
         global $DB, $CFG;
         $email = strtolower(trim($email));
         require_once($CFG->dirroot . '/user/lib.php');
         require_once($CFG->dirroot . '/enrol/externallib.php');
 
-        // 1. Find the application
-        $app = $DB->get_record('local_skillsaint_apps', array('email' => $email));
+        // 1. Find the application (Try by ID first, then by Email)
+        $app = null;
+        if ($userid > 0) {
+            $app = $DB->get_record('local_skillsaint_apps', array('userid' => $userid));
+        }
+        
         if (!$app) {
-            throw new invalid_parameter_exception('No application found for this email: ' . $email);
+            $app = $DB->get_record('local_skillsaint_apps', array('email' => $email));
         }
 
-        // 2. If already paid, just return success (prevents error on refresh)
-        if ($app->payment_status === 'paid') {
+        if (!$app) {
+            throw new invalid_parameter_exception('No application found for this identifier.');
+        }
+
+        // 2. Record the payment if provided
+        if ($amount > 0) {
+            $payment = new stdClass();
+            $payment->userid = $app->userid;
+            $payment->app_id = $app->id;
+            $payment->amount = $amount;
+            $payment->method = $method ?: 'unknown';
+            $payment->transaction_id = $transaction_id;
+            $payment->currency = 'USD';
+            $payment->timecreated = time();
+            $DB->insert_record('local_skillsaint_payments', $payment);
+        }
+
+        // 3. If already activated, we are done (subsequent payment)
+        if ($app->is_activated == 1) {
             return array(
                 'status' => 'success',
-                'user_id' => 0, // Should find actual user ID if needed
+                'user_id' => (int) $app->userid,
                 'courses_enrolled' => 0,
                 'activation_code' => $app->activation_code
             );
         }
 
-        // 3. Mark as paid
-        $app->payment_status = 'paid';
+        // 4. First payment: Mark as paid and setup account
+        $app->payment_status = 'paid'; // Keep 'paid' to mean 'started paying/enrolled'
         $app->timemodified = time();
         $DB->update_record('local_skillsaint_apps', $app);
 
-        // 3. Find or Create the Moodle user
+        // 5. Find or Create the Moodle user
         $user = $DB->get_record('user', array('email' => $email, 'mnethostid' => $CFG->mnet_localhost_id));
         if ($user) {
-            // Update existing user
             $user->username = $email;
             $user->confirmed = 1;
             $user->suspended = 0;
             $DB->update_record('user', $user);
             update_internal_user_password($user, 'Gbi2026@');
         } else {
-            // Create new user with all required fields
             $usernew = new stdClass();
             $usernew->username    = $email;
             $usernew->email       = $email;
@@ -121,28 +144,26 @@ class local_skillsaint_external extends external_api
             $usernew->mnethostid  = $CFG->mnet_localhost_id;
             $usernew->lang        = $CFG->lang ?? 'en';
             $usernew->calendartype = 'gregorian';
-            $usernew->timezone    = '99'; // Default server timezone
+            $usernew->timezone    = '99';
             
-            // Split name safely
             $parts = explode(' ', trim($app->fullname));
             $usernew->firstname = $parts[0] ?: 'Student';
             $usernew->lastname  = (count($parts) > 1) ? implode(' ', array_slice($parts, 1)) : 'User';
 
-            // Create user
             $user_id = user_create_user($usernew);
             $user = $DB->get_record('user', array('id' => $user_id));
-            
-            // Set password explicitly
             update_internal_user_password($user, 'Gbi2026@');
         }
 
-        // 4. Enroll in courses
+        // Update app with userid
+        $app->userid = $user->id;
+        
+        // 6. Enroll in courses
         $course_ids = array();
         if ($app->selected_plan === 'executive') {
-            // "Executive" Plan: Enroll in ALL visible courses automatically
             $all_courses = $DB->get_records('course', array('visible' => 1));
             foreach ($all_courses as $c) {
-                if ($c->id != 1) { // Skip the main Moodle site course
+                if ($c->id != 1) {
                     $course_ids[] = $c->id;
                 }
             }
@@ -159,23 +180,26 @@ class local_skillsaint_external extends external_api
                     if ($course) {
                         $instance = $DB->get_record('enrol', array('courseid' => $cid, 'enrol' => 'manual'), '*', IGNORE_MISSING);
                         if ($instance) {
-                            $enrol->enrol_user($instance, $user->id, 5); // 5 is the standard student role ID
+                            $enrol->enrol_user($instance, $user->id, 5);
                         }
                     }
                 }
             }
         }
 
-        // 5. Generate activation code (Keep it for history, but activate automatically)
+        // 7. Auto-activate
         $activation_code = 'IBI-' . rand(1000, 9999) . '-' . strtoupper(substr(md5(time()), 0, 4));
         $app->activation_code = $activation_code;
-        $app->is_activated = 1; // Auto-activate after payment!
+        $app->is_activated = 1;
         $DB->update_record('local_skillsaint_apps', $app);
+
+        // Update user ID in payments if we just created it
+        $DB->execute("UPDATE {local_skillsaint_payments} SET userid = ? WHERE app_id = ? AND userid = 0", array($user->id, $app->id));
 
         return array(
             'status' => 'success',
-            'user_id' => $user->id,
-            'courses_enrolled' => count(explode(',', $app->selected_courses)),
+            'user_id' => (int) $user->id,
+            'courses_enrolled' => count($course_ids),
             'activation_code' => $activation_code
         );
     }
@@ -3197,6 +3221,78 @@ class local_skillsaint_external extends external_api
             'total' => new external_value(PARAM_INT, 'Total modules in course'),
             'percentage' => new external_value(PARAM_INT, 'Completion percentage 0-100'),
             'viewed_cmids' => new external_value(PARAM_TEXT, 'Comma-separated list of viewed module IDs'),
+        ));
+    }
+
+    /**
+     * Get user billing info.
+     */
+    public static function get_user_billing_parameters()
+    {
+        return new external_function_parameters(array(
+            'userid' => new external_value(PARAM_INT, 'Moodle user ID'),
+        ));
+    }
+
+    public static function get_user_billing($userid)
+    {
+        global $DB;
+        
+        $app = $DB->get_record('local_skillsaint_apps', array('userid' => $userid));
+        if (!$app) {
+            return array('error' => 'No application found');
+        }
+
+        $plan = strtolower($app->selected_plan);
+        $total_price = (float) get_config('local_skillsaint', 'price_' . $plan);
+        
+        // Default prices if config is empty
+        if ($total_price <= 0) {
+            if ($plan === 'executive') $total_price = 999.00;
+            else if ($plan === 'premium') $total_price = 499.00;
+            else $total_price = 199.00;
+        }
+
+        $payments = $DB->get_records('local_skillsaint_payments', array('userid' => $userid), 'timecreated DESC');
+        $amount_paid = 0;
+        $transactions = array();
+
+        foreach ($payments as $p) {
+            $amount_paid += (float) $p->amount;
+            $transactions[] = array(
+                'id' => $p->transaction_id ?: 'TXN-'.$p->id,
+                'amount' => (float) $p->amount,
+                'date' => date('Y-m-d', $p->timecreated),
+                'method' => $p->method,
+                'status' => 'Succeeded'
+            );
+        }
+
+        return array(
+            'plan_name' => ucfirst($plan) . ' Plan',
+            'total_price' => $total_price,
+            'amount_paid' => $amount_paid,
+            'remaining_balance' => max(0, $total_price - $amount_paid),
+            'transactions' => $transactions
+        );
+    }
+
+    public static function get_user_billing_returns()
+    {
+        return new external_single_structure(array(
+            'plan_name' => new external_value(PARAM_TEXT, 'Plan name'),
+            'total_price' => new external_value(PARAM_FLOAT, 'Total price'),
+            'amount_paid' => new external_value(PARAM_FLOAT, 'Total paid'),
+            'remaining_balance' => new external_value(PARAM_FLOAT, 'Remaining balance'),
+            'transactions' => new external_multiple_structure(
+                new external_single_structure(array(
+                    'id' => new external_value(PARAM_TEXT, 'TXN ID'),
+                    'amount' => new external_value(PARAM_FLOAT, 'Amount'),
+                    'date' => new external_value(PARAM_TEXT, 'Date string'),
+                    'method' => new external_value(PARAM_TEXT, 'Method'),
+                    'status' => new external_value(PARAM_TEXT, 'Status'),
+                ))
+            ),
         ));
     }
 }
