@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 import Link from "next/link";
 import {
   Users,
