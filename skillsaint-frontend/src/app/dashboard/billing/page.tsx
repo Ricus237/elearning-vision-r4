@@ -3,6 +3,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import StudentSidebar from "@/components/dashboard/StudentSidebar";
 import { 
   CreditCard, 
@@ -13,6 +14,11 @@ import {
   ArrowRight,
   Loader2,
   CheckCircle2,
+  Sparkles,
+  ArrowUpCircle,
+  ArrowDownCircle,
+  Zap,
+  X as CloseIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getUserBilling } from "@/lib/moodle";
@@ -39,6 +45,8 @@ export default function BillingPage() {
   const [payAmount, setPayAmount] = useState<number>(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState("");
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [siteData, setSiteData] = useState<any>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -60,6 +68,20 @@ export default function BillingPage() {
       setLoading(false);
     }
     fetchData();
+
+    // Fetch global site data for prices/quotas
+    const loadSiteData = async () => {
+      const res = await fetch("/api/moodle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ function: "local_skillsaint_get_all_site_data", params: {} }),
+      });
+      const json = await res.json();
+      if (json && !json.error) {
+        setSiteData(json);
+      }
+    };
+    loadSiteData();
   }, []);
 
   const handlePayBalance = async () => {
@@ -224,16 +246,18 @@ export default function BillingPage() {
                 <div className="space-y-4">
                   {billing?.transactions.map((txn) => (
                     <div key={txn.id} className="flex items-center justify-between p-6 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors group">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-emerald-500 shadow-sm group-hover:scale-110 transition-transform">
+                      <div className="flex items-center gap-4 flex-1 min-w-0">
+                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-emerald-500 shadow-sm group-hover:scale-110 transition-transform flex-shrink-0">
                           <CheckCircle2 size={18} />
                         </div>
-                        <div>
-                          <p className="text-sm font-black text-gray-900">{txn.id}</p>
+                        <div className="min-w-0">
+                          <p className="text-sm font-black text-gray-900 truncate" title={txn.id}>
+                            {txn.id}
+                          </p>
                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{txn.date} • {txn.method}</p>
                         </div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right flex-shrink-0 ml-4">
                         <p className="text-lg font-black text-gray-900">+${txn.amount.toFixed(2)}</p>
                         <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">{txn.status}</p>
                       </div>
@@ -259,10 +283,22 @@ export default function BillingPage() {
                   If you encounter difficulties with your payments or wish to change your payment method, our financial support team is here for you.
                 </p>
                 
-                <button className="w-full py-4 bg-white/10 hover:bg-white/20 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-3 relative z-10 border border-white/10">
-                  Contact support
-                  <ChevronRight size={14} />
-                </button>
+                <div className="space-y-3 relative z-10">
+                  <Link 
+                    href="/dashboard/notifications"
+                    className="w-full py-4 bg-white/10 hover:bg-white/20 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-3 border border-white/10"
+                  >
+                    Contact support
+                    <ChevronRight size={14} />
+                  </Link>
+
+                  <button 
+                    onClick={() => setShowUpgradeModal(true)}
+                    className="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-3 shadow-xl shadow-purple-900/20"
+                  >
+                    Upgrade Program
+                  </button>
+                </div>
               </div>
 
               <div className="bg-white rounded-[3rem] p-8 border border-gray-100 shadow-sm space-y-6">
@@ -280,9 +316,163 @@ export default function BillingPage() {
               </div>
             </div>
 
+
           </div>
         </div>
       </main>
+
+      {/* Upgrade Modal */}
+      <AnimatePresence>
+        {showUpgradeModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowUpgradeModal(false)}
+              className="absolute inset-0 bg-gray-900/60 backdrop-blur-md"
+            />
+            
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-2xl bg-white rounded-[3rem] shadow-2xl overflow-hidden"
+            >
+              <button 
+                onClick={() => setShowUpgradeModal(false)}
+                className="absolute top-8 right-8 p-2 text-gray-400 hover:text-gray-900 transition-colors z-20"
+              >
+                <CloseIcon size={24} />
+              </button>
+
+              <div className="p-10 md:p-14">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center shadow-lg shadow-purple-100">
+                    <Sparkles size={20} />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tight">Upgrade Program</h2>
+                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Choose a higher dimension for your training</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Logic to determine current, previous and next plan */}
+                  {(() => {
+                    const plans = [
+                      { 
+                        id: 'standard', 
+                        name: 'Standard Enrollment', 
+                        price: parseInt(siteData?.price_standard), 
+                        quota: parseInt(siteData?.quota_standard), 
+                        color: 'emerald' 
+                      },
+                      { 
+                        id: 'premium', 
+                        name: 'Premium Enrollment', 
+                        price: parseInt(siteData?.price_premium), 
+                        quota: parseInt(siteData?.quota_premium), 
+                        color: 'purple' 
+                      },
+                      { 
+                        id: 'executive', 
+                        name: 'Executive Enrollment', 
+                        price: parseInt(siteData?.price_executive), 
+                        quota: 'Unlimited', 
+                        color: 'indigo' 
+                      },
+                    ];
+                    
+                    const currentId = billing?.plan_name.toLowerCase().replace(' plan', '').replace(' enrollment', '').trim() || 'none';
+                    
+                    const displayPlans = plans.map(p => {
+                      const currentIndex = plans.findIndex(pl => pl.id === currentId);
+                      const pIndex = plans.findIndex(pl => pl.id === p.id);
+                      
+                      if (p.id === currentId) return { ...p, type: 'current' };
+                      if (pIndex > currentIndex) return { ...p, type: 'upgrade' };
+                      return { ...p, type: 'downgrade' };
+                    });
+
+                    return displayPlans.map((p) => (
+                      <div 
+                        key={p.id}
+                        className={`relative p-6 rounded-[2rem] border-2 transition-all flex flex-col ${
+                          p.type === 'current' 
+                            ? 'border-purple-600 bg-purple-50/50 ring-4 ring-purple-50' 
+                            : 'border-gray-100 bg-white hover:border-gray-200'
+                        }`}
+                      >
+                        {p.type === 'current' && (
+                          <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-purple-600 text-white text-[8px] font-black uppercase tracking-widest rounded-full whitespace-nowrap">
+                            Current Plan
+                          </div>
+                        )}
+                        
+                        <div className="mb-6">
+                          <p className={`text-[9px] font-black uppercase tracking-widest mb-1 ${
+                            p.id === 'standard' ? 'text-emerald-500' : p.id === 'premium' ? 'text-purple-500' : 'text-indigo-500'
+                          }`}>
+                            {p.name}
+                          </p>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-2xl font-black text-gray-900">${p.price}</span>
+                            <span className="text-[10px] font-bold text-gray-400 italic">one-time</span>
+                          </div>
+                        </div>
+
+                        <ul className="space-y-3 mb-8 flex-1">
+                          <li className="flex items-center gap-2 text-[10px] font-bold text-gray-600">
+                            <Zap size={12} className="text-amber-400" />
+                            {p.quota} Courses
+                          </li>
+                          <li className="flex items-center gap-2 text-[10px] font-bold text-gray-600">
+                            <ShieldCheck size={12} className="text-emerald-400" />
+                            Official Support
+                          </li>
+                        </ul>
+
+                        {p.type === 'upgrade' ? (
+                          <Link 
+                            href="/apply"
+                            className="w-full py-3 bg-gray-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-purple-600 transition-colors flex items-center justify-center gap-2"
+                          >
+                            <ArrowUpCircle size={14} />
+                            Upgrade
+                          </Link>
+                        ) : p.type === 'downgrade' ? (
+                          <Link 
+                            href="/dashboard/notifications"
+                            className="w-full py-3 bg-gray-100 text-gray-500 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+                          >
+                            <ArrowDownCircle size={14} />
+                            Contact Admin
+                          </Link>
+                        ) : (
+                          <div className="w-full py-3 bg-emerald-100 text-emerald-600 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2">
+                            <CheckCircle2 size={14} />
+                            Active
+                          </div>
+                        )}
+                      </div>
+                    ));
+                  })()}
+                </div>
+
+                <div className="mt-10 p-6 bg-gray-50 rounded-2xl flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-400 shadow-sm">
+                    <ShieldCheck size={20} />
+                  </div>
+                  <p className="text-[10px] font-medium text-gray-500 leading-relaxed">
+                    Note: Upgrading your plan will require a manual validation by our team to link your previous achievements. Contact us for a custom adjustment.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

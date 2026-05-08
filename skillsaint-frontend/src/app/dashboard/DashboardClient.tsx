@@ -471,7 +471,6 @@ const DashboardClient = ({
                     ? "bg-emerald-50 border-emerald-100 text-emerald-700"
                     : "bg-amber-50 border-amber-100 text-amber-700"
                   }`}>
-                  <Sparkles size={20} className="shrink-0 mt-0.5" />
                   <div>
                     {slotsLeft > 0 ? (
                       <p className="text-sm font-bold">
@@ -481,7 +480,7 @@ const DashboardClient = ({
                     ) : (
                       <p className="text-sm font-bold">
                         You have reached the limit of your <strong>{userPlan}</strong> plan ({userQuota} courses).{" "}
-                        <a href="/apply" className="underline underline-offset-2 font-black">
+                        <a href="/dashboard/billing" className="underline underline-offset-2 font-black">
                           Upgrade to Premium or Executive
                         </a>{" "}
                         to unlock more courses.

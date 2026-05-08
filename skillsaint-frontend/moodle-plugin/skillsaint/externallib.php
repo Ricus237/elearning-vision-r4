@@ -1990,7 +1990,15 @@ class local_skillsaint_external extends external_api
 
         // 1. Plan & Profile Info
         $user = $DB->get_record('user', array('id' => $userid), '*', MUST_EXIST);
-        $app = $DB->get_record('local_skillsaint_apps', array('email' => $user->email));
+        $app = $DB->get_record('local_skillsaint_apps', array('userid' => $userid));
+        if (!$app) {
+            $app = $DB->get_record('local_skillsaint_apps', array('email' => $user->email));
+            if ($app && empty($app->userid)) {
+                // Link the application to the user ID if found by email but userid is empty
+                $app->userid = $userid;
+                $DB->update_record('local_skillsaint_apps', $app);
+            }
+        }
         
         $plan = $app ? $app->selected_plan : 'none';
         $phone = $app ? $app->phone : '';
@@ -2989,83 +2997,6 @@ class local_skillsaint_external extends external_api
         require_once($CFG->dirroot . '/course/externallib.php');
         return core_course_external::get_course_contents_returns();
     }
-    /**
-     * Add a course to user selection if they have slots left.
-     */
-    public static function add_course_to_selection_parameters()
-    {
-        return new external_function_parameters(array(
-            'courseid' => new external_value(PARAM_INT, 'Course ID to add'),
-        ));
-    }
-
-    public static function add_course_to_selection($courseid)
-    {
-        global $DB, $USER;
-        
-        $params = self::validate_parameters(self::add_course_to_selection_parameters(), array('courseid' => $courseid));
-        $courseid = $params['courseid'];
-
-        if (isguestuser() || !$USER->id) {
-            throw new moodle_exception('noguest', 'local_skillsaint');
-        }
-
-        // 1. Get application record
-        $app = $DB->get_record('local_skillsaint_apps', array('userid' => $USER->id), '*', IGNORE_MISSING);
-        if (!$app) {
-             return array('status' => 'error', 'message' => 'Your application record was not found. Please contact support.');
-        }
-
-        // 2. Check quota
-        $quota_standard = (int)get_config('local_skillsaint', 'quota_standard') ?: 3;
-        $quota_premium = (int)get_config('local_skillsaint', 'quota_premium') ?: 6;
-
-        $quotas = array(
-            'standard' => $quota_standard,
-            'premium' => $quota_premium,
-            'executive' => 999
-        );
-        $user_quota = isset($quotas[$app->selected_plan]) ? $quotas[$app->selected_plan] : 0;
-        
-        $current_courses = !empty($app->selected_courses) ? explode(',', $app->selected_courses) : array();
-        
-        // Remove empty strings if any
-        $current_courses = array_filter($current_courses);
-
-        if (count($current_courses) >= $user_quota && $app->selected_plan !== 'executive') {
-             return array('status' => 'error', 'message' => 'Your quota is full. Please upgrade your plan to add more courses.');
-        }
-
-        // 3. Add course if not already there
-        if (!in_array($courseid, $current_courses)) {
-            $current_courses[] = $courseid;
-            $app->selected_courses = implode(',', $current_courses);
-            $app->timemodified = time();
-            $DB->update_record('local_skillsaint_apps', $app);
-            
-            // 4. Enroll the user in the course
-            $enrol = enrol_get_plugin('manual');
-            if ($enrol) {
-                $course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
-                $instance = $DB->get_record('enrol', array('courseid' => $course->id, 'enrol' => 'manual'), '*', IGNORE_MISSING);
-                if ($instance) {
-                    $enrol->enrol_user($instance, $USER->id, 5); // 5 is student role
-                }
-            }
-            
-            return array('status' => 'success', 'message' => 'Course successfully added to your selection.');
-        }
-
-        return array('status' => 'success', 'message' => 'Course is already in your selection.');
-    }
-
-    public static function add_course_to_selection_returns()
-    {
-        return new external_single_structure(array(
-            'status' => new external_value(PARAM_ALPHA, 'success or error'),
-            'message' => new external_value(PARAM_TEXT, 'Message details'),
-        ));
-    }
 
     // ==========================================
     // COURSE PROGRESS TRACKING
@@ -3295,5 +3226,114 @@ class local_skillsaint_external extends external_api
             ),
         ));
     }
-}
 
+    /**
+     * Student adds a course to their selection (respects plan quota).
+     */
+    public static function add_course_to_selection_parameters()
+    {
+        return new external_function_parameters(array(
+            'userid' => new external_value(PARAM_INT, 'The Moodle user ID'),
+            'courseid' => new external_value(PARAM_INT, 'The course ID to add'),
+        ));
+    }
+
+    public static function add_course_to_selection($userid, $courseid)
+    {
+        global $DB, $CFG;
+        require_once($CFG->dirroot . '/lib/enrollib.php');
+
+        // 1. Validate user exists
+        $user = $DB->get_record('user', array('id' => $userid, 'deleted' => 0));
+        if (!$user) {
+            return array('status' => 'error', 'message' => 'User not found.');
+        }
+
+        // 2. Validate course exists
+        $course = $DB->get_record('course', array('id' => $courseid, 'visible' => 1));
+        if (!$course || $courseid == 1) {
+            return array('status' => 'error', 'message' => 'Course not found or not available.');
+        }
+
+        // 3. Check if already enrolled
+        $already = $DB->record_exists_sql(
+            "SELECT 1 FROM {user_enrolments} ue
+             JOIN {enrol} e ON e.id = ue.enrolid
+             WHERE ue.userid = ? AND e.courseid = ?",
+            array($userid, $courseid)
+        );
+        if ($already) {
+            return array('status' => 'error', 'message' => 'Already enrolled in this course.');
+        }
+
+        // 4. Check plan quota
+        $app = $DB->get_record('local_skillsaint_apps', array('userid' => $userid));
+        if (!$app) {
+            // Try by email
+            $app = $DB->get_record('local_skillsaint_apps', array('email' => $user->email));
+        }
+
+        $plan = $app ? $app->selected_plan : 'none';
+
+        // Get quotas from config or use defaults
+        $quota_standard = (int) get_config('local_skillsaint', 'quota_standard') ?: 3;
+        $quota_premium = (int) get_config('local_skillsaint', 'quota_premium') ?: 6;
+
+        $quota = 0;
+        if ($plan === 'executive') {
+            $quota = 999; // Unlimited
+        } else if ($plan === 'premium') {
+            $quota = $quota_premium;
+        } else if ($plan === 'standard') {
+            $quota = $quota_standard;
+        }
+
+        // Count current enrollments
+        $current_count = $DB->count_records_sql(
+            "SELECT COUNT(*) FROM {user_enrolments} ue
+             JOIN {enrol} e ON e.id = ue.enrolid
+             WHERE ue.userid = ? AND e.courseid != 1",
+            array($userid)
+        );
+
+        if ($current_count >= $quota) {
+            return array('status' => 'error', 'message' => 'Course quota reached for your plan. Please upgrade.');
+        }
+
+        // 5. Enroll the user using manual enrolment plugin
+        $enrol = enrol_get_plugin('manual');
+        if (!$enrol) {
+            return array('status' => 'error', 'message' => 'Manual enrolment plugin not available.');
+        }
+
+        $instance = $DB->get_record('enrol', array('courseid' => $courseid, 'enrol' => 'manual'), '*', IGNORE_MISSING);
+        if (!$instance) {
+            // Create manual enrolment instance if it doesn't exist
+            $enrolid = $enrol->add_instance($course);
+            $instance = $DB->get_record('enrol', array('id' => $enrolid));
+        }
+
+        $enrol->enrol_user($instance, $userid, 5); // roleid 5 = Student
+
+        // 6. Update selected_courses in the application record
+        if ($app) {
+            $existing_courses = !empty($app->selected_courses) ? explode(',', $app->selected_courses) : array();
+            if (!in_array((string) $courseid, $existing_courses)) {
+                $existing_courses[] = (string) $courseid;
+                $app->selected_courses = implode(',', $existing_courses);
+                $app->timemodified = time();
+                $DB->update_record('local_skillsaint_apps', $app);
+            }
+        }
+
+        return array('status' => 'success', 'message' => 'Course added to your selection successfully.');
+    }
+
+    public static function add_course_to_selection_returns()
+    {
+        return new external_single_structure(array(
+            'status' => new external_value(PARAM_ALPHA, 'success or error'),
+            'message' => new external_value(PARAM_TEXT, 'Status message'),
+        ));
+    }
+}

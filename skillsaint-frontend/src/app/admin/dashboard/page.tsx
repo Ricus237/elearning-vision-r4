@@ -11,7 +11,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import AdminSidebar from "@/components/dashboard/AdminSidebar";
-import { fetchMoodle } from "@/lib/moodle";
+import { fetchMoodle, getUserBilling } from "@/lib/moodle";
 
 interface Student {
   id: number;
@@ -21,6 +21,11 @@ interface Student {
   enrolled_count: number;
   payment_status: string;
   is_activated: boolean;
+  billing?: {
+    total_price: number;
+    amount_paid: number;
+    remaining_balance: number;
+  };
 }
 
 interface DashboardStats {
@@ -59,7 +64,22 @@ const AdminDashboardPage = async () => {
   const newThisMonth = stats?.new_this_month ?? 0;
   const totalPaid = stats?.total_paid_apps ?? 0;
   const totalQuizzes = stats?.total_quizzes ?? 0;
-  const recentStudents: Student[] = stats?.recent_students ?? [];
+  const rawRecentStudents: Student[] = stats?.recent_students ?? [];
+
+  // Fetch billing for each student to show progress, similar to user dashboard billing
+  const recentStudents = await Promise.all(
+    rawRecentStudents.map(async (student) => {
+      try {
+        const billing = await getUserBilling(student.id);
+        return { 
+          ...student, 
+          billing: billing && !billing.error ? billing : undefined 
+        };
+      } catch (e) {
+        return student;
+      }
+    })
+  );
 
 
   return (
@@ -210,16 +230,36 @@ const AdminDashboardPage = async () => {
                             </span>
                           </td>
                           <td className="px-10 py-8">
-                            {student.payment_status === "paid" ? (
-                              <div className="flex items-center gap-2 text-emerald-600">
-                                <CheckCircle className="w-4 h-4" />
-                                <span className="text-[10px] font-black uppercase tracking-widest">Verified</span>
+                            {student.billing ? (
+                              <div className="flex flex-col gap-2 min-w-[140px]">
+                                <div className="flex justify-between text-[9px] font-black uppercase tracking-widest">
+                                  <span className="text-emerald-600 font-bold">${student.billing.amount_paid.toFixed(2)}</span>
+                                  <span className="text-gray-400">/ ${student.billing.total_price.toFixed(2)}</span>
+                                </div>
+                                <div className="h-1.5 w-full bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
+                                  <div 
+                                    className="h-full bg-gradient-to-r from-emerald-500 to-purple-600 transition-all duration-1000" 
+                                    style={{ width: `${Math.min(100, (student.billing.amount_paid / student.billing.total_price) * 100)}%` }}
+                                  />
+                                </div>
+                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-tighter">
+                                  {student.billing.remaining_balance > 0 
+                                    ? `Remaining: $${student.billing.remaining_balance.toFixed(2)}` 
+                                    : "Program Fully Paid"}
+                                </p>
                               </div>
                             ) : (
-                              <div className="flex items-center gap-2 text-gray-400">
-                                <Clock className="w-4 h-4" />
-                                <span className="text-[10px] font-black uppercase tracking-widest">Awaiting</span>
-                              </div>
+                              student.payment_status === "paid" ? (
+                                <div className="flex items-center gap-2 text-emerald-600">
+                                  <CheckCircle className="w-4 h-4" />
+                                  <span className="text-[10px] font-black uppercase tracking-widest">Verified</span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2 text-gray-400">
+                                  <Clock className="w-4 h-4" />
+                                  <span className="text-[10px] font-black uppercase tracking-widest">Awaiting</span>
+                                </div>
+                              )
                             )}
                           </td>
                           <td className="px-10 py-8">

@@ -357,16 +357,16 @@ const ApplyForm = ({
         <ErrorBanner />
         <div className="space-y-4">
           <div>
-            <label className={LABEL}>Current relationship with God <span className="text-red-500">*</span></label>
-            <textarea required name="relationship_description" rows={3} className={INPUT} placeholder="Describe your daily walk and prayer life..." defaultValue={collectedData.relationship_description} />
+            <label className={LABEL}>Current relationship with God <span className="text-red-500"></span></label>
+            <textarea name="relationship_description" rows={3} className={INPUT} placeholder="Describe your daily walk and prayer life..." defaultValue={collectedData.relationship_description} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className={LABEL}>Time as a believer <span className="text-red-500">*</span></label>
-              <input required name="believer_duration" type="text" className={INPUT} placeholder="e.g. 5+ years" defaultValue={collectedData.believer_duration} />
+              <label className={LABEL}>Time as a believer <span className="text-red-500"></span></label>
+              <input name="believer_duration" type="text" className={INPUT} placeholder="e.g. 5+ years" defaultValue={collectedData.believer_duration} />
             </div>
             <div>
-              <label className={LABEL}>Baptism <span className="text-red-500">*</span></label>
+              <label className={LABEL}>Baptism <span className="text-red-500"></span></label>
               <div className="grid grid-cols-2 gap-2 mt-1">
               <label className="flex items-center justify-center gap-2 py-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer text-sm font-bold transition-all has-[:checked]:bg-purple-600 has-[:checked]:text-white has-[:checked]:border-purple-600 shadow-sm">
                   <input type="checkbox" name="baptism-water" className="hidden" defaultChecked={collectedData['baptism-water'] === 'on'} /> Water
@@ -378,8 +378,8 @@ const ApplyForm = ({
             </div>
           </div>
           <div>
-            <label className={LABEL}>Ministry experience <span className="text-red-500">*</span></label>
-            <textarea required name="ministry_experience" rows={2} className={INPUT} placeholder="Prayer, Bible study, ministry roles..." defaultValue={collectedData.ministry_experience} />
+            <label className={LABEL}>Ministry experience <span className="text-red-500"></span></label>
+            <textarea  name="ministry_experience" rows={2} className={INPUT} placeholder="Prayer, Bible study, ministry roles..." defaultValue={collectedData.ministry_experience} />
           </div>
           <div>
             <label className={LABEL}>Church involvement</label>
@@ -409,12 +409,13 @@ const ApplyForm = ({
             <textarea required name="enrollment_motivation" rows={3} className={INPUT} placeholder="Your primary motivation..." defaultValue={collectedData.enrollment_motivation} />
           </div>
           <div>
-            <label className={LABEL}>Areas of spiritual growth <span className="text-red-500">*</span></label>
+            <label className={LABEL}>Areas of spiritual growth <span className="text-red-500"></span></label>
             <div className="grid grid-cols-2 gap-2">
               {["Scripture", "Presence", "Gifts & Fruit", "Wisdom"].map((area) => (
                 <label key={area} className="flex items-center gap-2 px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer text-[13px] font-bold has-[:checked]:bg-purple-50 has-[:checked]:border-purple-500 has-[:checked]:text-purple-700 transition-all shadow-sm">
                   <input 
                     type="checkbox" 
+                    defaultValue={"Scripture"}
                     name={`growth-area-${area}`} 
                     value="on" 
                     className="size-4 accent-purple-600" 
@@ -425,12 +426,12 @@ const ApplyForm = ({
             </div>
           </div>
           <div>
-            <label className={LABEL}>Ministry aspirations <span className="text-red-500">*</span></label>
-            <textarea required name="ministry_aspirations" rows={2} className={INPUT} placeholder="Where do you see yourself after this program?" defaultValue={collectedData.ministry_aspirations} />
+            <label className={LABEL}>Ministry aspirations <span className="text-red-500"></span></label>
+            <textarea name="ministry_aspirations" rows={2} className={INPUT} placeholder="Where do you see yourself after this program?" defaultValue={collectedData.ministry_aspirations} />
           </div>
           <div>
-            <label className={LABEL}>Gifts or leadership areas to develop <span className="text-red-500">*</span></label>
-            <input required name="leadership_goals" type="text" className={INPUT} placeholder="e.g. Prophecy, Teaching, Administration" defaultValue={collectedData.leadership_goals} />
+            <label className={LABEL}>Gifts or leadership areas to develop <span className="text-red-500"></span></label>
+            <input name="leadership_goals" type="text" className={INPUT} placeholder="e.g. Prophecy, Teaching, Administration" defaultValue={collectedData.leadership_goals} />
           </div>
         </div>
         <StepNav onBack={handleBack} onNext={onNext} isFirst={false} nextLabel="Choose Plan" />
@@ -501,7 +502,7 @@ const ApplyForm = ({
 
               <div className="relative z-10 text-right">
                 <div className="text-2xl font-black text-slate-900">${plan.price}</div>
-                <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">one-time</div>
+                <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Multiple times</div>
               </div>
             </label>
           ))}
@@ -579,7 +580,7 @@ const ApplyForm = ({
             <h3 className="text-2xl font-black">{currentPlan.label}</h3>
             <div className="flex items-baseline gap-2">
               <span className="text-5xl font-black">${currentPlan.price}</span>
-              <span className="text-purple-200 font-bold text-xs uppercase tracking-widest">one-time</span>
+              <span className="text-purple-200 font-bold text-xs uppercase tracking-widest">Multiples times</span>
             </div>
             <p className="text-purple-200 text-sm font-bold">
               {currentPlan.courseQuota === Infinity ? "Full access to all GBI courses" : `Access to ${currentPlan.courseQuota} courses of your choice`}

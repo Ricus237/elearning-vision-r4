@@ -769,13 +769,20 @@ export async function getAllExamResultsAction() {
  * Student adds a course to their selection
  */
 export async function addCourseToSelectionAction(courseId: number) {
+  const cookieStore = await cookies();
+  const userId = cookieStore.get('moodle_user_id')?.value;
+  if (!userId) return { error: 'Not authenticated' };
+
   try {
-    const result = await fetchMoodle('local_skillsaint_add_course_to_selection', { courseid: courseId });
-    if (result.status === 'success') {
+    const result = await fetchMoodle('local_skillsaint_add_course_to_selection', { 
+      courseid: courseId,
+      userid: parseInt(userId)
+    });
+    if (result && result.status === 'success') {
       revalidatePath('/dashboard');
       return { success: true, message: result.message };
     }
-    return { error: result.message || "Failed to add course" };
+    return { error: result?.message || "Failed to add course" };
   } catch (err) {
     console.error("Add course error:", err);
     return { error: "Network error while adding course" };

@@ -17,6 +17,11 @@ export type Student = {
   activation_code: string;
   enrolled_count: number;
   registered_at: number;
+  billing?: {
+    total_price: number;
+    amount_paid: number;
+    remaining_balance: number;
+  };
 };
 
 async function callMoodleAdmin(wsfunction: string, params: Record<string, unknown> = {}) {
@@ -173,6 +178,36 @@ export default function StudentsClient({ initialStudents }: { initialStudents: S
                         <BadgeDetail label="Enrollments" value={`${selected.enrolled_count} Active`} icon={<Users className="w-4 h-4" />} color="text-blue-600" />
                         <BadgeDetail label="Verified At" value={new Date(selected.registered_at * 1000).toLocaleDateString("en-US", { month: "short", year: "numeric" })} icon={<Clock className="w-4 h-4" />} color="text-emerald-600" />
                       </div>
+
+                      {/* Payment Progress Section */}
+                      {selectedDetails?.billing && (
+                        <div className="mt-12 pt-10 border-t border-gray-50 dark:border-slate-800">
+                          <div className="flex items-center justify-between mb-8">
+                            <div>
+                              <h4 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">Payment Progress</h4>
+                              <p className="text-[10px] text-gray-400 font-medium">Financial advancement for the program.</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Total Plan: ${selectedDetails.billing.total_price.toFixed(2)}</p>
+                            </div>
+                          </div>
+                          <div className="space-y-4">
+                             <div className="flex justify-between text-[10px] font-black uppercase tracking-[0.2em]">
+                               <span className="text-emerald-600">Paid: ${selectedDetails.billing.amount_paid.toFixed(2)}</span>
+                               <span className="text-purple-600">Remaining: ${selectedDetails.billing.remaining_balance.toFixed(2)}</span>
+                             </div>
+                             <div className="h-3 w-full bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
+                               <div 
+                                 className="h-full bg-gradient-to-r from-emerald-500 via-purple-600 to-indigo-600 transition-all duration-1000" 
+                                 style={{ width: `${Math.min(100, (selectedDetails.billing.amount_paid / selectedDetails.billing.total_price) * 100)}%` }}
+                               />
+                             </div>
+                             {selectedDetails.billing.remaining_balance === 0 && (
+                               <p className="text-center text-emerald-500 text-[9px] font-black uppercase tracking-widest mt-2">Account fully settled</p>
+                             )}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Personal Information Section */}
                       <div className="mt-12 pt-10 border-t border-gray-50 dark:border-slate-800">
@@ -393,8 +428,14 @@ export default function StudentsClient({ initialStudents }: { initialStudents: S
                               setSelected(s);
                               setIsLoadingDetails(true);
                               try {
-                                const data = await callMoodleAdmin("local_skillsaint_get_student_dashboard_data", { userid: s.id });
-                                setSelectedDetails(data);
+                                const [data, billing] = await Promise.all([
+                                  callMoodleAdmin("local_skillsaint_get_student_dashboard_data", { userid: s.id }),
+                                  callMoodleAdmin("local_skillsaint_get_user_billing", { userid: s.id })
+                                ]);
+                                setSelectedDetails({
+                                  ...data,
+                                  billing: billing && !billing.error ? billing : undefined
+                                });
                               } catch (e) {
                                 console.error("Failed to load student details", e);
                               } finally {
