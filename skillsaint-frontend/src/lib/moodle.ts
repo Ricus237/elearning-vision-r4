@@ -575,3 +575,51 @@ export async function getUserBilling(userId: number) {
     userid: userId 
   });
 }
+
+// ── Plan Upgrade System ──────────────────────────────────────────────────────
+
+/**
+ * Student requests a plan upgrade (requires admin approval).
+ */
+export async function requestPlanUpgrade(userId: number, targetPlan: string) {
+  return await fetchMoodle('local_skillsaint_request_plan_upgrade', {
+    userid: userId,
+    target_plan: targetPlan,
+  });
+}
+
+/**
+ * Student: get own upgrade request status.
+ */
+export async function getMyUpgradeStatus(userId: number) {
+  return await fetchMoodle('local_skillsaint_get_my_upgrade_status', {
+    userid: userId,
+  });
+}
+
+/**
+ * Admin: get all upgrade requests (optionally filtered by status).
+ */
+export async function getPendingUpgrades(status: string = 'all') {
+  return await fetchMoodle('local_skillsaint_get_pending_upgrades', { status });
+}
+
+/**
+ * Admin: approve an upgrade request.
+ */
+export async function approveUpgrade(requestId: number, adminNote: string = '') {
+  return await fetchMoodle('local_skillsaint_approve_upgrade', {
+    request_id: requestId,
+    admin_note: adminNote,
+  });
+}
+
+/**
+ * Admin: reject an upgrade request.
+ */
+export async function rejectUpgrade(requestId: number, adminNote: string = '') {
+  return await fetchMoodle('local_skillsaint_reject_upgrade', {
+    request_id: requestId,
+    admin_note: adminNote,
+  });
+}

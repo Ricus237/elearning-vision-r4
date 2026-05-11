@@ -15,6 +15,7 @@ import {
   MessageCircle,
   Menu,
   X,
+  ArrowUpCircle,
 } from "lucide-react";
 
 const navItems = [
@@ -24,6 +25,7 @@ const navItems = [
   { href: "/admin/exams", label: "Manage Exams", icon: FileQuestion },
   { href: "/admin/exams/results", label: "Exam Results", icon: Trophy },
   { href: "/admin/support", label: "Support Inbox", icon: MessageCircle },
+  { href: "/admin/upgrades", label: "Upgrade Requests", icon: ArrowUpCircle },
   { href: "/admin/site-content", label: "Site Content", icon: Globe },
 ];
 

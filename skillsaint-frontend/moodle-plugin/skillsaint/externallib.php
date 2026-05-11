@@ -3336,4 +3336,312 @@ class local_skillsaint_external extends external_api
             'message' => new external_value(PARAM_TEXT, 'Status message'),
         ));
     }
+
+    // ========================================================================
+    //  PLAN UPGRADE REQUEST SYSTEM
+    // ========================================================================
+
+    /**
+     * Student requests a plan upgrade.
+     */
+    public static function request_plan_upgrade_parameters()
+    {
+        return new external_function_parameters(array(
+            'userid' => new external_value(PARAM_INT, 'Moodle user ID'),
+            'target_plan' => new external_value(PARAM_TEXT, 'Target plan id (e.g. premium, executive)'),
+        ));
+    }
+
+    public static function request_plan_upgrade($userid, $target_plan)
+    {
+        global $DB;
+
+        // 1. Find the user's application
+        $app = $DB->get_record('local_skillsaint_apps', array('userid' => $userid));
+        if (!$app) {
+            return array('status' => 'error', 'message' => 'No application found for this user.', 'request_id' => 0);
+        }
+
+        $current_plan = $app->selected_plan;
+
+        // 2. Validate: can't upgrade to same or lower plan
+        $plan_order = array('standard' => 1, 'premium' => 2, 'executive' => 3);
+        $current_rank = isset($plan_order[$current_plan]) ? $plan_order[$current_plan] : 0;
+        $target_rank = isset($plan_order[$target_plan]) ? $plan_order[$target_plan] : 0;
+
+        if ($target_rank <= $current_rank) {
+            return array('status' => 'error', 'message' => 'You can only upgrade to a higher plan.', 'request_id' => 0);
+        }
+
+        // 3. Check if there's already a pending request
+        $existing = $DB->get_record('local_skillsaint_upgrades', array(
+            'userid' => $userid,
+            'status' => 'pending'
+        ));
+        if ($existing) {
+            return array('status' => 'error', 'message' => 'You already have a pending upgrade request.', 'request_id' => (int) $existing->id);
+        }
+
+        // 4. Calculate price difference from site config
+        $price_map = array(
+            'standard' => (float) get_config('local_skillsaint', 'price_standard') ?: 299,
+            'premium'  => (float) get_config('local_skillsaint', 'price_premium') ?: 499,
+            'executive'=> (float) get_config('local_skillsaint', 'price_executive') ?: 999,
+        );
+
+        $current_price = isset($price_map[$current_plan]) ? $price_map[$current_plan] : 0;
+        $target_price  = isset($price_map[$target_plan]) ? $price_map[$target_plan] : 0;
+        $price_diff    = $target_price - $current_price;
+
+        // 5. Create the request
+        $record = new stdClass();
+        $record->userid = $userid;
+        $record->app_id = $app->id;
+        $record->current_plan = $current_plan;
+        $record->target_plan = $target_plan;
+        $record->price_difference = $price_diff;
+        $record->status = 'pending';
+        $record->timecreated = time();
+        $record->timemodified = time();
+
+        $id = $DB->insert_record('local_skillsaint_upgrades', $record);
+
+        return array('status' => 'success', 'message' => 'Upgrade request submitted. Awaiting admin approval.', 'request_id' => (int) $id);
+    }
+
+    public static function request_plan_upgrade_returns()
+    {
+        return new external_single_structure(array(
+            'status' => new external_value(PARAM_ALPHA, 'success or error'),
+            'message' => new external_value(PARAM_TEXT, 'Status message'),
+            'request_id' => new external_value(PARAM_INT, 'The upgrade request ID'),
+        ));
+    }
+
+    /**
+     * Admin: get all upgrade requests (optionally filtered by status).
+     */
+    public static function get_pending_upgrades_parameters()
+    {
+        return new external_function_parameters(array(
+            'status' => new external_value(PARAM_TEXT, 'Filter by status (pending, approved, rejected, all)', VALUE_DEFAULT, 'all'),
+        ));
+    }
+
+    public static function get_pending_upgrades($status = 'all')
+    {
+        global $DB;
+
+        if ($status === 'all') {
+            $records = $DB->get_records('local_skillsaint_upgrades', null, 'timecreated DESC');
+        } else {
+            $records = $DB->get_records('local_skillsaint_upgrades', array('status' => $status), 'timecreated DESC');
+        }
+
+        $results = array();
+        foreach ($records as $r) {
+            // Get user info
+            $user = $DB->get_record('user', array('id' => $r->userid), 'id, firstname, lastname, email');
+            $fullname = $user ? $user->firstname . ' ' . $user->lastname : 'Unknown';
+            $email = $user ? $user->email : '';
+
+            $results[] = array(
+                'id' => (int) $r->id,
+                'userid' => (int) $r->userid,
+                'app_id' => (int) $r->app_id,
+                'fullname' => $fullname,
+                'email' => $email,
+                'current_plan' => $r->current_plan,
+                'target_plan' => $r->target_plan,
+                'price_difference' => (float) $r->price_difference,
+                'status' => $r->status,
+                'admin_note' => $r->admin_note ?: '',
+                'timecreated' => (int) $r->timecreated,
+                'timemodified' => (int) $r->timemodified,
+            );
+        }
+
+        return $results;
+    }
+
+    public static function get_pending_upgrades_returns()
+    {
+        return new external_multiple_structure(
+            new external_single_structure(array(
+                'id' => new external_value(PARAM_INT, 'Request ID'),
+                'userid' => new external_value(PARAM_INT, 'User ID'),
+                'app_id' => new external_value(PARAM_INT, 'Application ID'),
+                'fullname' => new external_value(PARAM_TEXT, 'Student full name'),
+                'email' => new external_value(PARAM_TEXT, 'Student email'),
+                'current_plan' => new external_value(PARAM_TEXT, 'Current plan'),
+                'target_plan' => new external_value(PARAM_TEXT, 'Target plan'),
+                'price_difference' => new external_value(PARAM_FLOAT, 'Price difference'),
+                'status' => new external_value(PARAM_TEXT, 'Request status'),
+                'admin_note' => new external_value(PARAM_TEXT, 'Admin note'),
+                'timecreated' => new external_value(PARAM_INT, 'Created timestamp'),
+                'timemodified' => new external_value(PARAM_INT, 'Modified timestamp'),
+            ))
+        );
+    }
+
+    /**
+     * Admin: approve an upgrade request.
+     * Updates the application plan and recalculates the remaining balance.
+     */
+    public static function approve_upgrade_parameters()
+    {
+        return new external_function_parameters(array(
+            'request_id' => new external_value(PARAM_INT, 'Upgrade request ID'),
+            'admin_note' => new external_value(PARAM_TEXT, 'Optional admin note', VALUE_DEFAULT, ''),
+        ));
+    }
+
+    public static function approve_upgrade($request_id, $admin_note = '')
+    {
+        global $DB;
+
+        $request = $DB->get_record('local_skillsaint_upgrades', array('id' => $request_id));
+        if (!$request) {
+            return array('status' => 'error', 'message' => 'Upgrade request not found.');
+        }
+        if ($request->status !== 'pending') {
+            return array('status' => 'error', 'message' => 'This request has already been processed.');
+        }
+
+        // 1. Update the application record
+        $app = $DB->get_record('local_skillsaint_apps', array('id' => $request->app_id));
+        if ($app) {
+            $app->selected_plan = $request->target_plan;
+            $app->timemodified = time();
+            $DB->update_record('local_skillsaint_apps', $app);
+
+            // 2. If executive, enroll in ALL courses
+            if ($request->target_plan === 'executive') {
+                $enrol = enrol_get_plugin('manual');
+                if ($enrol) {
+                    $all_courses = $DB->get_records('course', array('visible' => 1));
+                    foreach ($all_courses as $c) {
+                        if ($c->id != 1) {
+                            $instance = $DB->get_record('enrol', array('courseid' => $c->id, 'enrol' => 'manual'), '*', IGNORE_MISSING);
+                            if ($instance) {
+                                $enrol->enrol_user($instance, $request->userid, 5);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3. Mark request as approved
+        $request->status = 'approved';
+        $request->admin_note = $admin_note;
+        $request->timemodified = time();
+        $DB->update_record('local_skillsaint_upgrades', $request);
+
+        return array('status' => 'success', 'message' => 'Upgrade approved. Student plan has been updated.');
+    }
+
+    public static function approve_upgrade_returns()
+    {
+        return new external_single_structure(array(
+            'status' => new external_value(PARAM_ALPHA, 'success or error'),
+            'message' => new external_value(PARAM_TEXT, 'Status message'),
+        ));
+    }
+
+    /**
+     * Admin: reject an upgrade request.
+     */
+    public static function reject_upgrade_parameters()
+    {
+        return new external_function_parameters(array(
+            'request_id' => new external_value(PARAM_INT, 'Upgrade request ID'),
+            'admin_note' => new external_value(PARAM_TEXT, 'Reason for rejection', VALUE_DEFAULT, ''),
+        ));
+    }
+
+    public static function reject_upgrade($request_id, $admin_note = '')
+    {
+        global $DB;
+
+        $request = $DB->get_record('local_skillsaint_upgrades', array('id' => $request_id));
+        if (!$request) {
+            return array('status' => 'error', 'message' => 'Upgrade request not found.');
+        }
+        if ($request->status !== 'pending') {
+            return array('status' => 'error', 'message' => 'This request has already been processed.');
+        }
+
+        $request->status = 'rejected';
+        $request->admin_note = $admin_note;
+        $request->timemodified = time();
+        $DB->update_record('local_skillsaint_upgrades', $request);
+
+        return array('status' => 'success', 'message' => 'Upgrade request rejected.');
+    }
+
+    public static function reject_upgrade_returns()
+    {
+        return new external_single_structure(array(
+            'status' => new external_value(PARAM_ALPHA, 'success or error'),
+            'message' => new external_value(PARAM_TEXT, 'Status message'),
+        ));
+    }
+
+    /**
+     * Student: get own upgrade request status.
+     */
+    public static function get_my_upgrade_status_parameters()
+    {
+        return new external_function_parameters(array(
+            'userid' => new external_value(PARAM_INT, 'Moodle user ID'),
+        ));
+    }
+
+    public static function get_my_upgrade_status($userid)
+    {
+        global $DB;
+
+        $request = $DB->get_record('local_skillsaint_upgrades', array('userid' => $userid, 'status' => 'pending'));
+        if (!$request) {
+            // Also check the most recent resolved one
+            $records = $DB->get_records('local_skillsaint_upgrades', array('userid' => $userid), 'timemodified DESC', '*', 0, 1);
+            $request = !empty($records) ? reset($records) : null;
+        }
+
+        if (!$request) {
+            return array(
+                'has_request' => 0,
+                'request_id' => 0,
+                'current_plan' => '',
+                'target_plan' => '',
+                'price_difference' => 0.0,
+                'status' => 'none',
+                'admin_note' => '',
+            );
+        }
+
+        return array(
+            'has_request' => 1,
+            'request_id' => (int) $request->id,
+            'current_plan' => $request->current_plan,
+            'target_plan' => $request->target_plan,
+            'price_difference' => (float) $request->price_difference,
+            'status' => $request->status,
+            'admin_note' => $request->admin_note ?: '',
+        );
+    }
+
+    public static function get_my_upgrade_status_returns()
+    {
+        return new external_single_structure(array(
+            'has_request' => new external_value(PARAM_INT, '1 if request exists, 0 otherwise'),
+            'request_id' => new external_value(PARAM_INT, 'Request ID'),
+            'current_plan' => new external_value(PARAM_TEXT, 'Current plan at time of request'),
+            'target_plan' => new external_value(PARAM_TEXT, 'Target plan'),
+            'price_difference' => new external_value(PARAM_FLOAT, 'Price difference'),
+            'status' => new external_value(PARAM_TEXT, 'pending, approved, rejected, or none'),
+            'admin_note' => new external_value(PARAM_TEXT, 'Admin note if any'),
+        ));
+    }
 }

@@ -21,7 +21,7 @@ import {
   X as CloseIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getUserBilling } from "@/lib/moodle";
+import { getUserBilling, requestPlanUpgrade, getMyUpgradeStatus } from "@/lib/moodle";
 
 interface Transaction {
   id: string;
@@ -39,6 +39,16 @@ interface BillingData {
   transactions: Transaction[];
 }
 
+interface UpgradeStatus {
+  has_request: number;
+  request_id: number;
+  current_plan: string;
+  target_plan: string;
+  price_difference: number;
+  status: string;
+  admin_note: string;
+}
+
 export default function BillingPage() {
   const [billing, setBilling] = useState<BillingData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,6 +57,9 @@ export default function BillingPage() {
   const [error, setError] = useState("");
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [siteData, setSiteData] = useState<any>(null);
+  const [upgradeStatus, setUpgradeStatus] = useState<UpgradeStatus | null>(null);
+  const [upgradeLoading, setUpgradeLoading] = useState(false);
+  const [upgradeMsg, setUpgradeMsg] = useState("");
 
   useEffect(() => {
     async function fetchData() {
@@ -82,7 +95,41 @@ export default function BillingPage() {
       }
     };
     loadSiteData();
+
+    // Fetch upgrade status
+    const loadUpgradeStatus = async () => {
+      const uid = typeof document !== "undefined" 
+        ? parseInt(document.cookie.split("; ").find(row => row.startsWith("moodle_user_id="))?.split("=")[1] || "0")
+        : 0;
+      if (uid) {
+        const status = await getMyUpgradeStatus(uid);
+        if (status && !status.error) setUpgradeStatus(status);
+      }
+    };
+    loadUpgradeStatus();
   }, []);
+
+  const getUserId = () => {
+    return typeof document !== "undefined"
+      ? parseInt(document.cookie.split("; ").find(row => row.startsWith("moodle_user_id="))?.split("=")[1] || "0")
+      : 0;
+  };
+
+  const handleUpgradeRequest = async (targetPlan: string) => {
+    const userId = getUserId();
+    if (!userId) return;
+    setUpgradeLoading(true);
+    setUpgradeMsg("");
+    const result = await requestPlanUpgrade(userId, targetPlan);
+    if (result?.status === "success") {
+      setUpgradeMsg("✓ Upgrade request submitted! Awaiting admin approval.");
+      const status = await getMyUpgradeStatus(userId);
+      if (status && !status.error) setUpgradeStatus(status);
+    } else {
+      setUpgradeMsg(result?.message || "An error occurred.");
+    }
+    setUpgradeLoading(false);
+  };
 
   const handlePayBalance = async () => {
     if (payAmount <= 0) return;
@@ -434,21 +481,26 @@ export default function BillingPage() {
                         </ul>
 
                         {p.type === 'upgrade' ? (
-                          <Link 
-                            href="/apply"
-                            className="w-full py-3 bg-gray-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-purple-600 transition-colors flex items-center justify-center gap-2"
-                          >
-                            <ArrowUpCircle size={14} />
-                            Upgrade
-                          </Link>
+                          upgradeStatus?.has_request === 1 && upgradeStatus?.target_plan === p.id && upgradeStatus?.status === 'pending' ? (
+                            <div className="w-full py-3 bg-amber-100 text-amber-700 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2">
+                              <Loader2 size={14} className="animate-spin" />
+                              Pending Approval
+                            </div>
+                          ) : (
+                            <button 
+                              onClick={() => handleUpgradeRequest(p.id)}
+                              disabled={upgradeLoading || (upgradeStatus?.has_request === 1 && upgradeStatus?.status === 'pending')}
+                              className="w-full py-3 bg-gray-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-purple-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                            >
+                              {upgradeLoading ? <Loader2 size={14} className="animate-spin" /> : <ArrowUpCircle size={14} />}
+                              Request Upgrade
+                            </button>
+                          )
                         ) : p.type === 'downgrade' ? (
-                          <Link 
-                            href="/dashboard/notifications"
-                            className="w-full py-3 bg-gray-100 text-gray-500 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
-                          >
+                          <div className="w-full py-3 bg-gray-50 text-gray-300 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 cursor-not-allowed">
                             <ArrowDownCircle size={14} />
-                            Contact Admin
-                          </Link>
+                            Lower Tier
+                          </div>
                         ) : (
                           <div className="w-full py-3 bg-emerald-100 text-emerald-600 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2">
                             <CheckCircle2 size={14} />
@@ -460,12 +512,31 @@ export default function BillingPage() {
                   })()}
                 </div>
 
-                <div className="mt-10 p-6 bg-gray-50 rounded-2xl flex items-center gap-4">
+                {/* Upgrade status message */}
+                {upgradeMsg && (
+                  <div className={`mt-6 p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-center ${
+                    upgradeMsg.startsWith("✓") ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-500"
+                  }`}>
+                    {upgradeMsg}
+                  </div>
+                )}
+
+                {/* Pending upgrade banner */}
+                {upgradeStatus?.has_request === 1 && upgradeStatus?.status === 'pending' && !upgradeMsg && (
+                  <div className="mt-6 p-4 bg-amber-50 border border-amber-100 rounded-2xl flex items-center gap-3">
+                    <Loader2 size={16} className="text-amber-500 animate-spin flex-shrink-0" />
+                    <p className="text-[10px] font-bold text-amber-700">
+                      You have a pending upgrade request to <span className="uppercase font-black">{upgradeStatus.target_plan}</span>. Our team will review it shortly.
+                    </p>
+                  </div>
+                )}
+
+                <div className="mt-6 p-6 bg-gray-50 rounded-2xl flex items-center gap-4">
                   <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-400 shadow-sm">
                     <ShieldCheck size={20} />
                   </div>
                   <p className="text-[10px] font-medium text-gray-500 leading-relaxed">
-                    Note: Upgrading your plan will require a manual validation by our team to link your previous achievements. Contact us for a custom adjustment.
+                    Upgrading requires admin approval. Once approved, the price difference will be added to your balance.
                   </p>
                 </div>
               </div>

@@ -130,5 +130,26 @@
         <INDEX NAME="app_idx" UNIQUE="false" FIELDS="app_id"/>
       </INDEXES>
     </TABLE>
+    <TABLE NAME="local_skillsaint_upgrades" COMMENT="Plan upgrade requests requiring admin approval">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Moodle user ID"/>
+        <FIELD NAME="app_id" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Link to local_skillsaint_apps"/>
+        <FIELD NAME="current_plan" TYPE="char" LENGTH="50" NOTNULL="true" COMMENT="Current plan id e.g. standard"/>
+        <FIELD NAME="target_plan" TYPE="char" LENGTH="50" NOTNULL="true" COMMENT="Requested plan id e.g. premium"/>
+        <FIELD NAME="price_difference" TYPE="number" LENGTH="10" DECIMALS="2" NOTNULL="true" DEFAULT="0.00" COMMENT="Extra amount to pay"/>
+        <FIELD NAME="status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="pending" COMMENT="pending, approved, rejected"/>
+        <FIELD NAME="admin_note" TYPE="text" NOTNULL="false" COMMENT="Optional admin comment"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="userid_idx" UNIQUE="false" FIELDS="userid"/>
+        <INDEX NAME="status_idx" UNIQUE="false" FIELDS="status"/>
+      </INDEXES>
+    </TABLE>
   </TABLES>
 </XMLDB>
