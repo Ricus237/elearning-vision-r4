@@ -199,5 +199,37 @@ function xmldb_local_skillsaint_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026051101, 'local', 'skillsaint');
     }
 
+    if ($oldversion < 2026051102) {
+        $table = new xmldb_table('local_skillsaint_apps');
+        
+        $field_cust = new xmldb_field('stripe_customer_id', XMLDB_TYPE_CHAR, '255', null, null, null, null, 'is_activated');
+        if (!$dbman->field_exists($table, $field_cust)) {
+            $dbman->add_field($table, $field_cust);
+        }
+
+        $field_pm = new xmldb_field('stripe_payment_method', XMLDB_TYPE_CHAR, '255', null, null, null, null, 'stripe_customer_id');
+        if (!$dbman->field_exists($table, $field_pm)) {
+            $dbman->add_field($table, $field_pm);
+        }
+
+        upgrade_plugin_savepoint(true, 2026051102, 'local', 'skillsaint');
+    }
+
+    if ($oldversion < 2026051103) {
+        $table = new xmldb_table('local_skillsaint_apps');
+        
+        $field_day = new xmldb_field('autopay_day', XMLDB_TYPE_INTEGER, '2', null, XMLDB_NOTNULL, null, '0', 'stripe_payment_method');
+        if (!$dbman->field_exists($table, $field_day)) {
+            $dbman->add_field($table, $field_day);
+        }
+
+        $field_amt = new xmldb_field('autopay_amount', XMLDB_TYPE_NUMBER, '10, 2', null, XMLDB_NOTNULL, null, '0.00', 'autopay_day');
+        if (!$dbman->field_exists($table, $field_amt)) {
+            $dbman->add_field($table, $field_amt);
+        }
+
+        upgrade_plugin_savepoint(true, 2026051103, 'local', 'skillsaint');
+    }
+
     return true;
 }

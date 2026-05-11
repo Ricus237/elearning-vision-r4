@@ -268,8 +268,9 @@ export async function updateProfileDataAction(data: {
 export async function getQuizQuestionsAction(quizId: number) {
   const cookieStore = await cookies();
   const token = cookieStore.get('moodle_token')?.value;
+  const userId = cookieStore.get("moodle_user_id")?.value
   
-  if (!token) return { error: "Vous devez être connecté pour passer l'examen." };
+  if (!token && !userId) return { error: "Vous devez être connecté pour passer l'examen." };
 
   try {
     // Fetch questions and exam metadata in parallel

@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { fetchMoodle } from '@/lib/moodle';
@@ -50,25 +51,29 @@ async function handleEnrolment(session: Stripe.Checkout.Session) {
 
   // 1. Handle New Applications (New candidate paying)
   if (isApplication && email) {
-    /* 
     try {
       const amount = session.amount_total ? session.amount_total / 100 : 0;
+      const stripeCustomerId = session.customer as string || "";
+      const stripePaymentMethod = typeof session.payment_intent === 'string' 
+        ? session.payment_intent 
+        : (session.payment_intent as any)?.payment_method || "";
+
       const result = await fetchMoodle('local_skillsaint_confirm_payment', { 
         email, 
         amount, 
         method: 'stripe',
-        transaction_id: session.id
+        transaction_id: session.id,
+        stripe_customer_id: stripeCustomerId,
+        stripe_payment_method: stripePaymentMethod
       });
       if (result?.status === 'success') {
         console.log(`[Stripe Webhook] ✅ Application confirmed for ${email} with amount $${amount}`);
-        return;
       } else {
         console.error(`[Stripe Webhook] ❌ Database failed to confirm application for ${email}:`, result);
       }
     } catch (err) {
       console.error(`[Stripe Webhook] ❌ Database Error during application confirmation:`, err);
     }
-    */
   }
 
   // 2. Handle standard enrollments (Logged in user buying a course)

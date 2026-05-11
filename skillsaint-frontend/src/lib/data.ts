@@ -311,7 +311,15 @@ export async function saveApplication(
 /**
  * Confirms payment and enrolls user.
  */
-export async function confirmPayment(email: string, amount: number = 0, method: string = "", transactionId: string = "", userId: number = 0) {
+export async function confirmPayment(
+  email: string, 
+  amount: number = 0, 
+  method: string = "", 
+  transactionId: string = "", 
+  userId: number = 0,
+  stripeCustomerId: string = "",
+  stripePaymentMethod: string = ""
+) {
   if (typeof window !== "undefined") {
     try {
       const response = await fetch("/api/moodle", {
@@ -319,7 +327,15 @@ export async function confirmPayment(email: string, amount: number = 0, method: 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           function: "local_skillsaint_confirm_payment", 
-          params: { email, amount, method, transaction_id: transactionId, userid: userId } 
+          params: { 
+            email, 
+            amount, 
+            method, 
+            transaction_id: transactionId, 
+            userid: userId,
+            stripe_customer_id: stripeCustomerId,
+            stripe_payment_method: stripePaymentMethod
+          } 
         }),
       });
       return await response.json();
@@ -335,7 +351,9 @@ export async function confirmPayment(email: string, amount: number = 0, method: 
       amount, 
       method, 
       transaction_id: transactionId,
-      userid: userId
+      userid: userId,
+      stripe_customer_id: stripeCustomerId,
+      stripe_payment_method: stripePaymentMethod
     });
     return result || { status: "error", message: "Empty response" };
   } catch (_e) {
@@ -405,4 +423,26 @@ export async function getCoursesWithCategories(): Promise<{ courses: CourseType[
         getMoodleCategories()
     ]);
     return { courses, categories };
+}
+
+/**
+ * Saves autopay schedule settings.
+ */
+export async function saveAutopaySettings(userid: number, day: number, amount: number) {
+  if (typeof window !== "undefined") {
+    try {
+      const response = await fetch("/api/moodle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          function: "local_skillsaint_save_autopay_settings", 
+          params: { userid, day, amount } 
+        }),
+      });
+      return await response.json();
+    } catch {
+      return { status: 'error', message: 'Connection error' };
+    }
+  }
+  return { status: 'error', message: 'Client-side only' };
 }

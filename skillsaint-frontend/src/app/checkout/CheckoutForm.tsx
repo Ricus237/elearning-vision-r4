@@ -195,7 +195,7 @@ const CheckoutForm = () => {
 
         <div className="mt-12 text-gray-400 text-xs flex items-center gap-3">
           <ShieldCheck className="w-8 h-8 text-green-500 shrink-0" />
-          <p>Secure 256-bit encrypted checkout. Your payment is processed by Stripe or PayPal — we never store your card details.</p>
+          <p>Secure 256-bit encrypted checkout. Your payment is processed by Stripe — we never store your card details.</p>
         </div>
       </div>
 
@@ -232,7 +232,7 @@ const CheckoutForm = () => {
 
         {/* ── Method toggle ── */}
         <div className="flex gap-3 mb-6">
-          <button
+          {/* <button
             type="button"
             onClick={() => setPaymentMethod("paypal")}
             className={`flex-1 py-3 rounded-xl border-2 font-semibold transition-all flex items-center justify-center gap-2 ${
@@ -245,7 +245,7 @@ const CheckoutForm = () => {
               <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.641.641 0 0 1 .632-.54h7.947c1.513 0 2.754.365 3.72 1.082 1.25.928 1.888 2.344 1.888 4.212 0 2.856-1.542 5.33-4.585 5.33h-1.457c-.45 0-.832.312-.911.753l-.033.187-.532 3.007c-.053.298-.314.516-.617.516h-3.926zm12.39-12.016c0-3.328-2.618-4.792-5.746-4.792H5.576L2.61 20.668h3.844l1.292-7.24a.64.64 0 0 1 .632-.527h2.247c3.964 0 7.291-1.74 7.291-3.58z" />
             </svg>
             PayPal
-          </button>
+          </button> */}
           <button
             type="button"
             onClick={() => setPaymentMethod("card")}
@@ -261,7 +261,7 @@ const CheckoutForm = () => {
         </div>
 
         {/* ── PayPal Buttons ── */}
-        {paymentMethod === "paypal" && (
+        {/* {paymentMethod === "paypal" && (
           <div className="space-y-4">
             <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 text-center text-sm text-blue-700 mb-2">
               You&apos;ll be redirected to PayPal&apos;s secure checkout. No account required.
@@ -329,7 +329,7 @@ const CheckoutForm = () => {
         )}
 
         <p className="text-center text-xs text-gray-400 mt-6">
-          By confirming your payment, you agree to our Terms of Service. Payments are processed securely by Stripe or PayPal.
+          By confirming your payment, you agree to our Terms of Service. Payments are processed securely by Stripe.
         </p>
       </div>
     </>

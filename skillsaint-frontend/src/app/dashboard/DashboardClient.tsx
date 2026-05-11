@@ -592,7 +592,7 @@ const DashboardClient = ({
               )}
             </section>
 
-            {/* ── Exams Section ── */}
+            {/* ── Exams Section ──
             {initialData?.exams && initialData.exams.filter(ex => ex.is_authorized === 1).length > 0 && (
               <section className="animate-in fade-in duration-1000 delay-300 pb-24">
                 <div className="flex items-center gap-3 mb-8">
@@ -647,6 +647,7 @@ const DashboardClient = ({
                 </div>
               </section>
             )}
+            */}
           </div>
         </div>
       </main>

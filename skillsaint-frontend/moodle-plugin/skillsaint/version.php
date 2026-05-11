@@ -2,8 +2,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_skillsaint';
-$plugin->version   = 2026051101; // The current plugin version (Date: YYYYMMDDXX).
-$plugin->requires  = 2021051700; // Requires this Moodle version.
-$plugin->component = 'local_skillsaint';
-$plugin->release   = '1.60';
+$plugin->version   = 2026051103;
+$plugin->requires  = 2022111800;
+$plugin->release   = '1.62';
 $plugin->maturity  = MATURITY_ALPHA;

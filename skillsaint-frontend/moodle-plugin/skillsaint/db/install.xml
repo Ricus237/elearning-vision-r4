@@ -19,6 +19,10 @@
         <FIELD NAME="payment_status" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="pending" COMMENT="Status of payment (pending, paid, etc)"/>
         <FIELD NAME="activation_code" TYPE="char" LENGTH="20" NOTNULL="false" COMMENT="Code to activate the account"/>
         <FIELD NAME="is_activated" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" COMMENT="Flag for activation status"/>
+        <FIELD NAME="stripe_customer_id" TYPE="char" LENGTH="255" NOTNULL="false" COMMENT="Stripe Customer ID for autopay"/>
+        <FIELD NAME="stripe_payment_method" TYPE="char" LENGTH="255" NOTNULL="false" COMMENT="Saved Stripe Payment Method ID for autopay"/>
+        <FIELD NAME="autopay_day" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="0" COMMENT="Day of month for autopay (1-28)"/>
+        <FIELD NAME="autopay_amount" TYPE="number" LENGTH="10" DECIMALS="2" NOTNULL="true" DEFAULT="0.00" COMMENT="Fixed amount for recurring autopay"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Timestamp of creation"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Timestamp of last modification"/>
       </FIELDS>

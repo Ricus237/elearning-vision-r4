@@ -19,9 +19,14 @@ import {
   ArrowDownCircle,
   Zap,
   X as CloseIcon,
+  Calendar,
+  Info,
+  Settings2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getUserBilling, requestPlanUpgrade, getMyUpgradeStatus } from "@/lib/moodle";
+import { saveAutopaySettings } from "@/lib/data";
+import { getProfileDataAction } from "@/lib/actions";
+import { getUserBilling, getMyUpgradeStatus, requestPlanUpgrade } from "@/lib/moodle";
 
 interface Transaction {
   id: string;
@@ -37,6 +42,8 @@ interface BillingData {
   amount_paid: number;
   remaining_balance: number;
   transactions: Transaction[];
+  autopay_day?: number;
+  autopay_amount?: number;
 }
 
 interface UpgradeStatus {
@@ -60,6 +67,11 @@ export default function BillingPage() {
   const [upgradeStatus, setUpgradeStatus] = useState<UpgradeStatus | null>(null);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
   const [upgradeMsg, setUpgradeMsg] = useState("");
+  const [autoPay, setAutoPay] = useState(false);
+  const [autoDay, setAutoDay] = useState(1);
+  const [autoAmount, setAutoAmount] = useState(50);
+  const [isSavingAuto, setIsSavingAuto] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -69,13 +81,25 @@ export default function BillingPage() {
         : 0;
 
       if (userId) {
-        const data = await getUserBilling(userId);
-        if (data && !data.error) {
-          setBilling(data);
-          setPayAmount(data.remaining_balance);
+        // Fetch both billing and profile in parallel
+        const [billingData, profileData] = await Promise.all([
+          getUserBilling(userId),
+          getProfileDataAction()
+        ]);
+
+        if (billingData && !billingData.error) {
+          setBilling(billingData);
+          setPayAmount(billingData.remaining_balance);
+          setAutoPay((billingData.autopay_day || 0) > 0);
+          setAutoDay(billingData.autopay_day || 1);
+          setAutoAmount(billingData.autopay_amount || 50);
         } else {
           setBilling(null);
           setPayAmount(0);
+        }
+
+        if (profileData) {
+          setUserProfile(profileData);
         }
       }
       setLoading(false);
@@ -115,6 +139,26 @@ export default function BillingPage() {
       : 0;
   };
 
+  const handleToggleAutoPay = async (enabled: boolean) => {
+    const userId = getUserId();
+    if (!userId) return;
+    setIsSavingAuto(true);
+    const day = enabled ? autoDay : 0;
+    const result = await saveAutopaySettings(userId, day, autoAmount);
+    if (result.status === "success") {
+      setAutoPay(enabled);
+    }
+    setIsSavingAuto(false);
+  };
+
+  const handleUpdateAutoSettings = async () => {
+    const userId = getUserId();
+    if (!userId) return;
+    setIsSavingAuto(true);
+    await saveAutopaySettings(userId, autoPay ? autoDay : 0, autoAmount);
+    setIsSavingAuto(false);
+  };
+
   const handleUpgradeRequest = async (targetPlan: string) => {
     const userId = getUserId();
     if (!userId) return;
@@ -137,6 +181,11 @@ export default function BillingPage() {
     setError("");
 
     try {
+      const appUrl = typeof window !== "undefined" ? window.location.origin : "";
+      const userId = getUserId();
+      const email = userProfile?.email || "";
+      const name = userProfile?.fullname || "";
+
       const response = await fetch("/api/stripe/create-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -145,10 +194,14 @@ export default function BillingPage() {
           plan: billing?.plan_name.toLowerCase(),
           amount: payAmount,
           currency: "USD",
-          userId: document.cookie.split("; ").find(row => row.startsWith("moodle_user_id="))?.split("=")[1],
-          email: document.cookie.split("; ").find(row => row.startsWith("user_email="))?.split("=")[1],
+          userId: userId,
+          email: email,
+          name: name,
           courseTitle: `Solde - ${billing?.plan_name}`,
-          paymentType: "billing"
+          paymentType: "billing",
+          savePaymentMethod: autoPay, // Save card for future autopay
+          successUrl: `${appUrl}/success?session_id={CHECKOUT_SESSION_ID}&paymentType=billing&method=stripe`,
+          cancelUrl: `${appUrl}/dashboard/billing`,
         }),
       });
 
@@ -267,6 +320,96 @@ export default function BillingPage() {
                           {isProcessing ? "Processing..." : "Pay Now"}
                         </button>
                       </div>
+
+                      {/* Autopay Toggle */}
+                      <div className="flex items-center justify-between p-4 bg-white/50 rounded-2xl border border-purple-100/50">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center text-purple-600">
+                            <Zap size={14} />
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black text-purple-900 uppercase tracking-widest">Enable Autopay</p>
+                            <p className="text-[8px] text-purple-400 font-bold uppercase">Save card for future installments</p>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={() => handleToggleAutoPay(!autoPay)}
+                          disabled={isSavingAuto}
+                          className={`relative w-12 h-6 rounded-full transition-colors duration-300 focus:outline-none ${autoPay ? 'bg-purple-600' : 'bg-gray-200'}`}
+                        >
+                          <motion.div 
+                            animate={{ x: autoPay ? 24 : 4 }}
+                            className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm"
+                          />
+                        </button>
+                      </div>
+
+                      {/* Autopay Detailed Settings */}
+                      <AnimatePresence>
+                        {autoPay && (
+                          <motion.div 
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden space-y-4"
+                          >
+                            <div className="grid grid-cols-2 gap-4 pt-2">
+                              <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Payment Day</label>
+                                <div className="relative group">
+                                  <div className="absolute inset-y-0 left-4 flex items-center text-gray-400 group-focus-within:text-purple-600 transition-colors">
+                                    <Calendar size={14} />
+                                  </div>
+                                  <select 
+                                    value={autoDay}
+                                    onChange={(e) => {
+                                      setAutoDay(parseInt(e.target.value));
+                                      // Save immediately or let user click 'Save'
+                                    }}
+                                    className="w-full h-14 pl-12 pr-4 bg-white rounded-2xl border border-gray-100 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-purple-600/20 focus:border-purple-600 transition-all appearance-none"
+                                  >
+                                    {[...Array(28)].map((_, i) => (
+                                      <option key={i+1} value={i+1}>Day {i+1} of month</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Installment ($)</label>
+                                <div className="relative group">
+                                  <div className="absolute inset-y-0 left-4 flex items-center text-gray-400 group-focus-within:text-purple-600 transition-colors">
+                                    <TrendingUp size={14} />
+                                  </div>
+                                  <input 
+                                    type="number"
+                                    value={autoAmount}
+                                    onChange={(e) => setAutoAmount(parseFloat(e.target.value))}
+                                    className="w-full h-14 pl-12 pr-4 bg-white rounded-2xl border border-gray-100 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-purple-600/20 focus:border-purple-600 transition-all"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            <button 
+                              onClick={handleUpdateAutoSettings}
+                              disabled={isSavingAuto}
+                              className="w-full py-3 bg-purple-50 text-purple-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-purple-100 transition-all flex items-center justify-center gap-2"
+                            >
+                              {isSavingAuto ? <Loader2 className="w-3 h-3 animate-spin" /> : <Settings2 size={12} />}
+                              Update Autopay Schedule
+                            </button>
+
+                            <div className="p-4 bg-gray-50 rounded-2xl flex gap-3">
+                              <Info className="text-gray-400 shrink-0" size={16} />
+                              <p className="text-[9px] text-gray-500 font-medium leading-relaxed">
+                                Your balance will be charged <span className="font-bold text-gray-900">${autoAmount}</span> on the <span className="font-bold text-gray-900">{autoDay}th</span> of every month until your program is fully paid.
+                              </p>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
                       {error && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest text-center">{error}</p>}
                     </div>
                   ) : (

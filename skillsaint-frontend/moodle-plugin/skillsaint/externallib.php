@@ -74,10 +74,12 @@ class local_skillsaint_external extends external_api
             'method' => new external_value(PARAM_TEXT, 'Payment method', VALUE_DEFAULT, ''),
             'transaction_id' => new external_value(PARAM_TEXT, 'External transaction ID', VALUE_DEFAULT, ''),
             'userid' => new external_value(PARAM_INT, 'Optional Moodle User ID', VALUE_DEFAULT, 0),
+            'stripe_customer_id' => new external_value(PARAM_TEXT, 'Stripe Customer ID', VALUE_DEFAULT, ''),
+            'stripe_payment_method' => new external_value(PARAM_TEXT, 'Stripe Payment Method', VALUE_DEFAULT, ''),
         ));
     }
 
-    public static function confirm_payment($email, $amount = 0, $method = '', $transaction_id = '', $userid = 0)
+    public static function confirm_payment($email, $amount = 0, $method = '', $transaction_id = '', $userid = 0, $stripe_customer_id = '', $stripe_payment_method = '')
     {
         global $DB, $CFG;
         $email = strtolower(trim($email));
@@ -96,6 +98,14 @@ class local_skillsaint_external extends external_api
 
         if (!$app) {
             throw new invalid_parameter_exception('No application found for this identifier.');
+        }
+
+        // Save Stripe info if provided (for autopay)
+        if (!empty($stripe_customer_id)) {
+            $app->stripe_customer_id = $stripe_customer_id;
+        }
+        if (!empty($stripe_payment_method)) {
+            $app->stripe_payment_method = $stripe_payment_method;
         }
 
         // 2. Record the payment if provided
@@ -3204,7 +3214,10 @@ class local_skillsaint_external extends external_api
             'total_price' => $total_price,
             'amount_paid' => $amount_paid,
             'remaining_balance' => max(0, $total_price - $amount_paid),
-            'transactions' => $transactions
+            'transactions' => $transactions,
+            'autopay_day' => (int) $app->autopay_day,
+            'autopay_amount' => (float) $app->autopay_amount,
+            'has_payment_method' => !empty($app->stripe_payment_method) ? 1 : 0,
         );
     }
 
@@ -3224,6 +3237,45 @@ class local_skillsaint_external extends external_api
                     'status' => new external_value(PARAM_TEXT, 'Status'),
                 ))
             ),
+            'autopay_day' => new external_value(PARAM_INT, 'Autopay day'),
+            'autopay_amount' => new external_value(PARAM_FLOAT, 'Autopay amount'),
+            'has_payment_method' => new external_value(PARAM_INT, '1 if saved'),
+        ));
+    }
+
+    /**
+     * Save autopay settings.
+     */
+    public static function save_autopay_settings_parameters()
+    {
+        return new external_function_parameters(array(
+            'userid' => new external_value(PARAM_INT, 'The Moodle user ID'),
+            'day' => new external_value(PARAM_INT, 'Day of month (0 to disable, 1-28 to enable)'),
+            'amount' => new external_value(PARAM_FLOAT, 'Monthly amount'),
+        ));
+    }
+
+    public static function save_autopay_settings($userid, $day, $amount)
+    {
+        global $DB;
+        $app = $DB->get_record('local_skillsaint_apps', array('userid' => $userid));
+        if (!$app) {
+            return array('status' => 'error', 'message' => 'No application found');
+        }
+
+        $app->autopay_day = $day;
+        $app->autopay_amount = $amount;
+        $app->timemodified = time();
+        $DB->update_record('local_skillsaint_apps', $app);
+
+        return array('status' => 'success');
+    }
+
+    public static function save_autopay_settings_returns()
+    {
+        return new external_single_structure(array(
+            'status' => new external_value(PARAM_TEXT, 'success or error'),
+            'message' => new external_value(PARAM_TEXT, 'Status message', VALUE_DEFAULT, ''),
         ));
     }
 

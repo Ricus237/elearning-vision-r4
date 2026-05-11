@@ -37,7 +37,7 @@ function SuccessContent() {
 
       setUserEmail(email);
       
-      if (email && isApplication) {
+      if (email && (isApplication || paymentType === "billing")) {
         // Call API route directly instead of importing server-side code
         let res;
         try {

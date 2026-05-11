@@ -184,7 +184,7 @@ const ApplyForm = ({
     const normalizedEmail = (merged.email || "").trim().toLowerCase();
     if (normalizedEmail) {
       localStorage.setItem("pending_application_email", normalizedEmail);
-      
+
       // Save in background to Moodle at every step
       saveApplication(
         { ...merged, email: normalizedEmail },
@@ -217,6 +217,8 @@ const ApplyForm = ({
       const match = document.cookie.match(/moodle_user_id=([^;]+)/);
       const userId = match ? match[1] : "";
 
+      const appUrl = typeof window !== "undefined" ? window.location.origin : "";
+
       const res = await fetch("/api/stripe/create-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -228,7 +230,10 @@ const ApplyForm = ({
           currency: "USD",
           userId,
           email: collectedData.email, // Passing email for new user activation
+          name: collectedData.name,   // Passing real name
           courseTitle: currentPlan.label,
+          successUrl: `${appUrl}/success?session_id={CHECKOUT_SESSION_ID}&isApplication=true&method=stripe`,
+          cancelUrl: `${appUrl}/apply`,
         }),
       });
 
@@ -368,7 +373,7 @@ const ApplyForm = ({
             <div>
               <label className={LABEL}>Baptism <span className="text-red-500"></span></label>
               <div className="grid grid-cols-2 gap-2 mt-1">
-              <label className="flex items-center justify-center gap-2 py-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer text-sm font-bold transition-all has-[:checked]:bg-purple-600 has-[:checked]:text-white has-[:checked]:border-purple-600 shadow-sm">
+                <label className="flex items-center justify-center gap-2 py-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer text-sm font-bold transition-all has-[:checked]:bg-purple-600 has-[:checked]:text-white has-[:checked]:border-purple-600 shadow-sm">
                   <input type="checkbox" name="baptism-water" className="hidden" defaultChecked={collectedData['baptism-water'] === 'on'} /> Water
                 </label>
                 <label className="flex items-center justify-center gap-2 py-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer text-sm font-bold transition-all has-[:checked]:bg-purple-600 has-[:checked]:text-white has-[:checked]:border-purple-600 shadow-sm">
@@ -379,7 +384,7 @@ const ApplyForm = ({
           </div>
           <div>
             <label className={LABEL}>Ministry experience <span className="text-red-500"></span></label>
-            <textarea  name="ministry_experience" rows={2} className={INPUT} placeholder="Prayer, Bible study, ministry roles..." defaultValue={collectedData.ministry_experience} />
+            <textarea name="ministry_experience" rows={2} className={INPUT} placeholder="Prayer, Bible study, ministry roles..." defaultValue={collectedData.ministry_experience} />
           </div>
           <div>
             <label className={LABEL}>Church involvement</label>
@@ -413,13 +418,13 @@ const ApplyForm = ({
             <div className="grid grid-cols-2 gap-2">
               {["Scripture", "Presence", "Gifts & Fruit", "Wisdom"].map((area) => (
                 <label key={area} className="flex items-center gap-2 px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer text-[13px] font-bold has-[:checked]:bg-purple-50 has-[:checked]:border-purple-500 has-[:checked]:text-purple-700 transition-all shadow-sm">
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     defaultValue={"Scripture"}
-                    name={`growth-area-${area}`} 
-                    value="on" 
-                    className="size-4 accent-purple-600" 
-                    defaultChecked={collectedData[`growth-area-${area}`] === 'on'} 
+                    name={`growth-area-${area}`}
+                    value="on"
+                    className="size-4 accent-purple-600"
+                    defaultChecked={collectedData[`growth-area-${area}`] === 'on'}
                   /> {area}
                 </label>
               ))}
@@ -461,11 +466,10 @@ const ApplyForm = ({
           {plans.map((plan) => (
             <label
               key={plan.id}
-              className={`relative flex items-center justify-between p-5 rounded-2xl border-2 cursor-pointer transition-all overflow-hidden ${
-                selectedPlan === plan.id
-                  ? plan.activeColor + " bg-white shadow-md"
-                  : "border-slate-100 bg-slate-50/30 hover:border-purple-100"
-              }`}
+              className={`relative flex items-center justify-between p-5 rounded-2xl border-2 cursor-pointer transition-all overflow-hidden ${selectedPlan === plan.id
+                ? plan.activeColor + " bg-white shadow-md"
+                : "border-slate-100 bg-slate-50/30 hover:border-purple-100"
+                }`}
             >
               <input
                 type="radio"
@@ -479,9 +483,8 @@ const ApplyForm = ({
 
               <div className="flex items-center gap-4 relative z-10">
                 <div
-                  className={`size-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                    selectedPlan === plan.id ? "border-purple-600 bg-purple-600" : "border-slate-300"
-                  }`}
+                  className={`size-6 rounded-full border-2 flex items-center justify-center transition-colors ${selectedPlan === plan.id ? "border-purple-600 bg-purple-600" : "border-slate-300"
+                    }`}
                 >
                   {selectedPlan === plan.id && <div className="size-2.5 rounded-full bg-white" />}
                 </div>
@@ -623,14 +626,14 @@ const ApplyForm = ({
         {/* Custom Amount Input */}
         <div className="p-6 bg-slate-50 border-2 border-slate-100 rounded-[2rem] space-y-4">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="font-black text-slate-800 uppercase tracking-widest text-xs">Verser un montant spécifique</h3>
+            <h3 className="font-black text-slate-800 uppercase tracking-widest text-xs">Pay a specific amount</h3>
             <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-[10px] font-black uppercase">Balance: ${currentPlan.price}</span>
           </div>
           <div className="relative">
             <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-black text-slate-400">$</span>
             <input
               type="number"
-              min={10}
+              min={currentPlan.price / 2}
               max={currentPlan.price}
               value={customAmount || ""}
               onChange={(e) => setCustomAmount(Math.min(currentPlan.price, Math.max(0, Number(e.target.value))))}
@@ -638,7 +641,7 @@ const ApplyForm = ({
               placeholder="0.00"
             />
           </div>
-          <p className="text-[10px] text-slate-400 font-bold uppercase text-center">Indiquez le montant que vous souhaitez payer aujourd'hui.</p>
+          <p className="text-[10px] text-slate-400 font-bold uppercase text-center">Enter the amount you wish to pay today.</p>
         </div>
 
         {/* Payment Method Selector */}
@@ -651,9 +654,8 @@ const ApplyForm = ({
             <button
               type="button"
               onClick={() => setPaymentMethod("card")}
-              className={`flex-1 p-5 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 ${
-                paymentMethod === "card" ? "border-purple-600 bg-purple-50" : "border-slate-100 hover:border-purple-100"
-              }`}
+              className={`flex-1 p-5 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 ${paymentMethod === "card" ? "border-purple-600 bg-purple-50" : "border-slate-100 hover:border-purple-100"
+                }`}
             >
               <Lock size={24} className={paymentMethod === "card" ? "text-purple-600" : "text-slate-300"} />
               <span className={`font-black uppercase text-xs tracking-widest ${paymentMethod === "card" ? "text-purple-900" : "text-slate-500"}`}>
@@ -661,12 +663,11 @@ const ApplyForm = ({
               </span>
             </button>
 
-            <button
+            {/* <button
               type="button"
               onClick={() => setPaymentMethod("paypal")}
-              className={`flex-1 p-5 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 ${
-                paymentMethod === "paypal" ? "border-blue-500 bg-blue-50" : "border-slate-100 hover:border-blue-100"
-              }`}
+              className={`flex-1 p-5 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 ${paymentMethod === "paypal" ? "border-blue-500 bg-blue-50" : "border-slate-100 hover:border-blue-100"
+                }`}
             >
               <div className={paymentMethod === "paypal" ? "text-blue-600" : "text-slate-300"}>
                 <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
@@ -676,7 +677,7 @@ const ApplyForm = ({
               <span className={`font-black uppercase text-xs tracking-widest ${paymentMethod === "paypal" ? "text-blue-900" : "text-slate-500"}`}>
                 PayPal
               </span>
-            </button>
+            </button> */}
           </div>
 
           {/* Dynamic Action Zone */}

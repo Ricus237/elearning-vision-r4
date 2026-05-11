@@ -25,4 +25,11 @@ if ($hassiteconfig) {
     $settings->add(new admin_setting_configtext('local_skillsaint/programs_floating_badge_1', 'Programs: Card 1 Title', '', 'Academic Excellence'));
     $settings->add(new admin_setting_configtext('local_skillsaint/programs_floating_subtitle_1', 'Programs: Card 1 Subtitle', '', 'Rigorous Study'));
     $settings->add(new admin_setting_configtext('local_skillsaint/programs_floating_badge_2', 'Programs: Card 2 Title', '', 'Certified Curriculum'));
+
+    // Stripe & Billing Settings
+    $settings->add(new admin_setting_heading('local_skillsaint/billing_header', 'Billing & Stripe Settings', 'Configure autopay and pricing'));
+    $settings->add(new admin_setting_configtext('local_skillsaint/stripe_secret_key', 'Stripe Secret Key', 'Your sk_live_... or sk_test_... key', '', PARAM_RAW));
+    $settings->add(new admin_setting_configtext('local_skillsaint/price_standard', 'Standard Plan Price', 'Total amount in USD', '299'));
+    $settings->add(new admin_setting_configtext('local_skillsaint/price_premium', 'Premium Plan Price', 'Total amount in USD', '499'));
+    $settings->add(new admin_setting_configtext('local_skillsaint/price_executive', 'Executive Plan Price', 'Total amount in USD', '999'));
 }

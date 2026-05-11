@@ -436,6 +436,14 @@ $functions = array(
         'type'        => 'read',
         'ajax'        => true,
     ),
+    'local_skillsaint_save_autopay_settings' => array(
+        'classname'   => 'local_skillsaint_external',
+        'methodname'  => 'save_autopay_settings',
+        'classpath'   => 'local/skillsaint/externallib.php',
+        'description' => 'Student: save autopay schedule settings',
+        'type'        => 'write',
+        'ajax'        => true,
+    ),
 );
 
 $services = array(
@@ -486,6 +494,7 @@ $services = array(
             'local_skillsaint_approve_upgrade',
             'local_skillsaint_reject_upgrade',
             'local_skillsaint_get_my_upgrade_status',
+            'local_skillsaint_save_autopay_settings',
         ),
         'restrictedusers' => 0,
         'enabled' => 1,
