@@ -32,6 +32,7 @@ class autopay_task extends \core\task\scheduled_task {
             }
 
             if (empty($app->stripe_customer_id) || empty($app->stripe_payment_method)) {
+                mtrace("Autopay: Skipping User ID {$app->userid} (Missing Stripe Customer ID or Payment Method).");
                 continue;
             }
 

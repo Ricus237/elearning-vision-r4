@@ -123,6 +123,7 @@ class local_skillsaint_external extends external_api
 
         // 3. If already activated, we are done (subsequent payment)
         if ($app->is_activated == 1) {
+            $DB->update_record('local_skillsaint_apps', $app);
             return array(
                 'status' => 'success',
                 'user_id' => (int) $app->userid,
